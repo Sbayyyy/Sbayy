@@ -1,0 +1,81 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: sbay-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sbay
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sbay-network
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: sbay-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    networks:
+      - sbay-network
+
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    container_name: sbay-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: sbay
+      DB_USER: postgres
+      DB_PASSWORD: postgres_password
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      JWT_REFRESH_SECRET: dev_refresh_secret_change_in_production
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./apps/api:/app/apps/api
+      - /app/node_modules
+    networks:
+      - sbay-network
+
+  # Web Application
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    container_name: sbay-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/web:/app/apps/web
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - sbay-network
+
+volumes:
+  postgres_data:
+
+networks:
+  sbay-network:
+    driver: bridge
