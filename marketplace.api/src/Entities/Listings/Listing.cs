@@ -1,31 +1,64 @@
 
+
 namespace SBay.Domain.Entities
 {
-    //TODO: Implement This Class
-    public class Listing : IItem
+
+    public class Listing :
+     IItem, IPriced, IInventoried, IMediaThumb, ICategorized, IConditioned, ITimestamps
     {
-        public Guid Id => throw new NotImplementedException();
+        public Guid Id { get; private set; } = Guid.NewGuid();
+        public Guid SellerId { get; private set; }
 
-        public Guid SellerId => throw new NotImplementedException();
+        public string Title { get; private set; } = "";
+        public string Description { get; private set; } = "";
 
-        public string Title => throw new NotImplementedException();
+        public ValueObjects.Money Price { get; private set; }
+        public ValueObjects.Money? OriginalPrice { get; private set; }
 
-        public string Description => throw new NotImplementedException();
+        public int StockQuantity { get; private set; }
+        public string? ThumbnailUrl { get; private set; }
+        public string? CategoryPath { get; private set; }
+        public ItemCondition Condition { get; private set; } = ItemCondition.Unknown;
 
-        public Money Price => throw new NotImplementedException();
+        public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; private set; }
 
-        public Money? OriginalPrice => throw new NotImplementedException();
+        private Listing() { } // EF/serializer
 
-        public ItemCondition Condition => throw new NotImplementedException();
+        public Listing(Guid sellerId, string title, string desc, ValueObjects.Money price,
+                       int stock = 0, ItemCondition condition = ItemCondition.New,
+                       string? thumb = null, string? categoryPath = null,
+                       ValueObjects.Money? original = null)
+        {
+            if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException(nameof(title));
+            if (stock < 0) throw new ArgumentOutOfRangeException(nameof(stock));
 
-        public string? CategoryPath => throw new NotImplementedException();
+            SellerId = sellerId;
+            Title = title;
+            Description = desc ?? "";
+            Price = price;
+            OriginalPrice = original;
+            StockQuantity = stock;
+            Condition = condition;
+            ThumbnailUrl = thumb;
+            CategoryPath = categoryPath;
+        }
 
-        public int StockQuantity => throw new NotImplementedException();
+        // Domain methods (enforce invariants)
+        public void ChangePrice(ValueObjects.Money newPrice, ValueObjects.Money? was = null)
+        {
+            Price = newPrice;
+            OriginalPrice = was;
+            UpdatedAt = DateTime.UtcNow;
+        }
 
-        public string? ThumbnailUrl => throw new NotImplementedException();
-
-        public DateTime CreatedAt => throw new NotImplementedException();
-
-        public DateTime? UpdatedAt => throw new NotImplementedException();
+        public void AdjustStock(int delta)
+        {
+            var next = StockQuantity + delta;
+            if (next < 0) throw new InvalidOperationException("Insufficient stock.");
+            StockQuantity = next;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
+
 }
