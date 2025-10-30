@@ -258,7 +258,8 @@ Contributions are welcome! Please read our contributing guidelines first.
 
 ## 📄 الترخيص | License
 
-This project is licensed under the MIT License.
+This project is released under a custom **Non-Commercial License**.
+See the [LICENSE](LICENSE) file for details.
 
 ## 👥 الفريق | Team
 
