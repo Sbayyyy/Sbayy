@@ -1,8 +1,8 @@
 
 namespace SBay.Domain.Database
 {
-    public interface ICartRepository : IReadStore<Entities.Cart>, IWriteStore<Entities.Cart>
+    public interface ICartRepository : IReadStore<Entities.ShoppingCart>, IWriteStore<Entities.ShoppingCart>
     {
-        Task<Entities.Cart?> GetByUserIdAsync(Guid userId, CancellationToken ct);
+        Task<Entities.ShoppingCart?> GetByUserIdAsync(Guid userId, CancellationToken ct);
     }
 }
