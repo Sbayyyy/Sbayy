@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { AppError } from '../middleware/errorHandler';
+import { query } from '../db';
 
 const router = Router();
 
@@ -33,19 +34,26 @@ router.post(
         throw new AppError('Validation failed', 400);
       }
 
-      const { email, password, name } = req.body;
+      const { email, password, name, phone } = req.body;
 
-      // TODO: Check if user exists in database
-      // TODO: Hash password and save user to database
+      // Check if user already exists
+      const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
+      if (existingUser.rows.length > 0) {
+        throw new AppError('User with this email already exists', 409);
+      }
+
+      // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
 
-      // Mock user creation
-      const user = {
-        id: '123',
-        email,
-        name,
-        password: hashedPassword,
-      };
+      // Insert user into database
+      const result = await query(
+        `INSERT INTO users (email, password_hash, name, phone) 
+         VALUES ($1, $2, $3, $4) 
+         RETURNING id, email, name, phone, created_at`,
+        [email, hashedPassword, name, phone || null]
+      );
+
+      const user = result.rows[0];
 
       const jwtSecret = process.env.JWT_SECRET || 'default_secret';
       const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'default_refresh_secret';
@@ -64,6 +72,8 @@ router.post(
             id: user.id,
             email: user.email,
             name: user.name,
+            phone: user.phone,
+            createdAt: user.created_at,
           },
           token,
           refreshToken,
@@ -87,18 +97,21 @@ router.post('/login', validateLogin, async (req: Request, res: Response, next: N
       throw new AppError('Validation failed', 400);
     }
 
-    const { password } = req.body;
+    const { email, password } = req.body;
 
-    // TODO: Fetch user from database
-    // Mock user
-    const user = {
-      id: '123',
-      email: 'test@example.com',
-      name: 'Test User',
-      password: await bcrypt.hash('password123', 12),
-    };
+    // Fetch user from database
+    const result = await query('SELECT id, email, name, password_hash FROM users WHERE email = $1', [
+      email,
+    ]);
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (result.rows.length === 0) {
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    const user = result.rows[0];
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       throw new AppError('Invalid credentials', 401);
     }

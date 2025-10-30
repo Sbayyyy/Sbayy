@@ -57,6 +57,7 @@ app.get('/health', (_req: Request, res: Response) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    message: 'shgal habib'
   });
 });
 

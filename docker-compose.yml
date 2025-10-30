@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres_password
     ports:
-      - '5432:5432'
+      - '7070:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -39,10 +39,10 @@ services:
       NODE_ENV: development
       PORT: 3001
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: 7070
       DB_NAME: sbay
-      DB_USER: postgres
-      DB_PASSWORD: postgres_password
+      DB_USER: root
+      DB_PASSWORD: admin
       JWT_SECRET: dev_jwt_secret_change_in_production
       JWT_REFRESH_SECRET: dev_refresh_secret_change_in_production
     ports:
