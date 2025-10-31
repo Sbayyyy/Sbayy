@@ -47,7 +47,7 @@ export default function Register() {
             newErrors.password = passwordError;
 
         }else if (!formData.password) {
-            newErrors.password = 'كلمة المرور مطلوب';
+            newErrors.password = 'كلمة المرور مطلوبة';
             }
         // Confirm password validation
         if (!formData.confirmPassword) {
