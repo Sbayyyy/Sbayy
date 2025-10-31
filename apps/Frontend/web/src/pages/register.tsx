@@ -51,7 +51,7 @@ export default function Register() {
             }
         // Confirm password validation
         if (!formData.confirmPassword) {
-            newErrors.confirmPassword = 'تأكيد كلمة المرور مطلوب';
+            newErrors.confirmPassword = 'تأكيد كلمة المرور مطلوبة';
         } else if (!passwordsMatch(formData.password, formData.confirmPassword)) {
             newErrors.confirmPassword = 'كلمات المرور غير متطابقة';
         }
