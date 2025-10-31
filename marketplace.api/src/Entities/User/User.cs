@@ -45,7 +45,7 @@ namespace SBay.Domain.Entities
         public ICollection<ShoppingList<Listing>> ShoppingLists
             = new List<ShoppingList<Listing>>();
 
-        public Cart Cart { get; private set; } = new();
+        public ShoppingCart Cart { get; private set; } = new();
 
         [JsonIgnore]
         public static readonly JsonSerializerOptions DefaultJsonOptions = new()
