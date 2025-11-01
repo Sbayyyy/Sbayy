@@ -1,6 +1,7 @@
 -- Initial schema snapshot for Sbay
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
@@ -9,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   phone TEXT,
   role TEXT NOT NULL DEFAULT 'user',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  last_seen TIMESTAMPTZ
+  last_seen TIMESTAMPTZ,
+  is_seller BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -64,6 +66,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
   listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
   quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
   price_at_added NUMERIC(12,2) NOT NULL CHECK (price_at_added >= 0),
+  currency VARCHAR(8) NOT NULL DEFAULT 'SYP',
   PRIMARY KEY (cart_id, listing_id)
 );
 

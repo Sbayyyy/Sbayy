@@ -1,9 +1,7 @@
 BEGIN;
 
--- needed for gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- demo categories (idempotent)
 INSERT INTO categories (name) VALUES
   ('Electronics'),
   ('Home'),
