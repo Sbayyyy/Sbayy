@@ -1,0 +1,10 @@
+"schemaname","tablename","tableowner","tablespace","hasindexes","hasrules","hastriggers","rowsecurity"
+"public","carts","myuser",NULL,True,False,True,False
+"public","users","myuser",NULL,True,False,True,False
+"public","listings","myuser",NULL,True,False,True,False
+"public","categories","myuser",NULL,True,False,True,False
+"public","listing_images","myuser",NULL,True,False,True,False
+"public","messages","myuser",NULL,True,False,True,False
+"public","cart_items","myuser",NULL,True,False,True,False
+"public","orders","myuser",NULL,True,False,True,False
+"public","order_items","myuser",NULL,True,False,True,False
