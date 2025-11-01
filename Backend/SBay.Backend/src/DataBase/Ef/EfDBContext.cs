@@ -4,6 +4,7 @@ using Listing = SBay.Domain.Entities.Listing;
 using Money = SBay.Domain.ValueObjects.Money;
 using ShoppingCart = SBay.Domain.Entities.ShoppingCart;
 using User = SBay.Domain.Entities.User;
+using Category= SBay.Domain.Entities.Category;
 
 namespace SBay.Domain.Database
 {
@@ -15,6 +16,7 @@ namespace SBay.Domain.Database
         public DbSet<User> Users => Set<User>();
         public DbSet<Listing> Listings => Set<Listing>();
         public DbSet<ShoppingCart> Carts => Set<ShoppingCart>();
+        public DbSet<Category> Categories => Set<Category>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -76,6 +78,7 @@ namespace SBay.Domain.Database
 
                 e.HasIndex(x => x.SellerId).HasDatabaseName("idx_listings_seller");
             });
+            modelBuilder.Entity<Listing>().Property<NpgsqlTypes.NpgsqlTsVector>("SearchVec").HasColumnName("search_vector").HasColumnType("tsvector");
 
             modelBuilder.Entity<ShoppingCart>(e =>
             {
