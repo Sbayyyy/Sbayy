@@ -65,7 +65,7 @@ export default function Register() {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: sanitizeInput(value)
+            [name]: value
         }));
 
         // Clear error when user starts typing
