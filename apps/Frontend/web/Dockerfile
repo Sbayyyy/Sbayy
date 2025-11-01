@@ -7,7 +7,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-COPY apps/web/package.json ./apps/web/
+COPY apps/Frontend/web/package.json ./apps/Frontend/web/
 COPY packages/shared/package.json ./packages/shared/
 
 RUN npm ci
