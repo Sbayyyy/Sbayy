@@ -31,7 +31,7 @@ export default function Register() {
     const [apiError, setApiError] = useState('');
     
     const validateForm = (): boolean => {
-        const newErrors: any = { ...errors };
+        const newErrors: typeof errors = {};
         // Username validation
         const userNameError = getUsernameValidationMessage(sanitizeInput(formData.username));
         if(userNameError) newErrors.username = userNameError;
@@ -62,7 +62,7 @@ export default function Register() {
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value} = e.target;
+        const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: sanitizeInput(value)

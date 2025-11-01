@@ -13,7 +13,7 @@ export default function Login() {
     const router = useRouter();
   
     const validateForm = (): boolean => {
-        const newErrors: { email: string; password: string } = { email: '', password: '' };
+        const newErrors = { email: '', password: '' };
         if(!email){
             newErrors.email = 'عنوان البريد الإلكتروني مطلوب';
         } else if (!isValidEmail(email)) {
@@ -120,7 +120,7 @@ export default function Login() {
                   كلمة المرور
                 </label>
                 <div className="text-sm">
-                  <a href="forget_password" className="font-semibold text-indigo-400 hover:text-indigo-300">
+                  <a href="forgetPassword" className="font-semibold text-indigo-400 hover:text-indigo-300">
                     نسيت كلمة المرور؟
                   </a>
                 </div>
