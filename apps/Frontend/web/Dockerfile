@@ -23,7 +23,7 @@ RUN npm run build --workspace=packages/shared
 
 # Build Next.js app
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build --workspace=apps/web
+RUN npm run build --workspace=apps/Frontend/web
 
 # Production image
 FROM base AS runner
