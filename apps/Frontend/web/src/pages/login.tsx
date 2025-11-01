@@ -34,6 +34,7 @@ export default function Login() {
         setIsLoading(true);
         setApiError('');
         try {
+          //TODO: change the URL to the correct backend endpoint
             const response = await fetch('http://localhost:5000/api/auth/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},

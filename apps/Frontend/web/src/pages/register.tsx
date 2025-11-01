@@ -20,7 +20,7 @@ export default function Register() {
         confirmPassword: ''
     });
 
-    const [errors,setErrors] = useState<{
+    const [errors, setErrors] = useState<{
         username?: string,
         email?: string,
         phone?: string,
@@ -30,8 +30,8 @@ export default function Register() {
     const [isLoading, setIsLoading] = useState(false);
     const [apiError, setApiError] = useState('');
     
-    const validateForm = (): boolean =>{
-        const newErrors: any = {};
+    const validateForm = (): boolean => {
+        const newErrors: any = { ...errors };
         // Username validation
         const userNameError = getUsernameValidationMessage(sanitizeInput(formData.username));
         if(userNameError) newErrors.username = userNameError;
@@ -82,6 +82,7 @@ export default function Register() {
         setApiError('');
 
         try{
+          //TODO: change the URL to the correct backend endpoint
             const response = await fetch('http://localhost:5000/api/auth/register', {
                 method: 'POST',
                 headers: {
