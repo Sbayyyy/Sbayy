@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getEmailValidationMessage, sanitizeInput } from '@sbay/shared';
 
-export default function ForgetPassword() {
+export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
