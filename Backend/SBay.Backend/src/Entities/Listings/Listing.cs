@@ -22,13 +22,14 @@ namespace SBay.Domain.Entities
 
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; private set; }
+        public string Region{get; private set;} = "";
 
         private Listing() { } // EF/serializer
 
         public Listing(Guid sellerId, string title, string desc, ValueObjects.Money price,
                        int stock = 0, ItemCondition condition = ItemCondition.New,
                        string? thumb = null, string? categoryPath = null,
-                       ValueObjects.Money? original = null)
+                       ValueObjects.Money? original = null, string? region = null)
         {
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException(nameof(title));
             if (stock < 0) throw new ArgumentOutOfRangeException(nameof(stock));
@@ -42,6 +43,10 @@ namespace SBay.Domain.Entities
             Condition = condition;
             ThumbnailUrl = thumb;
             CategoryPath = categoryPath;
+            Region= region;
+            UpdatedAt = DateTime.UtcNow;
+            CreatedAt = DateTime.UtcNow;
+            
         }
 
         // Domain methods (enforce invariants)
