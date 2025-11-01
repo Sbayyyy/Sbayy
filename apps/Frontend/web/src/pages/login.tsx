@@ -49,7 +49,7 @@ export default function Login() {
             if (!response.ok) {
                 setApiError(data.message || 'حدث خطأ أثناء تسجيل الدخول');
             } else {
-                // Erfolgreich eingeloggt, weiterleiten
+                // Successfully logged in, redirecting
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 router.push('/');

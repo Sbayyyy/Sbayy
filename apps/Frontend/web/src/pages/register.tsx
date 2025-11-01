@@ -47,11 +47,11 @@ export default function Register() {
             newErrors.password = passwordError;
 
         }else if (!formData.password) {
-            newErrors.password = 'كلمة المرور مطلوب';
+            newErrors.password = 'كلمة المرور مطلوبة';
             }
         // Confirm password validation
         if (!formData.confirmPassword) {
-            newErrors.confirmPassword = 'تأكيد كلمة المرور مطلوب';
+            newErrors.confirmPassword = 'تأكيد كلمة المرور مطلوبة';
         } else if (!passwordsMatch(formData.password, formData.confirmPassword)) {
             newErrors.confirmPassword = 'كلمات المرور غير متطابقة';
         }
