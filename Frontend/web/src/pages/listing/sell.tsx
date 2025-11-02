@@ -10,9 +10,9 @@ import {
   sanitizeInput
 } from '@sbay/shared';
 import type { ProductCreate } from '@sbay/shared';
-import { createListing } from '../lib/api/listings';
-import { useAuthStore } from '../lib/store';
-import ImageUpload from '../components/imageUpload';
+import { createListing } from '../../lib/api/listings';
+import { useAuthStore } from '../../lib/store';
+import ImageUpload from '../../components/imageUpload';
 
 // Extended type for form state to allow empty strings for numeric fields
 interface ProductFormData {

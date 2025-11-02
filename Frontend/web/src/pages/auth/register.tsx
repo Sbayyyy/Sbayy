@@ -8,7 +8,7 @@ import {
   passwordsMatch,
   sanitizeInput
 } from '@sbay/shared';
-import { register } from '../lib/api/auth';
+import { register } from '../../lib/api/auth';
 
 export default function Register() {
     const router = useRouter();

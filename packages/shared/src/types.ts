@@ -38,6 +38,7 @@ export interface Product {
     name: string;
     rating?: number;
   };
+  stockQuantity?: number;
   status: 'active' | 'sold' | 'inactive';
   views: number;
   favorites: number;

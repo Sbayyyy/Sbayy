@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { isValidEmail } from '@sbay/shared';
-import { login } from '../lib/api/auth';
+import { login } from '../../lib/api/auth';
 
 export default function Login() {
     
