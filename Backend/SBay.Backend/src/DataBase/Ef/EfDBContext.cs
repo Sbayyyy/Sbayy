@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Message=SBay.Backend.Messeging.Message;
 using CartItem = SBay.Domain.Entities.CartItem;
 using Listing = SBay.Domain.Entities.Listing;
 using Money = SBay.Domain.ValueObjects.Money;
@@ -17,7 +18,7 @@ namespace SBay.Domain.Database
         public DbSet<Listing> Listings => Set<Listing>();
         public DbSet<ShoppingCart> Carts => Set<ShoppingCart>();
         public DbSet<Category> Categories => Set<Category>();
-
+        public DbSet<Message> Messages => Set<Message>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -43,7 +44,27 @@ namespace SBay.Domain.Database
                 e.Ignore(x => x.Region);
                 e.Ignore(x => x.UserName);
             });
+            modelBuilder.Entity<Message>(e =>
+            {
+                e.HasKey(m => m.Id);
+                e.HasIndex(m => new { m.SenderId, m.ReceiverId });
+                e.Property(m => m.Content).IsRequired();
 
+                e.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(m => m.SenderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(m => m.ReceiverId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne<Listing>()
+                    .WithMany()
+                    .HasForeignKey(m => m.ListingId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
             modelBuilder.Entity<Listing>(e =>
             {
                 e.ToTable("listings");
