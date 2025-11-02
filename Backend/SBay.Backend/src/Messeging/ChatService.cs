@@ -1,6 +1,6 @@
 ﻿using SBay.Domain.Database;
 using Microsoft.EntityFrameworkCore;
-namespace SBay.Backend.Messeging;
+namespace SBay.Backend.Messaging;
 
 public class ChatService : IChatService
 {
