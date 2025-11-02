@@ -44,8 +44,8 @@ namespace SBay.Domain.Entities
             ThumbnailUrl = thumb;
             CategoryPath = categoryPath;
             Region= region;
-            UpdatedAt = DateTime.UtcNow;
-            CreatedAt = DateTime.UtcNow;
+            
+            
             
         }
 
