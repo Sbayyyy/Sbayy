@@ -13,6 +13,7 @@ using SBay.Domain.Database;
 using SBay.Domain.Entities;
 
 namespace SBay.Backend.APIs.Controllers;
+
 public record RegisterRequest(string Email, string Password, string? DisplayName, string? Phone);
 public record LoginRequest(string Email, string Password);
 public record UpdateProfileRequest(string? DisplayName, string? Phone);
@@ -21,9 +22,9 @@ public record UserDto(Guid Id, string Email, string? DisplayName, string? Phone,
 public record AuthResponse(UserDto User, string Token);
 [ApiController]
 [Route("api/[controller]")]
-public class UsersController:ControllerBase
+public class UsersController : ControllerBase
 {
-private readonly EfDataProvider _data;
+    private readonly EfDataProvider _data;
     private readonly EfDbContext _db; // for convenience queries not in repo
     private readonly IPasswordHasher<User> _hasher;
     private readonly JwtOptions _jwt;
@@ -40,6 +41,32 @@ private readonly EfDataProvider _data;
         _jwt = jwtOptions.Value;
     }
 
+    /* //! CHECK THIS COMMENT - Missing security controls
+    Missing security controls for authentication endpoint.
+
+    The registration endpoint lacks critical security measures:
+
+    No rate limiting (allows brute force account creation)
+    No email verification (anyone can register with any email)
+    No CAPTCHA or bot protection
+    No password complexity requirements
+    No checks for disposable email domains
+    These omissions could enable abuse.
+
+    Consider implementing:
+
+    Rate limiting middleware (e.g., AspNetCoreRateLimit)
+    Email verification flow before account activation
+    Password policy enforcement (see previous comment)
+
+    The validation only checks for null/whitespace but doesn't validate:
+
+Email format (e.g., user@example.com)
+Password strength (length, complexity)
+Email length limits
+Phone format (if provided)
+This could allow invalid data to enter the system.
+    */
     // POST: /api/users/register
     [HttpPost("register")]
     [AllowAnonymous]
@@ -70,7 +97,24 @@ private readonly EfDataProvider _data;
         var token = GenerateJwt(user);
         return CreatedAtAction(nameof(GetMe), new { }, new AuthResponse(dto, token));
     }
+    /*
+    //! CHECK THIS COMMENT -
+    Missing brute force protection on login.
 
+    The login endpoint lacks:
+
+    Rate limiting per IP/email
+    Account lockout after failed attempts
+    Delay or exponential backoff
+    Logging of failed login attempts
+    This enables credential stuffing and brute force attacks.
+
+    Implement account lockout logic:
+
+    // Track failed attempts (in User entity or separate table)
+    user.FailedLoginAttempts++;
+    if (user.FailedLoginAttempts >= 5)
+    */
     // POST: /api/users/login
     [HttpPost("login")]
     [AllowAnonymous]
@@ -176,5 +220,5 @@ private readonly EfDataProvider _data;
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-    
+
 }
