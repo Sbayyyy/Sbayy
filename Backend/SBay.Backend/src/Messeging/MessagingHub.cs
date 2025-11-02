@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 
-namespace SBay.Backend.Messeging;
+namespace SBay.Backend.Messaging;
 
 public class MessagingHub:Hub
 {
