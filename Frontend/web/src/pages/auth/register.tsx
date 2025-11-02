@@ -8,6 +8,7 @@ import {
   passwordsMatch,
   sanitizeInput
 } from '@sbay/shared';
+import { register } from '../../lib/api/auth';
 
 export default function Register() {
     const router = useRouter();
@@ -81,29 +82,21 @@ export default function Register() {
         setIsLoading(true);
         setApiError('');
 
-        try{
-          //TODO: change the URL to the correct backend endpoint
-            const response = await fetch('http://localhost:5000/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
+        try {
+            await register({
+                name: formData.username,
+                email: formData.email,
+                phone: formData.phone,
+                password: formData.password
             });
-            const data = await response.json();
-            if (!response.ok) {
-                setApiError(data.message || 'حدث خطأ أثناء التسجيل');
-            }else{
-                // Registration successful, redirect to login
-                router.push('/login?registered=true');
-            }
-
-        } catch (error) {
-            setApiError('خطأ في الاتصال بالخادم');
+            
+            // Registration successful, redirect to login
+            router.push('/login?registered=true');
+        } catch (error: any) {
+            setApiError(error.response?.data?.message || 'خطأ في الاتصال بالخادم');
         } finally {
             setIsLoading(false);
         }
-
     }
 
     return (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { isValidEmail } from '@sbay/shared';
+import { login } from '../../lib/api/auth';
 
 export default function Login() {
     
@@ -33,33 +34,19 @@ export default function Login() {
         if (!validateForm()) return;
         setIsLoading(true);
         setApiError('');
+        
         try {
-          //TODO: change the URL to the correct backend endpoint
-            const response = await fetch('http://localhost:5000/api/auth/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                     email: email,
-                     password: password
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                setApiError(data.message || 'حدث خطأ أثناء تسجيل الدخول');
-            } else {
-                // Successfully logged in, redirecting
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                router.push('/');
-            }
-        } catch (error) {
-            setApiError('خطأ في الاتصال بالخادم');
+            const data = await login({ email, password });
+            
+            // Successfully logged in, redirecting
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            router.push('/');
+        } catch (error: any) {
+            setApiError(error.response?.data?.message || 'خطأ في الاتصال بالخادم');
         } finally {
             setIsLoading(false);
         }
-        
     };
 
 

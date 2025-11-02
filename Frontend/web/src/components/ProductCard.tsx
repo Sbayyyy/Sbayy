@@ -1,0 +1,96 @@
+import { useState } from 'react';
+import Link from 'next/link';
+import { Heart, MapPin, Package } from 'lucide-react';
+import { Product } from '@sbay/shared';
+
+interface ProductCardProps {
+  product: Product;
+  onFavorite?: (id: string) => void;
+  isFavorite?: boolean;
+}
+
+export default function ProductCard({ product, onFavorite, isFavorite = false }: ProductCardProps) {
+  const [isLiked, setIsLiked] = useState(isFavorite);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Verhindert Navigation
+    setIsLiked(!isLiked);
+    onFavorite?.(product.id);
+  };
+
+  const conditionLabels: Record<string, string> = {
+    'new': 'جديد',
+    'used': 'مستعمل',
+    'refurbished': 'مجدد'
+  };
+
+  const imageUrl = product.images?.[0] || null;
+  const formattedPrice = product.price.toLocaleString('ar-SY');
+  const isAvailable = product.status === 'active' && 
+    (product.stockQuantity === undefined || product.stockQuantity > 0);
+
+  return (
+    <Link href={`/listing/${product.id}`}>
+      <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all overflow-hidden cursor-pointer">
+        {/* Image */}
+        <div className="relative aspect-square bg-gray-100">
+          {imageUrl ? (
+            <img 
+              src={imageUrl} 
+              alt={product.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <Package size={64} className="text-gray-300" />
+            </div>
+          )}
+
+          {/* Condition Badge */}
+          {product.condition && (
+            <span className="absolute top-2 left-2 px-2 py-1 bg-white/90 rounded-full text-xs">
+              {conditionLabels[product.condition]}
+            </span>
+          )}
+
+          {/* Favorite Button */}
+          <button
+            onClick={handleFavoriteClick}
+            className="absolute top-2 right-2 p-2 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Heart size={20} className={isLiked ? 'text-red-500 fill-red-500' : 'text-gray-600'} />
+          </button>
+
+          {!isAvailable && (
+            <span className="absolute bottom-2 left-2 px-2 py-1 bg-red-500 text-white text-xs rounded">
+              غير متوفر
+            </span>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-4">
+          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+            {product.title}
+          </h3>
+
+          {product.location && (
+            <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
+              <MapPin size={14} />
+              <span>{product.location}</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-bold text-primary-600">
+              {formattedPrice} ل.س
+            </span>
+            <button className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+              عرض
+            </button>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
