@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getEmailValidationMessage, sanitizeInput } from '@sbay/shared';
+import { forgotPassword } from '../lib/api/auth';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -35,23 +36,12 @@ export default function ForgotPassword() {
     setSuccess(false);
 
     try {
-      //TODO: change the URL to the correct backend endpoint
-      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setApiError(data.message || 'حدث خطأ أثناء إرسال رابط الاستعادة');
-      } else {
-        setSuccess(true);
-        setEmail(''); // Clear email field on success
-      }
-    } catch (error) {
-      setApiError('خطأ في الاتصال بالخادم');
+      await forgotPassword(email);
+      
+      setSuccess(true);
+      setEmail(''); // Clear email field on success
+    } catch (error: any) {
+      setApiError(error.response?.data?.message || 'خطأ في الاتصال بالخادم');
     } finally {
       setIsLoading(false);
     }

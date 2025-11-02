@@ -7,11 +7,8 @@ export const uploadImage = async (file: File) => {
   const formData = new FormData();
   formData.append('image', file);
   
-  const response = await api.post('/upload/image', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  // Don't set Content-Type manually - let browser set it with boundary
+  const response = await api.post('/upload/image', formData);
   return response.data;
 };
 
@@ -24,10 +21,7 @@ export const uploadImages = async (files: File[]) => {
     formData.append('images', file);
   });
   
-  const response = await api.post('/upload/images', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  // Don't set Content-Type manually - let browser set it with boundary
+  const response = await api.post('/upload/images', formData);
   return response.data;
 };
