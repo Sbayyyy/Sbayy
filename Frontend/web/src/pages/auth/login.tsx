@@ -145,7 +145,7 @@ export default function Login() {
           </form>
 
             <div className="mt-4 text-center text-sm">
-                <a href="/register" className="font-semibold text-indigo-400 hover:text-indigo-300">
+                <a href="auth/register" className="font-semibold text-indigo-400 hover:text-indigo-300">
                     ليس لديك حساب؟ سجل الآن
                   </a>
             </div>

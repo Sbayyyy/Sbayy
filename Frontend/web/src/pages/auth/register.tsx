@@ -261,7 +261,7 @@ export default function Register() {
         </form>
 
         <div className="mt-4 text-center text-sm">
-          <a href="/login" className="font-semibold text-indigo-400 hover:text-indigo-300">
+          <a href="/auth/login" className="font-semibold text-indigo-400 hover:text-indigo-300">
             لديك حساب بالفعل؟ سجل الدخول
           </a>
         </div>

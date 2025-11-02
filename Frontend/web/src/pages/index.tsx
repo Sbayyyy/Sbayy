@@ -55,7 +55,7 @@ export default function Home() {
               <Link href="/browse" className="btn bg-white text-primary-600 hover:bg-gray-100">
                 تصفح المنتجات
               </Link>
-              <Link href="/sell" className="btn bg-primary-700 hover:bg-primary-800">
+              <Link href="listing/sell" className="btn bg-primary-700 hover:bg-primary-800">
                 ابدأ البيع
               </Link>
             </div>
