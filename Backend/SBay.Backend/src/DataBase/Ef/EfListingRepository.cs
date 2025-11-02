@@ -45,8 +45,16 @@ namespace SBay.Domain.Database
             var query = _db.Listings.AsNoTracking();
 
             if (!string.IsNullOrEmpty(q.Category)) query = query.Where(l => l.CategoryPath == q.Category);
-            if (q.MinPrice.HasValue) query = query.Where(l => l.Price.Amount >= q.MinPrice.Value);
-            if (q.MaxPrice.HasValue) query = query.Where(l => l.Price.Amount <= q.MaxPrice.Value);
+            if (q.MinPrice.HasValue)
+            {
+                var minPrice = q.MinPrice.Value;
+                query = query.Where(l => l.Price.Amount >= minPrice);
+            }
+            if (q.MaxPrice.HasValue)
+            {
+                var maxPrice = q.MaxPrice.Value;
+                query = query.Where(l => l.Price.Amount <= maxPrice);
+            }
             if (!string.IsNullOrEmpty(q.Region)) query = query.Where(l => l.Region == q.Region);
 
             if (!string.IsNullOrWhiteSpace(text))
