@@ -99,7 +99,7 @@ namespace SBay.Domain.Database
 
                 e.HasIndex(x => x.SellerId).HasDatabaseName("idx_listings_seller");
             });
-            modelBuilder.Entity<Listing>().Property<NpgsqlTypes.NpgsqlTsVector>("SearchVec").HasColumnName("search_vector").HasColumnType("tsvector");
+            modelBuilder.Entity<Listing>().Property<NpgsqlTypes.NpgsqlTsVector>("SearchVec").HasColumnName("search_vec").HasColumnType("tsvector");
 
             modelBuilder.Entity<ShoppingCart>(e =>
             {
