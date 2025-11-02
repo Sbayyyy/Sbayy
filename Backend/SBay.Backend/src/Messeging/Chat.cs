@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace SBay.Backend.Messeging;
+namespace SBay.Backend.Messaging;
 [Table("chats")]
 public class Chat
 {
