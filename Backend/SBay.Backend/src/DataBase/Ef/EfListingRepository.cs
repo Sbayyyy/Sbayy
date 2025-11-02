@@ -56,9 +56,12 @@ WHERE (@p1 IS NULL OR l.category_path = @p1)
   AND (@p2 IS NULL OR l.price_amount >= @p2)
   AND (@p3 IS NULL OR l.price_amount <= @p3)
   AND (
-        (q.tsq != ''::tsquery AND q.tsq @@ l.search_vec)
-        OR l.title ILIKE '%' || q.raw || '%'
-        OR l.description ILIKE '%' || q.raw || '%'
+        @p0 IS NULL OR @p0 = ''
+        OR (
+          (q.tsq != ''::tsquery AND q.tsq @@ l.search_vec)
+          OR l.title ILIKE '%' || q.raw || '%'
+          OR l.description ILIKE '%' || q.raw || '%'
+        )
       )
 ORDER BY
   (
