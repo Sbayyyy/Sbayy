@@ -136,3 +136,55 @@ export const getPasswordStrengthMessage = (password: string): string | null => {
 export const passwordsMatch = (password: string, confirmPassword: string): boolean => {
   return password === confirmPassword;
 };
+
+// Am Ende der Datei hinzufügen:
+
+/**
+ * Validate listing title and return error message in Arabic
+ */
+export const getListingTitleValidationMessage = (title: string): string | null => {
+  if (!title) return 'عنوان المنتج مطلوب';
+  if (title.length < 5) return 'عنوان المنتج يجب أن يكون 5 أحرف على الأقل';
+  if (title.length > 100) return 'عنوان المنتج يجب أن لا يتجاوز 100 حرف';
+  return null;
+};
+
+/**
+ * Validate listing description and return error message in Arabic
+ */
+export const getListingDescriptionValidationMessage = (description: string): string | null => {
+  if (!description) return 'وصف المنتج مطلوب';
+  if (description.length < 20) return 'وصف المنتج يجب أن يكون 20 حرفاً على الأقل';
+  if (description.length > 5000) return 'وصف المنتج يجب أن لا يتجاوز 5000 حرف';
+  return null;
+};
+
+/**
+ * Validate listing price and return error message in Arabic
+ */
+export const getListingPriceValidationMessage = (price: number | string): string | null => {
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  
+  if (!price && price !== 0) return 'سعر المنتج مطلوب';
+  if (isNaN(numPrice)) return 'سعر المنتج يجب أن يكون رقماً';
+  if (numPrice < 0) return 'سعر المنتج يجب أن يكون أكبر من أو يساوي صفر';
+  if (numPrice > 999999999) return 'سعر المنتج مرتفع جداً';
+  return null;
+};
+
+/**
+ * Validate listing category and return error message in Arabic
+ */
+export const getListingCategoryValidationMessage = (category: string): string | null => {
+  if (!category) return 'الفئة مطلوبة';
+  return null;
+};
+
+/**
+ * Validate listing location and return error message in Arabic
+ */
+export const getListingLocationValidationMessage = (location: string): string | null => {
+  if (!location) return 'الموقع مطلوب';
+  if (location.length < 2) return 'الموقع يجب أن يكون حرفين على الأقل';
+  return null;
+};
