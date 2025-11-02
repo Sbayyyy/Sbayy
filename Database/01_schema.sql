@@ -110,9 +110,12 @@ CREATE TABLE messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   is_read BOOLEAN NOT NULL DEFAULT FALSE
 );
-
+CREATE UNIQUE INDEX ux_chats_listing_buyer_seller
+ON chats (listing_id, buyer_id, seller_id);
 CREATE INDEX idx_messages_chat_time   ON messages(chat_id, created_at DESC);
 CREATE INDEX idx_messages_sender_time ON messages(sender_id, created_at DESC);
+CREATE INDEX ix_messages_chat_createdat ON messages (chat_id, created_at DESC);
+CREATE INDEX ix_messages_receiver_unread ON messages (receiver_id, is_read, created_at DESC);
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
