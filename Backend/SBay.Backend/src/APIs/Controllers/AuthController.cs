@@ -58,7 +58,7 @@ public class AuthController : ControllerBase
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
 
-        var dto = ToDto(user);
+        var dto = user.ToDto();
         var token = GenerateJwt(user);
         return CreatedAtAction(nameof(GetMe), new { }, new AuthResponse(dto, token));
     }
@@ -89,7 +89,7 @@ public class AuthController : ControllerBase
             await _db.SaveChangesAsync(ct);
         }
 
-        var dto = ToDto(user);
+        var dto = user.ToDto();
         var token = GenerateJwt(user);
         return Ok(new AuthResponse(dto, token));
     }
@@ -105,11 +105,9 @@ public class AuthController : ControllerBase
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
         if (user is null) return NotFound();
 
-        return Ok(ToDto(user));
+        return Ok(user.ToDto());
     }
-
-    private UserDto ToDto(User u) => new(u.Id, u.Email, u.DisplayName, u.Phone, u.Role, u.CreatedAt);
-
+    
     private string GenerateJwt(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));

@@ -90,6 +90,9 @@ CREATE INDEX idx_listing_images_listing_pos ON listing_images(listing_id, positi
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE chats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  buyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,  
+  seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,  
+  listing_id UUID REFERENCES listings(id) ON DELETE SET NULL, 
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ
 );
