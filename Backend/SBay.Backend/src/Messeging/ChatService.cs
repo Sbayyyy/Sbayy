@@ -46,7 +46,7 @@ public class ChatService : IChatService
     {
         var q = _db.Set<Message>().Where(m =>
             m.ChatId == chatId && m.ReceiverId == readerId && !m.IsRead && m.CreatedAt <= upTo);
-        await q.ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true), ct);
-        return await q.CountAsync(ct);
+        var affectedRows = await q.ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true), ct);
+        return affectedRows;
     }
 }
