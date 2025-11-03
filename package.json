@@ -4,17 +4,17 @@
   "private": true,
   "description": "eBay-like marketplace platform for Syria",
   "workspaces": [
-    "apps/*",
+    "Frontend/*",
     "packages/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
-    "dev:web": "npm run dev --workspace=apps/web",
-    "dev:api": "npm run dev --workspace=apps/api",
-    "dev:mobile": "npm run dev --workspace=apps/mobile",
+    "dev:web": "npm run dev --workspace=Frontend/web",
+    "dev:api": "npm run dev --workspace=Frontend/api",
+    "dev:mobile": "npm run dev --workspace=Frontend/mobile",
     "build": "npm run build --workspaces --if-present",
-    "build:web": "npm run build --workspace=apps/web",
-    "build:api": "npm run build --workspace=apps/api",
+    "build:web": "npm run build --workspace=Frontend/web",
+    "build:api": "npm run build --workspace=Frontend/api",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "type-check": "npm run type-check --workspaces --if-present",
