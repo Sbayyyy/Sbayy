@@ -1,6 +1,51 @@
 BEGIN;
 
+-- ─────────────────────────────────────────
+-- Extensions (safe if re-run)
+-- ─────────────────────────────────────────
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- ─────────────────────────────────────────
+-- Ensure required columns on listings (match EF model)
+-- ─────────────────────────────────────────
+ALTER TABLE listings
+    ADD COLUMN IF NOT EXISTS stock_quantity              integer NOT NULL DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS category_path               text,
+    ADD COLUMN IF NOT EXISTS price_amount                numeric(12,2),
+    ADD COLUMN IF NOT EXISTS price_currency              varchar(8),
+    ADD COLUMN IF NOT EXISTS original_price_amount       numeric(12,2),
+    ADD COLUMN IF NOT EXISTS original_price_currency     varchar(8),
+    ADD COLUMN IF NOT EXISTS region                      text,
+    ADD COLUMN IF NOT EXISTS search_vec                  tsvector;
+
+-- ─────────────────────────────────────────
+-- FTS function + trigger for listings.search_vec
+-- (recomputes on title/description changes)
+-- ─────────────────────────────────────────
+CREATE OR REPLACE FUNCTION listings_search_vec_tsv()
+RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.search_vec :=
+    to_tsvector('simple',
+      coalesce(NEW.title,'') || ' ' || coalesce(NEW.description,''));
+  RETURN NEW;
+END$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_listings_search_vec') THEN
+    CREATE TRIGGER trg_listings_search_vec
+    BEFORE INSERT OR UPDATE OF title, description ON listings
+    FOR EACH ROW
+    EXECUTE FUNCTION listings_search_vec_tsv();
+  END IF;
+END$$;
+
+-- Indexes for FTS and ILIKE on title
+CREATE INDEX IF NOT EXISTS idx_listings_search_vec ON listings USING GIN (search_vec);
+CREATE INDEX IF NOT EXISTS idx_listings_title_trgm ON listings USING GIN (title gin_trgm_ops);
 
 -- ─────────────────────────────────────────
 -- Categories
@@ -29,10 +74,10 @@ ON CONFLICT (email) DO NOTHING;
 -- Listings (price_amount/price_currency + category_path)
 -- ─────────────────────────────────────────
 INSERT INTO listings (id, seller_id, category_id, category_path, title, description,
-                      price_amount, price_currency, status, created_at, updated_at)
+                      price_amount, price_currency, status, created_at, updated_at,thumbnail_url)
 SELECT gen_random_uuid(), u.id, c.id, 'electronics/phones',
        'Demo Phone - Model X', 'A demo smartphone listing for development.',
-       149.99, 'SYP', 'active', now() - interval '1 day', now()
+       149.99, 'SYP', 'active', now() - interval '1 day', now(),'https://example.local/img/demo-phone-thumb.jpg'
 FROM users u
 JOIN categories c ON c.name = 'Electronics'
 WHERE u.email = 'seller@example.com'
@@ -67,8 +112,8 @@ WHERE u.email = 'seller@example.com'
         WHERE l.seller_id = u.id AND l.title = 'Used Bicycle'
       );
 
--- Force FTS trigger to compute search_vec (if present)
-UPDATE listings SET title = title;
+-- Force FTS (only for pre-existing rows that might be missing it)
+UPDATE listings SET title = title WHERE search_vec IS NULL;
 
 -- ─────────────────────────────────────────
 -- Listing images
@@ -100,95 +145,7 @@ WHERE l.title = 'Used Bicycle'
         WHERE li.listing_id = l.id AND li.url = 'https://example.local/img/bicycle-1.jpg'
       );
 
--- ─────────────────────────────────────────
--- Chats + participants (robust 1:1 creation)
--- ─────────────────────────────────────────
-WITH buyer AS (
-  SELECT id FROM users WHERE email = 'buyer@example.com'
-),
-seller AS (
-  SELECT id FROM users WHERE email = 'seller@example.com'
-),
-existing AS (
-  SELECT ch.id
-  FROM chats ch
-  JOIN chat_participants p1 ON p1.chat_id = ch.id AND p1.user_id = (SELECT id FROM buyer)
-  JOIN chat_participants p2 ON p2.chat_id = ch.id AND p2.user_id = (SELECT id FROM seller)
-  LIMIT 1
-),
-phone AS (  
-  SELECT id FROM listings WHERE title = 'Demo Phone - Model X' LIMIT 1  
-),  
-ins AS (  
-  INSERT INTO chats (id, buyer_id, seller_id, listing_id, created_at)  
-  SELECT gen_random_uuid(),  
-         (SELECT id FROM buyer),  
-         (SELECT id FROM seller),  
-         (SELECT id FROM phone),  
-         now()  
-  WHERE NOT EXISTS (SELECT 1 FROM existing)  
-  RETURNING id  
-),  
-chosen AS (
-  SELECT id FROM existing
-  UNION ALL
-  SELECT id FROM ins
-  LIMIT 1
-)
-INSERT INTO chat_participants (chat_id, user_id)
-SELECT c.id, u.id
-FROM chosen c
-JOIN (
-  SELECT id FROM buyer
-  UNION ALL
-  SELECT id FROM seller
-) u ON TRUE
-ON CONFLICT DO NOTHING;
 
--- ─────────────────────────────────────────
--- Messages in that chat (tie to phone listing)
--- ─────────────────────────────────────────
-WITH buyer AS (SELECT id FROM users WHERE email = 'buyer@example.com'),
-     seller AS (SELECT id FROM users WHERE email = 'seller@example.com'),
-     chat AS (
-       SELECT ch.id
-       FROM chats ch
-       JOIN chat_participants p1 ON p1.chat_id = ch.id AND p1.user_id = (SELECT id FROM buyer)
-       JOIN chat_participants p2 ON p2.chat_id = ch.id AND p2.user_id = (SELECT id FROM seller)
-       LIMIT 1
-     ),
-     phone AS (SELECT id FROM listings WHERE title = 'Demo Phone - Model X' LIMIT 1)
-INSERT INTO messages (id, chat_id, sender_id, listing_id, content)
-SELECT gen_random_uuid(), (SELECT id FROM chat), (SELECT id FROM buyer), (SELECT id FROM phone),
-       'Is this item still available?'
-WHERE EXISTS (SELECT 1 FROM chat)
-  AND NOT EXISTS (
-    SELECT 1 FROM messages m
-    WHERE m.chat_id = (SELECT id FROM chat)
-      AND m.sender_id = (SELECT id FROM buyer)
-      AND m.content = 'Is this item still available?'
-  );
-
-WITH buyer AS (SELECT id FROM users WHERE email = 'buyer@example.com'),
-     seller AS (SELECT id FROM users WHERE email = 'seller@example.com'),
-     chat AS (
-       SELECT ch.id
-       FROM chats ch
-       JOIN chat_participants p1 ON p1.chat_id = ch.id AND p1.user_id = (SELECT id FROM buyer)
-       JOIN chat_participants p2 ON p2.chat_id = ch.id AND p2.user_id = (SELECT id FROM seller)
-       LIMIT 1
-     ),
-     phone AS (SELECT id FROM listings WHERE title = 'Demo Phone - Model X' LIMIT 1)
-INSERT INTO messages (id, chat_id, sender_id, receiver_id,listing_id, content)
-SELECT gen_random_uuid(), (SELECT id FROM chat), (SELECT id FROM seller), (SELECT id FROM seller),(SELECT id FROM phone),
-       'Yes, it is available. Would you like more photos?'
-WHERE EXISTS (SELECT 1 FROM chat)
-  AND NOT EXISTS (
-    SELECT 1 FROM messages m
-    WHERE m.chat_id = (SELECT id FROM chat)
-      AND m.sender_id = (SELECT id FROM seller)
-      AND m.content = 'Yes, it is available. Would you like more photos?'
-  );
 
 -- ─────────────────────────────────────────
 -- Cart (unique per user) + cart item (unit_price_*)
