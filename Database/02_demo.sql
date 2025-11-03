@@ -116,12 +116,19 @@ existing AS (
   JOIN chat_participants p2 ON p2.chat_id = ch.id AND p2.user_id = (SELECT id FROM seller)
   LIMIT 1
 ),
-ins AS (
-  INSERT INTO chats (id, created_at)
-  SELECT gen_random_uuid(), now()
-  WHERE NOT EXISTS (SELECT 1 FROM existing)
-  RETURNING id
-),
+phone AS (  
+  SELECT id FROM listings WHERE title = 'Demo Phone - Model X' LIMIT 1  
+),  
+ins AS (  
+  INSERT INTO chats (id, buyer_id, seller_id, listing_id, created_at)  
+  SELECT gen_random_uuid(),  
+         (SELECT id FROM buyer),  
+         (SELECT id FROM seller),  
+         (SELECT id FROM phone),  
+         now()  
+  WHERE NOT EXISTS (SELECT 1 FROM existing)  
+  RETURNING id  
+),  
 chosen AS (
   SELECT id FROM existing
   UNION ALL
@@ -172,8 +179,8 @@ WITH buyer AS (SELECT id FROM users WHERE email = 'buyer@example.com'),
        LIMIT 1
      ),
      phone AS (SELECT id FROM listings WHERE title = 'Demo Phone - Model X' LIMIT 1)
-INSERT INTO messages (id, chat_id, sender_id, listing_id, content)
-SELECT gen_random_uuid(), (SELECT id FROM chat), (SELECT id FROM seller), (SELECT id FROM phone),
+INSERT INTO messages (id, chat_id, sender_id, receiver_id,listing_id, content)
+SELECT gen_random_uuid(), (SELECT id FROM chat), (SELECT id FROM seller), (SELECT id FROM seller),(SELECT id FROM phone),
        'Yes, it is available. Would you like more photos?'
 WHERE EXISTS (SELECT 1 FROM chat)
   AND NOT EXISTS (
