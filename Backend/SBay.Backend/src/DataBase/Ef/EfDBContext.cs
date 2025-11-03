@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Message=SBay.Backend.Messeging.Message;
+using Message=SBay.Backend.Messaging.Message;
 using CartItem = SBay.Domain.Entities.CartItem;
 using Listing = SBay.Domain.Entities.Listing;
 using Money = SBay.Domain.ValueObjects.Money;
