@@ -22,7 +22,7 @@ namespace SBay.Domain.Entities
 
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; private set; }
-        public string Region{get; private set;} = "";
+        public string Region { get; private set; } = "";
 
         private Listing() { } // EF/serializer
 
@@ -43,10 +43,9 @@ namespace SBay.Domain.Entities
             Condition = condition;
             ThumbnailUrl = thumb;
             CategoryPath = categoryPath;
-            Region= region;
-            UpdatedAt = DateTime.UtcNow;
+            Region = region;
             CreatedAt = DateTime.UtcNow;
-            
+
         }
 
         // Domain methods (enforce invariants)

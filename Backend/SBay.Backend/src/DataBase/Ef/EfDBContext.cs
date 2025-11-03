@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Message=SBay.Backend.Messeging.Message;
+using Message = SBay.Backend.Messaging.Message;
 using CartItem = SBay.Domain.Entities.CartItem;
 using Listing = SBay.Domain.Entities.Listing;
 using Money = SBay.Domain.ValueObjects.Money;
 using ShoppingCart = SBay.Domain.Entities.ShoppingCart;
 using User = SBay.Domain.Entities.User;
-using Category= SBay.Domain.Entities.Category;
+using Category = SBay.Domain.Entities.Category;
 
 namespace SBay.Domain.Database
 {
@@ -50,6 +50,11 @@ namespace SBay.Domain.Database
                 e.HasIndex(m => new { m.SenderId, m.ReceiverId });
                 e.Property(m => m.Content).IsRequired();
 
+                e.HasOne(m => m.Chat)
+                    .WithMany(c => c.Messages)
+                    .HasForeignKey(m => m.ChatId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 e.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(m => m.SenderId)
@@ -58,7 +63,7 @@ namespace SBay.Domain.Database
                 e.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(m => m.ReceiverId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 e.HasOne<Listing>()
                     .WithMany()
@@ -76,6 +81,7 @@ namespace SBay.Domain.Database
                 e.Property(x => x.Description).HasColumnName("description").HasMaxLength(2000);
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
                 e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+                e.Property(x => x.CategoryPath).HasColumnName("category_path").HasMaxLength(200);
                 e.OwnsOne(
                     x => x.Price,
                     m =>
@@ -88,7 +94,6 @@ namespace SBay.Domain.Database
                 );
 
                 e.Ignore(x => x.OriginalPrice);
-                e.Ignore(x => x.CategoryPath);
                 e.Ignore(x => x.Condition);
                 e.Ignore("RowVersion");
 
@@ -99,8 +104,18 @@ namespace SBay.Domain.Database
 
                 e.HasIndex(x => x.SellerId).HasDatabaseName("idx_listings_seller");
             });
-            modelBuilder.Entity<Listing>().Property<NpgsqlTypes.NpgsqlTsVector>("SearchVec").HasColumnName("search_vector").HasColumnType("tsvector");
+            modelBuilder.Entity<Listing>().Property<NpgsqlTypes.NpgsqlTsVector>("SearchVec").HasColumnName("search_vec").HasColumnType("tsvector");
 
+            modelBuilder.Entity<Category>(e =>
+            {
+                e.ToTable("categories");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id");
+
+                e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+
+                e.HasIndex(x => x.Name).IsUnique();
+            });
             modelBuilder.Entity<ShoppingCart>(e =>
             {
                 e.ToTable("carts");

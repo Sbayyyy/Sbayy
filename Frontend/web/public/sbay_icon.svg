@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="sbay webshop icon">
+  <!-- Blue color: #007BFF -->
+  <defs>
+    <style>
+      .stroke { fill: none; stroke: #007BFF; stroke-linecap: round; stroke-linejoin: round; stroke-width: 48; }
+      .text { fill: #007BFF; font-family: 'Montserrat', 'Arial', sans-serif; font-weight: 700; font-size: 160px; }
+    </style>
+  </defs>
+
+  <!-- Shopping bag body -->
+  <rect x="140" y="160" width="744" height="540" rx="48" ry="48" class="stroke"/>
+  <!-- Handle (arc) -->
+  <path d="M320 160 C320 56 704 56 704 160" class="stroke"/>
+
+  <!-- Shopping cart inside the bag (simplified) -->
+  <!-- cart basket -->
+  <path d="M300 420 L470 420 L560 560 L420 560 Z" class="stroke" />
+  <!-- cart handle/front -->
+  <path d="M300 420 L260 360" class="stroke" />
+  <!-- cart base / axle -->
+  <path d="M360 560 L540 560" class="stroke" />
+  <!-- wheels -->
+  <circle cx="420" cy="620" r="32" fill="#007BFF"/>
+  <circle cx="520" cy="620" r="32" fill="#007BFF"/>
+
+  <!-- Brand text 'sbay' centered below -->
+  <text x="512" y="860" text-anchor="middle" class="text">sbay</text>
+</svg>
