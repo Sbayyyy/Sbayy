@@ -140,7 +140,7 @@ public static class ConnectAuthenticators
                 p.RequireAuthenticatedUser()
                  .AddRequirements(new SameUserRequirement()));
 
-            options.AddPolicy("SellerOnly", p => p.RequireClaim("role", "seller", "admin"));
+            options.AddPolicy("SellerOnly", p => p.RequireRole( "seller", "admin"));
             options.AddPolicy("AdminOnly",  p => p.RequireRole("admin"));
 
             options.AddPolicy("Scope:messages.read",

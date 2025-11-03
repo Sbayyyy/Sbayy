@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using SBay.Domain.Database;
 using SBay.Domain.ValueObjects;  // for ConnectAuthenticators
-using SBay.Domain.Authentication; // for JwtOptions etc.
+using SBay.Domain.Authentication;
+using SBay.Domain.Entities; // for JwtOptions etc.
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,11 @@ var connStr = builder.Configuration.GetConnectionString("Default")
 builder.Services.AddDbContext<EfDbContext>(opt =>
     opt.UseNpgsql(connStr).UseSnakeCaseNamingConvention());
 builder.Services.AddScoped<IDataProvider, EfDataProvider>();
+builder.Services.AddScoped<EfListingRepository>();
+builder.Services.AddScoped<IListingRepository>(sp => sp.GetRequiredService<EfListingRepository>());
+builder.Services.AddScoped<IReadStore<Listing>>(sp => sp.GetRequiredService<EfListingRepository>());
+builder.Services.AddScoped<IWriteStore<Listing>>(sp => sp.GetRequiredService<EfListingRepository>());
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 // Controllers
@@ -62,6 +68,10 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
 }
 
 app.UseRouting();

@@ -70,42 +70,6 @@ namespace SBay.Domain.Database
                     .HasForeignKey(m => m.ListingId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
-            modelBuilder.Entity<Listing>(e =>
-            {
-                e.ToTable("listings");
-                e.HasKey(x => x.Id);
-                e.Property(x => x.Id).HasColumnName("id");
-
-                e.Property(x => x.SellerId).HasColumnName("seller_id").IsRequired();
-                e.Property(x => x.Title).HasColumnName("title").HasMaxLength(200).IsRequired();
-                e.Property(x => x.Description).HasColumnName("description").HasMaxLength(2000);
-                e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
-                e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
-                e.Property(x => x.CategoryPath).HasColumnName("category_path").HasMaxLength(200);
-                e.OwnsOne(
-                    x => x.Price,
-                    m =>
-                    {
-                        m.Property(mm => mm.Amount)
-                            .HasColumnName("price")
-                            .HasColumnType("numeric(12,2)");
-                        m.Property(mm => mm.Currency).HasColumnName("currency").HasMaxLength(8);
-                    }
-                );
-
-                e.Ignore(x => x.OriginalPrice);
-                e.Ignore(x => x.Condition);
-                e.Ignore("RowVersion");
-
-                e.HasOne<User>()
-                    .WithMany()
-                    .HasForeignKey(x => x.SellerId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                e.HasIndex(x => x.SellerId).HasDatabaseName("idx_listings_seller");
-            });
-            modelBuilder.Entity<Listing>().Property<NpgsqlTypes.NpgsqlTsVector>("SearchVec").HasColumnName("search_vec").HasColumnType("tsvector");
-
             modelBuilder.Entity<Category>(e =>
             {
                 e.ToTable("categories");
