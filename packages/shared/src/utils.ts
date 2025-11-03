@@ -55,3 +55,136 @@ export const generateSlug = (text: string): string => {
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 };
+
+/**
+ * Sanitize user input
+ */
+export const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '');
+};
+
+/**
+ * Validate username and return error message in Arabic
+ */
+export const getUsernameValidationMessage = (username: string): string | null => {
+  if (!username) {
+    return 'اسم المستخدم مطلوب';
+  }
+  if (username.length < 3) {
+    return 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل';
+  }
+  if (username.length > 20) {
+    return 'اسم المستخدم يجب أن لا يتجاوز 20 حرفاً';
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return 'اسم المستخدم يجب أن يحتوي على حروف وأرقام فقط';
+  }
+  return null;
+};
+
+/**
+ * Validate email and return error message in Arabic
+ */
+export const getEmailValidationMessage = (email: string): string | null => {
+  if (!email) {
+    return 'عنوان البريد الإلكتروني مطلوب';
+  }
+  if (!isValidEmail(email)) {
+    return 'عنوان البريد الإلكتروني غير صالح';
+  }
+  return null;
+};
+
+/**
+ * Validate phone number and return error message in Arabic
+ */
+export const getPhoneValidationMessage = (phone: string): string | null => {
+  if (!phone) {
+    return 'رقم الهاتف مطلوب';
+  }
+  if (!isValidPhone(phone)) {
+    return 'رقم الهاتف غير صالح (مثال: 0912345678)';
+  }
+  return null;
+};
+
+/**
+ * Check password strength and return error message in Arabic
+ */
+export const getPasswordStrengthMessage = (password: string): string | null => {
+  if (!password) {
+    return 'كلمة المرور مطلوبة';
+  }
+  if (password.length < 8) {
+    return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+  }
+  if (!/[A-Z]/.test(password)) {
+    return 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل';
+  }
+  if (!/[a-z]/.test(password)) {
+    return 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل';
+  }
+  return null;
+};
+
+/**
+ * Check if passwords match
+ */
+export const passwordsMatch = (password: string, confirmPassword: string): boolean => {
+  return password === confirmPassword;
+};
+
+// Am Ende der Datei hinzufügen:
+
+/**
+ * Validate listing title and return error message in Arabic
+ */
+export const getListingTitleValidationMessage = (title: string): string | null => {
+  if (!title) return 'عنوان المنتج مطلوب';
+  if (title.length < 5) return 'عنوان المنتج يجب أن يكون 5 أحرف على الأقل';
+  if (title.length > 100) return 'عنوان المنتج يجب أن لا يتجاوز 100 حرف';
+  return null;
+};
+
+/**
+ * Validate listing description and return error message in Arabic
+ */
+export const getListingDescriptionValidationMessage = (description: string): string | null => {
+  if (!description) return 'وصف المنتج مطلوب';
+  if (description.length < 20) return 'وصف المنتج يجب أن يكون 20 حرفاً على الأقل';
+  if (description.length > 5000) return 'وصف المنتج يجب أن لا يتجاوز 5000 حرف';
+  return null;
+};
+
+/**
+ * Validate listing price and return error message in Arabic
+ */
+export const getListingPriceValidationMessage = (price: number | string): string | null => {
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  
+  if (!price && price !== 0) return 'سعر المنتج مطلوب';
+  if (isNaN(numPrice)) return 'سعر المنتج يجب أن يكون رقماً';
+  if (numPrice < 0) return 'سعر المنتج يجب أن يكون أكبر من أو يساوي صفر';
+  if (numPrice > 999999999) return 'سعر المنتج مرتفع جداً';
+  return null;
+};
+
+/**
+ * Validate listing category and return error message in Arabic
+ */
+export const getListingCategoryValidationMessage = (category: string): string | null => {
+  if (!category) return 'الفئة مطلوبة';
+  return null;
+};
+
+/**
+ * Validate listing location and return error message in Arabic
+ */
+export const getListingLocationValidationMessage = (location: string): string | null => {
+  if (!location) return 'الموقع مطلوب';
+  if (location.length < 2) return 'الموقع يجب أن يكون حرفين على الأقل';
+  return null;
+};

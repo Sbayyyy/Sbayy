@@ -81,6 +81,7 @@ namespace SBay.Domain.Database
                 e.Property(x => x.Description).HasColumnName("description").HasMaxLength(2000);
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
                 e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+                e.Property(x => x.CategoryPath).HasColumnName("category_path").HasMaxLength(200);
                 e.OwnsOne(
                     x => x.Price,
                     m =>
@@ -93,7 +94,6 @@ namespace SBay.Domain.Database
                 );
 
                 e.Ignore(x => x.OriginalPrice);
-                e.Ignore(x => x.CategoryPath);
                 e.Ignore(x => x.Condition);
                 e.Ignore("RowVersion");
 
@@ -106,6 +106,16 @@ namespace SBay.Domain.Database
             });
             modelBuilder.Entity<Listing>().Property<NpgsqlTypes.NpgsqlTsVector>("SearchVec").HasColumnName("search_vec").HasColumnType("tsvector");
 
+            modelBuilder.Entity<Category>(e =>
+            {
+                e.ToTable("categories");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id");
+
+                e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+
+                e.HasIndex(x => x.Name).IsUnique();
+            });
             modelBuilder.Entity<ShoppingCart>(e =>
             {
                 e.ToTable("carts");

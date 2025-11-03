@@ -38,6 +38,7 @@ export interface Product {
     name: string;
     rating?: number;
   };
+  stockQuantity?: number;
   status: 'active' | 'sold' | 'inactive';
   views: number;
   favorites: number;
@@ -52,6 +53,7 @@ export interface ProductCreate {
   currency?: string;
   images?: string[];
   category: string;
+  stockQuantity?: number;
   condition: 'new' | 'used' | 'refurbished';
   location: string;
 }
@@ -109,3 +111,18 @@ export interface AuthResponse {
   token: string;
   refreshToken: string;
 }
+
+// Am Ende der Datei hinzufügen:
+
+export interface ProductUpdate {
+  title?: string;
+  description?: string;
+  price?: number;
+  images?: string[];
+  category?: string;
+  condition?: 'new' | 'used' | 'refurbished';
+  location?: string;
+  stockQuantity?: number;
+  status?: 'active' | 'sold' | 'inactive';
+}
+
