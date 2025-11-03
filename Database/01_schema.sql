@@ -91,6 +91,9 @@ CREATE INDEX idx_listing_images_listing_pos ON listing_images(listing_id, positi
 
 CREATE TABLE chats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
+  buyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -106,15 +109,19 @@ CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
   sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   listing_id UUID REFERENCES listings(id) ON DELETE SET NULL, -- optional context
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   is_read BOOLEAN NOT NULL DEFAULT FALSE
 );
-
-
+CREATE UNIQUE INDEX ux_chats_listing_buyer_seller
+ON chats (listing_id, buyer_id, seller_id);
 CREATE INDEX idx_messages_chat_time   ON messages(chat_id, created_at DESC);
 CREATE INDEX idx_messages_sender_time ON messages(sender_id, created_at DESC);
+CREATE INDEX ix_messages_chat_createdat ON messages (chat_id, created_at DESC);
+CREATE INDEX ix_messages_receiver_unread ON messages (receiver_id, is_read, created_at DESC);
+
 CREATE OR REPLACE FUNCTION update_chat_timestamp() RETURNS trigger AS $$  
 BEGIN  
   UPDATE chats SET updated_at = now() WHERE id = NEW.chat_id;  
