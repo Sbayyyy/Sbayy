@@ -87,12 +87,6 @@ namespace SBay.Domain.Database
                 e.Property(x => x.Id).HasColumnName("id");
 
                 e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
-                e.Property(x => x.ParentId).HasColumnName("parent_id");
-
-                e.HasOne<Category>()
-                    .WithMany()
-                    .HasForeignKey(x => x.ParentId)
-                    .OnDelete(DeleteBehavior.Restrict);
 
                 e.HasIndex(x => x.Name).IsUnique();
             });
