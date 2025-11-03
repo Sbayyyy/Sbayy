@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Message=SBay.Backend.Messaging.Message;
+using Message = SBay.Backend.Messaging.Message;
 using CartItem = SBay.Domain.Entities.CartItem;
 using Listing = SBay.Domain.Entities.Listing;
 using Money = SBay.Domain.ValueObjects.Money;
 using ShoppingCart = SBay.Domain.Entities.ShoppingCart;
 using User = SBay.Domain.Entities.User;
-using Category= SBay.Domain.Entities.Category;
+using Category = SBay.Domain.Entities.Category;
 
 namespace SBay.Domain.Database
 {
@@ -50,6 +50,11 @@ namespace SBay.Domain.Database
                 e.HasIndex(m => new { m.SenderId, m.ReceiverId });
                 e.Property(m => m.Content).IsRequired();
 
+                e.HasOne(m => m.Chat)
+                    .WithMany(c => c.Messages)
+                    .HasForeignKey(m => m.ChatId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 e.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(m => m.SenderId)
@@ -58,7 +63,7 @@ namespace SBay.Domain.Database
                 e.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(m => m.ReceiverId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 e.HasOne<Listing>()
                     .WithMany()
