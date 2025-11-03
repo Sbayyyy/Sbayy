@@ -160,8 +160,9 @@ namespace SBay.Domain.Database
                     }
                 );
             });
-
             base.OnModelCreating(modelBuilder);
+            modelBuilder.ApplyConfiguration(new ListingConfiguration());
+            
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(EfDbContext).Assembly);
         }
     }

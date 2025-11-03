@@ -34,56 +34,53 @@ namespace SBay.Domain.Database
                 .ToListAsync(ct);
         }
 
-        public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, CancellationToken ct)
-        {
-            q ??= new();
-            var text = (q.Text ?? string.Empty).Trim();
-            var page = q.Page <= 0 ? 1 : q.Page;
-            var size = q.PageSize is < 1 or > 100 ? 24 : q.PageSize;
-            var skip = (page - 1) * size;
+public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, CancellationToken ct)
+{
+    q ??= new();
+    var text = (q.Text ?? string.Empty).Trim();
+    var page = q.Page <= 0 ? 1 : q.Page;
+    var size = q.PageSize is < 1 or > 100 ? 24 : q.PageSize;
+    var skip = (page - 1) * size;
 
-            var query = _db.Listings.AsNoTracking();
+    IQueryable<Listing> query = _db.Listings.AsNoTracking();
 
-            if (!string.IsNullOrEmpty(q.Category)) query = query.Where(l => l.CategoryPath == q.Category);
-            if (q.MinPrice.HasValue)
-            {
-                var minPrice = q.MinPrice.Value;
-                query = query.Where(l => l.Price.Amount >= minPrice);
-            }
-            if (q.MaxPrice.HasValue)
-            {
-                var maxPrice = q.MaxPrice.Value;
-                query = query.Where(l => l.Price.Amount <= maxPrice);
-            }
-            if (!string.IsNullOrEmpty(q.Region)) query = query.Where(l => l.Region == q.Region);
+    if (!string.IsNullOrEmpty(q.Category))
+        query = query.Where(l => l.CategoryPath == q.Category);
 
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                // Build a tsquery on the server (choose one):
-                var tsq = EF.Functions.PlainToTsQuery("simple", text);
-                // var tsq = EF.Functions.WebSearchToTsQuery("simple", text); // nicer syntax: quotes, OR, -
+    if (q.MinPrice.HasValue)
+        query = query.Where(l => l.Price.Amount >= q.MinPrice.Value);
 
-                // Matches() translates to “@@”
-                query = query.Where(l => EF.Property<object>(l, "SearchVec").Matches(tsq));
+    if (q.MaxPrice.HasValue)
+        query = query.Where(l => l.Price.Amount <= q.MaxPrice.Value);
 
-                // Optional: boost exact title hits with ILIKE
-                string pattern = "%" + text.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_") + "%";
-                query = query
-                    .OrderByDescending(l =>
-                        ts_rank_cd(search_vec, tsq, 32),
-                        EF.Functions.TsRankCd(
-                            EF.Property<object>(l, "SearchVec"), tsq, 32)
-                        + (EF.Functions.ILike(l.Title, pattern, @"\") ? 1.5 : 0))
-                    .ThenByDescending(l => l.CreatedAt);
-            }
-            else
-            {
-                query = query.OrderByDescending(l => l.CreatedAt);
-            }
+    if (!string.IsNullOrEmpty(q.Region))
+        query = query.Where(l => l.Region == q.Region);
 
-            return await query.Skip(skip).Take(size).ToListAsync(ct);
-        }
+    if (!string.IsNullOrWhiteSpace(text))
+    {
+        var patternContains = "%" + text.Replace(@"\", @"\\")
+            .Replace("%",  @"\%")
+            .Replace("_",  @"\_") + "%";
 
+        query = query
+            .Where(l =>
+                EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
+                    .Matches(EF.Functions.PlainToTsQuery("simple", text)))
+            .OrderByDescending(l =>
+                EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
+                    .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
+            .ThenBy(l => l.Title.ToLower().IndexOf(text.ToLower()))
+            .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, "\\"))
+            .ThenByDescending(l => l.CreatedAt);
+    }
+    else
+    {
+        query = query.OrderByDescending(l => l.CreatedAt);
+    }
+ 
+
+    return await query.Skip(skip).Take(size).ToListAsync(ct);
+}
         public async Task AddAsync(Listing entity, CancellationToken ct = default)
         {
             if (entity is null) throw new ArgumentNullException(nameof(entity));

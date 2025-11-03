@@ -69,3 +69,4 @@ Backend/SBay.Backend.Tests/ConnectionStrings.json
 .config/
 Backend/SBay.Backend/Properties/launchSettings.json
 Backend/SBay.Backend/src/DataBase/ConnectionStrings.json
+Backend/Folder.DotSettings.user

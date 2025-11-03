@@ -42,10 +42,12 @@ CREATE TABLE listings (
   price_currency VARCHAR(8) NOT NULL DEFAULT 'SYP',
   original_price_amount NUMERIC(12,2),
   original_price_currency VARCHAR(8),
+  stock_quantity INT NOT NULL DEFAULT 1 CHECK (stock_quantity >= 0),
   region TEXT,                             
   status TEXT NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ,
+  thumbnail_url TEXT DEFAULT NULL,
   search_vec tsvector
 );
 
