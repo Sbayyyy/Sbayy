@@ -2,7 +2,7 @@ import { api } from '../api';
 import type { Product } from '@sbay/shared';
 
 /**
- * Suche nach Produkten
+ * Search for products
  */
 export const searchProducts = async (query: string, options?: {
   category?: string;
