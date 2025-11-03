@@ -9,51 +9,32 @@ using Xunit;
 
 namespace SBay.Backend.Tests.DB
 {
-    public class EfDbContextTests
+    [Collection("db")]
+    public class EfDbContextTests : DBScopedTest
     {
-        private static string GetConnectionString()
+        public EfDbContextTests(TestDatabaseFixture fx) : base(fx)
         {
-            var config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("ConnectionStrings.json", optional: false, reloadOnChange: false)
-                .Build();
-
-            var connStr = config.GetConnectionString("Default");
-            if (string.IsNullOrWhiteSpace(connStr))
-                throw new InvalidOperationException("Missing ConnectionStrings:Default in appsettings.json");
-
-            return connStr;
         }
 
         [Fact]
         public async Task CanConnectAndPersist_UserEntity_WithRealDatabase()
         {
-            var connString = GetConnectionString();
-
-            var options = new DbContextOptionsBuilder<EfDbContext>()
-                .UseNpgsql(connString)
-                .UseSnakeCaseNamingConvention()
-                .Options;
-
-            await using var ctx = new EfDbContext(options);
-
-            Assert.True(await ctx.Database.CanConnectAsync(), "Database is not reachable");
-
+            Assert.True(await Db.Database.CanConnectAsync(), "Database is not reachable");
             var user = new User
             {
                 Id = Guid.NewGuid(),
-                Email = "real4.test@example.com",
+                Email = "realest.test@example.com",
                 DisplayName = "RealUser",
                 Region = "EU",
                 IsSeller = false,
                 CreatedAt = DateTime.UtcNow
             };
 
-            ctx.Users.Add(user);
-            var saved = await ctx.SaveChangesAsync();
+            Db.Users.Add(user);
+            var saved = await Db.SaveChangesAsync();
             Assert.True(saved > 0, "User entity was not saved");
 
-            var fetched = await ctx.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+            var fetched = await Db.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
             Assert.NotNull(fetched);
             Assert.Equal(user.Email, fetched!.Email);
             Assert.Equal(user.DisplayName, fetched.DisplayName);

@@ -5,10 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <UserSecretsId>a18722ba-bff8-403f-929e-c3318babe555</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
       <PackageReference Include="EFCore.NamingConventions" Version="9.0.0" />
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.10" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>

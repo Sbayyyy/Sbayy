@@ -69,13 +69,11 @@ public static class ConnectAuthenticators
                 if (string.IsNullOrWhiteSpace(oidcAuthority)) return;
 
                 o.MapInboundClaims = false;
-                o.Authority = oidcAuthority; 
-                o.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,   
+                o.Authority = oidcAuthority;
+                o.TokenValidationParameters = new TokenValidationParameters {
+                    ValidateIssuer = true,  
                     ValidateAudience = !string.IsNullOrWhiteSpace(oidcAudience),
                     ValidAudience = oidcAudience,
-                    ValidateLifetime = true, ClockSkew = TimeSpan.FromMinutes(2),
                     NameClaimType = "sub",
                     RoleClaimType = "role"
                 };
@@ -157,19 +155,18 @@ public static class ConnectAuthenticators
         builder.Services.AddScoped<ICurrentUserResolver, CurrentUserResolver>();
         builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
-        builder.Services.AddSingleton<IAuthorizationHandler, MessageOwnerHandler>();
-        builder.Services.AddSingleton<IAuthorizationHandler, ChatParticipantHandler>();
-        builder.Services.AddSingleton<IAuthorizationHandler, CanStartChatHandler>();
-        builder.Services.AddSingleton<IAuthorizationHandler, IsMessageReceiverHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, MessageOwnerHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, ChatParticipantHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, CanStartChatHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, IsMessageReceiverHandler>();
 
-        builder.Services.AddSingleton<IAuthorizationHandler, ListingOwnerHandler>();
-        builder.Services.AddSingleton<IAuthorizationHandler, SameUserHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, ListingOwnerHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, SameUserHandler>();
 
-        builder.Services.AddSingleton<IAuthorizationHandler, CartOwnerHandler>();
-        builder.Services.AddSingleton<IAuthorizationHandler, OrderPartyHandler>();
-        builder.Services.AddSingleton<IAuthorizationHandler, ScopeRequirementHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, CartOwnerHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, OrderPartyHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, ScopeRequirementHandler>();
 
-        builder.Services.AddControllers();
 
         builder.Services.PostConfigureAll<JwtBearerOptions>(o =>
         {

@@ -20,14 +20,13 @@ namespace SBay.Backend.Api.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private readonly EfDataProvider _data;
     private readonly EfDbContext _db;
     private readonly IPasswordHasher<User> _hasher;
     private readonly JwtOptions _jwt;
 
-    public AuthController(EfDataProvider data,EfDbContext db, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt)
+    public AuthController(EfDbContext db, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt)
     {
-        _data = data;
+
         _db = db;
         _hasher = hasher;
         _jwt = jwt.Value;
@@ -97,12 +96,12 @@ public class AuthController : ControllerBase
 
     // GET /api/auth/me
     [HttpGet("me")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "SBayJwt")]
     public async Task<IActionResult> GetMe(CancellationToken ct)
     {
+        
         var sub = User.FindFirstValue("sub");
         if (!Guid.TryParse(sub, out var id)) return Unauthorized();
-
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
         if (user is null) return NotFound();
 
