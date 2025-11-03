@@ -11,13 +11,13 @@ using SBay.Backend.DataBase.Queries;
 [Route("api/[controller]")]
 public sealed class ListingsController : ControllerBase
 {
-    private readonly IListingRepository _repo;        // or IListingRepository
-    private readonly IUnitOfWork _uow;                // if you have one
+    private readonly IListingRepository _repo; // or IListingRepository
+    private readonly IUnitOfWork _uow; // if you have one
 
     public ListingsController(IListingRepository repo, IUnitOfWork uow)
     {
         _repo = repo;
-        _uow  = uow;
+        _uow = uow;
     }
 
     [HttpPost]
@@ -32,8 +32,10 @@ public sealed class ListingsController : ControllerBase
             return ValidationProblem("Price must be greater than 0.");
         if (body.Stock < 0)
             return ValidationProblem("Stock cannot be negative.");
-
-        var sellerIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) 
+        if (string.IsNullOrWhiteSpace(body.PriceCurrency))
+            return ValidationProblem("Price currency is required.");
+        var currency = body.PriceCurrency.Trim();
+        var sellerIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
                           ?? User.FindFirstValue("sub");
         if (!Guid.TryParse(sellerIdStr, out var sellerId))
             return Forbid(); // invalid token
@@ -42,7 +44,7 @@ public sealed class ListingsController : ControllerBase
             sellerId: sellerId,
             title: body.Title.Trim(),
             desc: body.Description.Trim(),
-            price: new Money(body.PriceAmount, body.PriceCurrency.Trim()),
+            price: new Money(body.PriceAmount, currency),
             stock: body.Stock,
             condition: body.Condition,
             thumb: null,
@@ -98,7 +100,8 @@ public sealed class ListingsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<ListingResponse>>> Search([FromQuery] ListingQuery q, CancellationToken ct)
+    public async Task<ActionResult<IReadOnlyList<ListingResponse>>> Search([FromQuery] ListingQuery q,
+        CancellationToken ct)
     {
         var items = await _repo.SearchAsync(q, ct);
         return items.Select(l => new ListingResponse
