@@ -64,7 +64,7 @@ namespace SBay.Domain.Database
                 // var tsq = EF.Functions.WebSearchToTsQuery("simple", text); // nicer syntax: quotes, OR, -
 
                 // Matches() translates to “@@”
-                query = query.Where(l => EF.Property<object>(l, "SearchVector").Matches(tsq));
+                query = query.Where(l => EF.Property<object>(l, "SearchVec").Matches(tsq));
 
                 // Optional: boost exact title hits with ILIKE
                 string pattern = "%" + text.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_") + "%";
@@ -72,7 +72,7 @@ namespace SBay.Domain.Database
                     .OrderByDescending(l =>
                         ts_rank_cd(search_vec, tsq, 32),
                         EF.Functions.TsRankCd(
-                            EF.Property<object>(l, "SearchVector"), tsq, 32)
+                            EF.Property<object>(l, "SearchVec"), tsq, 32)
                         + (EF.Functions.ILike(l.Title, pattern, @"\") ? 1.5 : 0))
                     .ThenByDescending(l => l.CreatedAt);
             }

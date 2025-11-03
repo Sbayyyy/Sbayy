@@ -88,19 +88,11 @@ CREATE INDEX idx_listing_images_listing_pos ON listing_images(listing_id, positi
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Chats & Messages (chat owns messages; participants table allows 1:1 or group)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION update_chat_timestamp() RETURNS trigger AS $$  
-BEGIN  
-  UPDATE chats SET updated_at = now() WHERE id = NEW.chat_id;  
-  RETURN NEW;  
-END  
-$$ LANGUAGE plpgsql;  
-CREATE TRIGGER trg_update_chat_on_message  
-AFTER INSERT ON messages  
-FOR EACH ROW EXECUTE FUNCTION update_chat_timestamp();  
+
 CREATE TABLE chats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at trg_update_chat_on_message NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE chat_participants (
@@ -120,9 +112,19 @@ CREATE TABLE messages (
   is_read BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+
 CREATE INDEX idx_messages_chat_time   ON messages(chat_id, created_at DESC);
 CREATE INDEX idx_messages_sender_time ON messages(sender_id, created_at DESC);
+CREATE OR REPLACE FUNCTION update_chat_timestamp() RETURNS trigger AS $$  
+BEGIN  
+  UPDATE chats SET updated_at = now() WHERE id = NEW.chat_id;  
+  RETURN NEW;  
+END  
+$$ LANGUAGE plpgsql;  
 
+CREATE TRIGGER trg_update_chat_on_message  
+AFTER INSERT ON messages  
+FOR EACH ROW EXECUTE FUNCTION update_chat_timestamp();  
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Carts
