@@ -43,14 +43,16 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
         e.OwnsOne(x => x.Price, m =>
         {
             m.Property(p => p.Amount)
-             .HasColumnName("price_amount")             
+             .HasColumnName("price_amount")
              .HasColumnType("numeric(12,2)")
              .IsRequired();
 
             m.Property(p => p.Currency)
-             .HasColumnName("price_currency")           
+             .HasColumnName("price_currency")
              .HasMaxLength(8)
              .IsRequired();
+            m.HasIndex(p => p.Amount)
+             .HasDatabaseName("idx_listings_price_amount");
         });
 
         e.OwnsOne(x => x.OriginalPrice, m =>
@@ -63,7 +65,7 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
              .HasColumnName("original_price_currency")
              .HasMaxLength(8);
             m.HasIndex(p => p.Amount)
-             .HasDatabaseName("idx_listings_price_amount");
+             .HasDatabaseName("idx_listings_original_price_amount");
         });
 
         e.Property(x => x.StockQuantity)
@@ -74,7 +76,7 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
          .HasColumnName("thumbnail_url");
 
         e.Property(x => x.Condition)
-         .HasColumnName("condition")                    
+         .HasColumnName("condition")
          .HasConversion<string>()
          .HasMaxLength(50)
          .HasDefaultValue(ItemCondition.Unknown);
@@ -100,7 +102,7 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
         e.Property<NpgsqlTsVector>("SearchVec")      // shadow prop (not on the C# class)
          .HasColumnName("search_vec")
          .HasColumnType("tsvector")
-         .ValueGeneratedOnAddOrUpdate(); 
+         .ValueGeneratedOnAddOrUpdate();
 
 
         e.HasIndex(x => x.CreatedAt).HasDatabaseName("idx_listings_created_at");
