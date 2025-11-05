@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NpgsqlTypes;
 using SBay.Domain.Entities;
 
 public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
@@ -96,7 +97,10 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
         e.HasIndex("CategoryId")
          .HasDatabaseName("idx_listings_category");
 
-
+        e.Property<NpgsqlTsVector>("SearchVec")      // shadow prop (not on the C# class)
+         .HasColumnName("search_vec")
+         .HasColumnType("tsvector")
+         .ValueGeneratedOnAddOrUpdate(); 
 
 
         e.HasIndex(x => x.CreatedAt).HasDatabaseName("idx_listings_created_at");

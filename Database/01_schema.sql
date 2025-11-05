@@ -172,9 +172,9 @@ CREATE TABLE orders (
 );
 
 CREATE TABLE order_items (
-  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
-  quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
-  price NUMERIC(12,2) NOT NULL CHECK (price >= 0),
-  PRIMARY KEY (order_id, listing_id)
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id   UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  listing_id UUID REFERENCES listings(id) ON DELETE SET NULL, -- can be NULL now
+  quantity   INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  price      NUMERIC(12,2) NOT NULL CHECK (price >= 0)
 );
