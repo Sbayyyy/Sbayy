@@ -1,81 +1,79 @@
+name: sbay
+
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: sbay-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: sbay
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - '7070:5432'
+      - "${DB_HOST_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+      - ./Database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
-      - sbay-network
+      - sbay
 
-  # Redis for caching
   redis:
     image: redis:7-alpine
-    container_name: sbay-redis
     restart: unless-stopped
     ports:
-      - '6379:6379'
+      - "${REDIS_HOST_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     networks:
-      - sbay-network
+      - sbay
 
-  # API Service
   api:
     build:
-      context: .
-      dockerfile: ./apps/api/Dockerfile
-    container_name: sbay-api
+      context: ./Backend/SBay.Backend
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      NODE_ENV: development
-      PORT: 3001
-      DB_HOST: postgres
-      DB_PORT: 7070
-      DB_NAME: sbay
-      DB_USER: root
-      DB_PASSWORD: admin
-      JWT_SECRET: dev_jwt_secret_change_in_production
-      JWT_REFRESH_SECRET: dev_refresh_secret_change_in_production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      Redis__Host: redis
+      Redis__Port: 6379
     ports:
-      - '3001:3001'
-    volumes:
-      - ./apps/api:/app/apps/api
-      - /app/node_modules
+      - "${API_HOST_PORT}:8080"
     networks:
-      - sbay-network
+      - sbay
 
-  # Web Application
   web:
     build:
-      context: .
-      dockerfile: ./apps/web/Dockerfile
-    container_name: sbay-web
+      context: ./Frontend
+      dockerfile: web/Dockerfile
     restart: unless-stopped
-    depends_on:
-      - api
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${WEB_PORT}
+      NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL}
     ports:
-      - '3000:3000'
-    volumes:
-      - ./apps/web:/app/apps/web
-      - /app/node_modules
-      - /app/.next
+      - "${WEB_HOST_PORT}:${WEB_PORT}"
+    depends_on:
+      api:
+        condition: service_started
     networks:
-      - sbay-network
+      - sbay
 
 volumes:
-  postgres_data:
+  pgdata:
 
 networks:
-  sbay-network:
+  sbay:
     driver: bridge
