@@ -19,7 +19,7 @@ namespace SBay.Backend.Tests.DB
 
         public EfListingRepository_SearchTests(TestDatabaseFixture fx) : base(fx) => _fx = fx;
 
-        // Ensures there's a seller row that satisfies the FK listings.seller_id -> users(id)
+        // Ensures there's a seller row that satisfies FK listings.seller_id -> users(id)
         private static async Task<Guid> EnsureSellerAsync(EfDbContext ctx, string email = "seller.repos@example.com")
         {
             var existing = await ctx.Users
@@ -27,30 +27,44 @@ namespace SBay.Backend.Tests.DB
                 .Select(u => u.Id)
                 .FirstOrDefaultAsync();
 
-            if (existing != Guid.Empty) return existing;
+            if (existing != Guid.Empty)
+                return existing;
 
             var newId = Guid.NewGuid();
-            // password_hash is NOT NULL in schema; role/is_seller also present
-            await ctx.Database.ExecuteSqlRawAsync(@"
-                INSERT INTO users (id, email, password_hash, display_name, role, is_seller)
-                VALUES ({0}, {1}, {2}, {3}, 'seller', TRUE)
-                ON CONFLICT (email) DO NOTHING;
-            ",
-            newId, email, "$test_hash", "Repo Test Seller");
+            var rows = await ctx.Database.ExecuteSqlRawAsync(@"
+INSERT INTO users (id, email, password_hash, is_seller, created_at)
+VALUES ({0}, {1}, {2}, TRUE, now())
+ON CONFLICT (email) DO NOTHING;",
+                newId, email, "$test_hash");
 
-            // Re-read to get the ID (handles the case the row already existed)
+            // If inserted by us, return the id we used
+            if (rows > 0)
+                return newId;
+
+            // Otherwise, someone else inserted it between SELECT and INSERT — re-read safely
             var id = await ctx.Users
                 .Where(u => u.Email == email)
                 .Select(u => u.Id)
-                .FirstAsync();
+                .FirstOrDefaultAsync();
+
+            if (id == Guid.Empty)
+                throw new InvalidOperationException("Failed to ensure seller row; users(email) not found after insert attempt.");
 
             return id;
         }
 
         private static async Task SeedSampleAsync(EfDbContext ctx)
         {
-            // clear dependent rows first just in case
-            await ctx.Database.ExecuteSqlRawAsync("DELETE FROM listing_images; DELETE FROM listings;");
+            // Clean in dependency-safe way
+            await ctx.Database.ExecuteSqlRawAsync(@"
+TRUNCATE TABLE
+    order_items,
+    orders,
+    cart_items,
+    carts,
+    listing_images,
+    listings
+RESTART IDENTITY CASCADE;");
 
             var sellerId = await EnsureSellerAsync(ctx);
 
@@ -106,7 +120,6 @@ namespace SBay.Backend.Tests.DB
             results.Should().NotBeEmpty();
             results.Should().OnlyContain(r => !r.Title.Contains("Samsung", StringComparison.OrdinalIgnoreCase));
             results[0].Title.Should().StartWith("Apple iPhone 12");
-            // or: results[0].Title.Should().StartWithEquivalentOf("Apple iPhone 12");
         }
 
         [Fact]
@@ -137,7 +150,17 @@ namespace SBay.Backend.Tests.DB
         public async Task Search_Paging_Should_Return_Disjoint_Pages()
         {
             await using var db = _fx.CreateContext();
-            await db.Database.ExecuteSqlRawAsync("DELETE FROM listing_images; DELETE FROM listings;");
+
+            // Clean before paging seed
+            await db.Database.ExecuteSqlRawAsync(@"
+TRUNCATE TABLE
+    order_items,
+    orders,
+    cart_items,
+    carts,
+    listing_images,
+    listings
+RESTART IDENTITY CASCADE;");
 
             var sellerId = await EnsureSellerAsync(db);
 

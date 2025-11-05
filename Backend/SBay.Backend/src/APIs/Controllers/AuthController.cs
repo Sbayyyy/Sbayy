@@ -13,7 +13,7 @@ using SBay.Domain.Entities;
 using LoginRequest = SBay.Backend.APIs.Records.LoginRequest;
 using RegisterRequest=SBay.Backend.APIs.Records.RegisterRequest;
 using UserDto=SBay.Backend.APIs.Records.UserDto;
-using AuthResponse= SBay.Backend.APIs.Records.AuthResponse;
+using AuthResponse= SBay.Backend.APIs.Records.Responses.AuthResponse;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
