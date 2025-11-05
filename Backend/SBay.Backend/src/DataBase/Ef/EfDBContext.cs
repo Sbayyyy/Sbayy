@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Message = SBay.Backend.Messaging.Message;
 using CartItem = SBay.Domain.Entities.CartItem;
 using Listing = SBay.Domain.Entities.Listing;
 using Money = SBay.Domain.ValueObjects.Money;
 using ShoppingCart = SBay.Domain.Entities.ShoppingCart;
 using User = SBay.Domain.Entities.User;
+using Category = SBay.Domain.Entities.Category;
 
 namespace SBay.Domain.Database
 {
@@ -15,7 +17,8 @@ namespace SBay.Domain.Database
         public DbSet<User> Users => Set<User>();
         public DbSet<Listing> Listings => Set<Listing>();
         public DbSet<ShoppingCart> Carts => Set<ShoppingCart>();
-
+        public DbSet<Category> Categories => Set<Category>();
+        public DbSet<Message> Messages => Set<Message>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -41,42 +44,42 @@ namespace SBay.Domain.Database
                 e.Ignore(x => x.Region);
                 e.Ignore(x => x.UserName);
             });
-
-            modelBuilder.Entity<Listing>(e =>
+            modelBuilder.Entity<Message>(e =>
             {
-                e.ToTable("listings");
-                e.HasKey(x => x.Id);
-                e.Property(x => x.Id).HasColumnName("id");
+                e.HasKey(m => m.Id);
+                e.HasIndex(m => new { m.SenderId, m.ReceiverId });
+                e.Property(m => m.Content).IsRequired();
 
-                e.Property(x => x.SellerId).HasColumnName("seller_id").IsRequired();
-                e.Property(x => x.Title).HasColumnName("title").HasMaxLength(200).IsRequired();
-                e.Property(x => x.Description).HasColumnName("description").HasMaxLength(2000);
-                e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
-                e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
-                e.OwnsOne(
-                    x => x.Price,
-                    m =>
-                    {
-                        m.Property(mm => mm.Amount)
-                            .HasColumnName("price")
-                            .HasColumnType("numeric(12,2)");
-                        m.Property(mm => mm.Currency).HasColumnName("currency").HasMaxLength(8);
-                    }
-                );
-
-                e.Ignore(x => x.OriginalPrice);
-                e.Ignore(x => x.CategoryPath);
-                e.Ignore(x => x.Condition);
-                e.Ignore("RowVersion");
+                e.HasOne(m => m.Chat)
+                    .WithMany(c => c.Messages)
+                    .HasForeignKey(m => m.ChatId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 e.HasOne<User>()
                     .WithMany()
-                    .HasForeignKey(x => x.SellerId)
+                    .HasForeignKey(m => m.SenderId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                e.HasIndex(x => x.SellerId).HasDatabaseName("idx_listings_seller");
-            });
+                e.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(m => m.ReceiverId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
+                e.HasOne<Listing>()
+                    .WithMany()
+                    .HasForeignKey(m => m.ListingId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+            modelBuilder.Entity<Category>(e =>
+            {
+                e.ToTable("categories");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id");
+
+                e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+
+                e.HasIndex(x => x.Name).IsUnique();
+            });
             modelBuilder.Entity<ShoppingCart>(e =>
             {
                 e.ToTable("carts");
@@ -121,8 +124,9 @@ namespace SBay.Domain.Database
                     }
                 );
             });
-
             base.OnModelCreating(modelBuilder);
+            modelBuilder.ApplyConfiguration(new ListingConfiguration());
+            
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(EfDbContext).Assembly);
         }
     }

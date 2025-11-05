@@ -55,3 +55,18 @@ logs/
 
 # TypeScript
 *.tsbuildinfo
+
+Backend/SBay.Backend/obj/
+Backend/SBay.Backend/bin/
+Backend/SBay.Backend.Tests/obj/
+Backend/SBay.Backend.Tests/bin/
+
+Backend/SBay.Backend/appsettings.json
+Backend/SBay.Backend/appsettings.Development.json
+Backend/SBay.Backend.Tests/ConnectionStrings.json
+
+.vscode/settings.json
+.config/
+Backend/SBay.Backend/Properties/launchSettings.json
+Backend/SBay.Backend/src/DataBase/ConnectionStrings.json
+Backend/Folder.DotSettings.user
