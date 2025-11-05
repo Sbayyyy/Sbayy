@@ -48,6 +48,7 @@ CREATE TABLE listings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ,
   thumbnail_url TEXT DEFAULT NULL,
+  condition TEXT NOT NULL DEFAULT 'Unknown',
   search_vec tsvector
 );
 
@@ -82,7 +83,10 @@ CREATE TABLE listing_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
-  position INT NOT NULL DEFAULT 0
+  position INT NOT NULL DEFAULT 0,
+  mime_type TEXT,
+  height INT,
+  width INT
 );
 
 CREATE INDEX idx_listing_images_listing_pos ON listing_images(listing_id, position);

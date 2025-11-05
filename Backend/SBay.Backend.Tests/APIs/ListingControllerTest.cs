@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using SBay.Backend.APIs.Records;
+using SBay.Backend.APIs.Records.Responses;
 using SBay.Domain.Entities; // for ItemCondition enum
 
 public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
