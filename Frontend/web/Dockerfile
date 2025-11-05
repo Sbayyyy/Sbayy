@@ -28,4 +28,4 @@ WORKDIR /app/web
 COPY --from=build /app/web ./
 
 EXPOSE 3000
-CMD ["npm","start","--prefix","/app/web"]
+CMD ["npm","start"]
