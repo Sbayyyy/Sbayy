@@ -3,10 +3,8 @@ import { getAllListings } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
-import Layout from '@/components/Layout';
 import ProductCardSkeleton from '@/components/ProductCardSkeleton';
 import { mockProducts } from '@/lib/api/mockdata';
-
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -18,12 +16,10 @@ export default function Home() {
   const loadFeaturedProducts = async () => {
     try {
       // for testing with mock data
-      
+
       // await new Promise(res => setTimeout(res, 1000)); // Simuliere Ladezeit
       // setFeaturedProducts(mockProducts.slice(0, 8)); // Verwende Mock-Daten
       // return;
-
-
 
       const data = await getAllListings(1, 8); // Nur erste 8 Produkte
       if (data && data.items) {
@@ -39,11 +35,8 @@ export default function Home() {
   };
 
   return (
-    <Layout title="الرئيسية - سباي">
-      
+    <>
       <div className="min-h-screen">
-        
-
         {/* Hero Section */}
         <section className="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-20">
           <div className="container mx-auto px-4 text-center">
@@ -104,16 +97,12 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500">
-                لا توجد منتجات متوفرة حالياً
-              </div>
+              <div className="text-center py-12 text-gray-500">لا توجد منتجات متوفرة حالياً</div>
             )}
           </div>
         </section>
-
-        
       </div>
-    </Layout>
+    </>
   );
 }
 
@@ -123,5 +112,5 @@ const categories = [
   { id: '3', name: 'منزل وحديقة', icon: '🏠' },
   { id: '4', name: 'سيارات', icon: '🚗' },
   { id: '5', name: 'عقارات', icon: '🏢' },
-  { id: '6', name: 'شيء آخر', icon: '🏢' }
+  { id: '6', name: 'شيء آخر', icon: '🏢' },
 ];

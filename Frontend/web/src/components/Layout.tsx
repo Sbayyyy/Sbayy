@@ -9,10 +9,10 @@ interface LayoutProps {
   description?: string;
 }
 
-export default function Layout({ 
-  children, 
+export default function Layout({
+  children,
   title = 'سباي - سوق سوريا الإلكتروني',
-  description = 'منصة تجارة إلكترونية مثل eBay مصممة خصيصاً لسوريا'
+  description = 'منصة تجارة إلكترونية مثل eBay مصممة خصيصاً لسوريا',
 }: LayoutProps) {
   return (
     <>
@@ -25,9 +25,7 @@ export default function Layout({
 
       <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1">
-          {children}
-        </main>
+        <main className="flex-1">{children}</main>
         <Footer />
       </div>
     </>
