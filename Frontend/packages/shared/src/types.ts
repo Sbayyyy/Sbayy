@@ -130,3 +130,41 @@ export interface ProductUpdate {
   status?: 'active' | 'sold' | 'inactive';
 }
 
+// Seller Stats
+export interface SellerStats {
+  totalRevenue: number;
+  totalOrders: number;
+  newCustomers: number;
+  conversionRate: number;
+  revenueChange: number;
+  ordersChange: number;
+  customersChange: number;
+  conversionChange: number;
+  activeProducts: number;
+  ordersCompleted: number;
+  awaitingShipment: number;
+}
+
+// Order Interface
+export interface Order {
+  id: string;
+  orderId: string;
+  customerName: string;
+  productName: string;
+  quantity: number;
+  amount: number;
+  status: 'Shipped' | 'Processing' | 'Delivered' | 'Pending';
+  payment: 'Paid' | 'Pending' | 'Waiting';
+  date: string;
+}
+
+// Chart Data
+export interface DailyRevenue {
+  day: string;
+  revenue: number;
+}
+
+export interface WeeklySales {
+  week: string;
+  sales: number;
+}
