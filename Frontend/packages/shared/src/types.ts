@@ -168,3 +168,24 @@ export interface WeeklySales {
   week: string;
   sales: number;
 }
+
+// Search & Filter Types
+export interface SearchFilters {
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  condition?: 'New' | 'Used' | 'Refurbished' | 'LikeNew';
+  region?: string;
+  sortBy?: 'price' | 'date' | 'popular';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+export interface SearchResponse {
+  items: Product[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}

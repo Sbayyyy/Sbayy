@@ -1,5 +1,5 @@
 import { api } from '../api';
-import type { Product, ProductCreate, ProductUpdate } from '@sbay/shared';
+import type { Product, ProductCreate, ProductUpdate, SearchFilters, SearchResponse } from '@sbay/shared';
 
 /**
  * Listing erstellen
@@ -41,14 +41,33 @@ export const getMyListings = async (): Promise<Product[]> => {
 };
 
 /**
- * Alle Listings abrufen (mit Pagination)
+ * Alle Listings abrufen (mit Pagination und Filtern)
  */
-export const getAllListings = async (page = 1, limit = 20): Promise<{ items: Product[] }> => {
+export const getAllListings = async (
+  page = 1, 
+  limit = 20,
+  filters?: SearchFilters
+): Promise<SearchResponse> => {
   const response = await api.get<Product[]>('/listings', {
-    params: { page, limit }
+    params: { 
+      page, 
+      limit,
+      category: filters?.category,
+      minPrice: filters?.minPrice,
+      maxPrice: filters?.maxPrice,
+      condition: filters?.condition,
+      sortBy: filters?.sortBy || 'date',
+      sortOrder: filters?.sortOrder || 'desc'
+    }
   });
   
+  // Backend sendet Array, wir wrappen es in SearchResponse
+  const items = response.data;
   return {
-    items: response.data,
+    items,
+    total: items.length,
+    page,
+    limit,
+    totalPages: Math.ceil(items.length / limit)
   };
 };

@@ -3,13 +3,12 @@ import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
 import { searchProducts } from '@/lib/api/search';
-import { Product } from '@sbay/shared';
+import { Product, SearchFilters } from '@sbay/shared';
 import { Search, Loader2, X, SlidersHorizontal } from 'lucide-react';
-import { mockProducts } from '@/lib/api/mockdata';
 
 export default function SearchPage() {
   const router = useRouter();
-  const { q, category, minPrice, maxPrice, condition, sortBy } = router.query;
+  const { q, category, minPrice, maxPrice, condition, region, sortBy } = router.query;
   
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
@@ -20,13 +19,14 @@ export default function SearchPage() {
 
   // Filter State
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<SearchFilters>({
     category: '',
-    minPrice: '',
-    maxPrice: '',
-    condition: '',
-    sortBy: 'date' as 'price' | 'date' | 'popular',
-    sortOrder: 'desc' as 'asc' | 'desc'
+    minPrice: undefined,
+    maxPrice: undefined,
+    condition: undefined,
+    region: '',
+    sortBy: 'date',
+    sortOrder: 'desc'
   });
 
   useEffect(() => {
@@ -34,15 +34,19 @@ export default function SearchPage() {
       setSearchQuery(q);
       
       // Load filters from URL
-      if (category) setFilters(prev => ({ ...prev, category: category as string }));
-      if (minPrice) setFilters(prev => ({ ...prev, minPrice: minPrice as string }));
-      if (maxPrice) setFilters(prev => ({ ...prev, maxPrice: maxPrice as string }));
-      if (condition) setFilters(prev => ({ ...prev, condition: condition as string }));
-      if (sortBy) setFilters(prev => ({ ...prev, sortBy: sortBy as any }));
+      setFilters({
+        category: category ? (category as string) : '',
+        minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
+        maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
+        condition: condition as any,
+        region: region ? (region as string) : '',
+        sortBy: (sortBy as any) || 'date',
+        sortOrder: 'desc'
+      });
       
       performSearch(q as string);
     }
-  }, [q, category, minPrice, maxPrice, condition, sortBy]);
+  }, [q, category, minPrice, maxPrice, condition, region, sortBy]);
 
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
@@ -52,34 +56,12 @@ export default function SearchPage() {
       setSearched(true);
       setError('');
 
-      // Mock API Call for testing
-        // await new Promise(res => setTimeout(res, 1000)); // Simuliere Ladezeit
-        
-
       // API Call mit Filtern
-      const data = await searchProducts(query, {
-        category: filters.category || undefined,
-        minPrice: filters.minPrice ? parseFloat(filters.minPrice) : undefined,
-        maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
-        condition: filters.condition || undefined,
-        sortBy: filters.sortBy,
-        sortOrder: filters.sortOrder,
-        page: 1,
-        limit: 50
-      });
+      const data = await searchProducts(query, filters);
 
-      // Response Format: { items: Product[], total: number }
-      if (data && Array.isArray(data.items)) {
-        setResults(data.items);
-        setTotalResults(data.total || data.items.length);
-      } else if (Array.isArray(data)) {
-        // Fallback wenn API direkt Array zurückgibt
-        setResults(data);
-        setTotalResults(data.length);
-      } else {
-        setResults([]);
-        setTotalResults(0);
-      }
+      // Response Format: SearchResponse
+      setResults(data.items || []);
+      setTotalResults(data.total || 0);
 
     } catch (err: any) {
       console.error('Search error:', err);
@@ -97,9 +79,10 @@ export default function SearchPage() {
       // Build query params
       const params = new URLSearchParams({ q: searchQuery });
       if (filters.category) params.append('category', filters.category);
-      if (filters.minPrice) params.append('minPrice', filters.minPrice);
-      if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+      if (filters.minPrice) params.append('minPrice', filters.minPrice.toString());
+      if (filters.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
       if (filters.condition) params.append('condition', filters.condition);
+      if (filters.region) params.append('region', filters.region);
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
       
       router.push(`/search?${params.toString()}`);
@@ -113,9 +96,10 @@ export default function SearchPage() {
     setError('');
     setFilters({
       category: '',
-      minPrice: '',
-      maxPrice: '',
-      condition: '',
+      minPrice: undefined,
+      maxPrice: undefined,
+      condition: undefined,
+      region: '',
       sortBy: 'date',
       sortOrder: 'desc'
     });
@@ -196,29 +180,41 @@ export default function SearchPage() {
                   <input
                     type="number"
                     placeholder="السعر من"
-                    value={filters.minPrice}
-                    onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
+                    value={filters.minPrice || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value ? parseFloat(e.target.value) : undefined }))}
                     className="px-4 py-2 border border-gray-300 rounded-lg"
                   />
                   <input
                     type="number"
                     placeholder="السعر إلى"
-                    value={filters.maxPrice}
-                    onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
+                    value={filters.maxPrice || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value ? parseFloat(e.target.value) : undefined }))}
                     className="px-4 py-2 border border-gray-300 rounded-lg"
                   />
 
                   {/* Condition Filter */}
                   <select
-                    value={filters.condition}
-                    onChange={(e) => setFilters(prev => ({ ...prev, condition: e.target.value }))}
+                    value={filters.condition || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, condition: e.target.value as any }))}
                     className="px-4 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="">جميع الحالات</option>
-                    <option value="new">جديد</option>
-                    <option value="used">مستعمل</option>
-                    <option value="refurbished">مجدد</option>
+                    <option value="New">جديد</option>
+                    <option value="Used">مستعمل</option>
+                    <option value="Refurbished">مجدد</option>
+                    <option value="LikeNew">مثل الجديد</option>
                   </select>
+                </div>
+
+                {/* Region Filter - New Row */}
+                <div className="mt-4">
+                  <input
+                    type="text"
+                    placeholder="الموقع (مثال: دمشق، حلب...)"
+                    value={filters.region}
+                    onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
                 </div>
 
                 <div className="flex gap-3 mt-4">
@@ -232,9 +228,10 @@ export default function SearchPage() {
                     onClick={() => {
                       setFilters({
                         category: '',
-                        minPrice: '',
-                        maxPrice: '',
-                        condition: '',
+                        minPrice: undefined,
+                        maxPrice: undefined,
+                        condition: undefined,
+                        region: '',
                         sortBy: 'date',
                         sortOrder: 'desc'
                       });
