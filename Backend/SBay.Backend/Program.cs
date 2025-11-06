@@ -56,6 +56,34 @@ builder.Services.AddCors(o =>
 // ───────────────────────────────────────────────
 var app = builder.Build();
 
+app.Use(async (ctx, next) =>
+{
+    var requestId = ctx.Request.Headers.ContainsKey("X-Request-ID") ? (string?)ctx.Request.Headers["X-Request-ID"] : null;
+    if (string.IsNullOrWhiteSpace(requestId))
+    {
+        requestId = Guid.NewGuid().ToString("N");
+        ctx.Response.Headers["X-Request-ID"] = requestId;
+    }
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    try
+    {
+        await next();
+    }
+    finally
+    {
+        sw.Stop();
+        var traceId = System.Diagnostics.Activity.Current?.TraceId.ToString();
+        if (!string.IsNullOrEmpty(traceId)) ctx.Response.Headers["X-Trace-Id"] = traceId;
+        app.Logger.LogInformation("{method} {path} -> {status} in {elapsed}ms rid={rid} tid={tid}",
+            ctx.Request.Method,
+            ctx.Request.Path.Value,
+            ctx.Response.StatusCode,
+            sw.ElapsedMilliseconds,
+            requestId,
+            traceId);
+    }
+});
+
 // Ensure DB created (optional; remove in prod)
 using (var scope = app.Services.CreateScope())
 {
@@ -83,6 +111,22 @@ app.UseAuthorization();
 
 // Map Controllers
 app.MapControllers();
+
+app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health/ready", async (EfDbContext db, CancellationToken ct) =>
+{
+    try
+    {
+        var can = await db.Database.CanConnectAsync(ct);
+        return can
+            ? Results.Ok(new { status = "ok", db = "up" })
+            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
+    catch
+    {
+        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
+});
 
 // Map SignalR hubs
 // app.MapHub<ChatHub>("/hubs/chat"); // only if you have a ChatHub class
