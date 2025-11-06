@@ -91,7 +91,7 @@ export default function Register() {
             });
             
             // Registration successful, redirect to login
-            router.push('/login?registered=true');
+            router.push('/auth/login?registered=true');
         } catch (error: any) {
             setApiError(error.response?.data?.message || 'خطأ في الاتصال بالخادم');
         } finally {

@@ -10,6 +10,9 @@ const nextConfig = {
     domains: ['localhost'],
   },
   transpilePackages: ['@sbay/shared'],
+  async rewrites() {
+    return [{ source: "/api/:path*", destination: "http://api:8080/:path*" }];
+  }
 };
 
 module.exports = nextConfig;

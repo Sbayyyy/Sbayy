@@ -21,7 +21,7 @@
     "@hookform/resolvers": "^3.3.4",
     "clsx": "^2.1.0",
     "lucide-react": "^0.315.0",
-    "@sbay/shared": "../../packages/shared"
+    "@sbay/shared": "file:../packages/shared"
   },
   "devDependencies": {
     "@types/node": "^20.11.5",

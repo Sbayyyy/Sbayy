@@ -1,49 +1,31 @@
-# Web Dockerfile
-FROM node:20-alpine AS base
-
-# Install dependencies
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
+# ---------- build ----------
+FROM node:20-alpine AS build
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-COPY apps/Frontend/web/package.json ./apps/Frontend/web/
-COPY packages/shared/package.json ./packages/shared/
+# Bring manifests needed for a web-only install (shared is a file: dep)
+COPY packages/shared/package.json packages/shared/package.json
+COPY web/package.json web/package.json
 
-RUN npm ci
+# Install *inside* the web workspace so node_modules lands in /app/web/node_modules
+RUN npm install --prefix web
 
-# Build application
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Bring sources and build
+COPY packages ./packages
+COPY web ./web
+RUN npm run --prefix web build
 
-# Build shared package
-RUN npm run build --workspace=packages/shared
+# Trim dev deps only in the web workspace
+RUN npm prune --prefix web --omit=dev
 
-# Build Next.js app
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build --workspace=apps/Frontend/web
-
-# Production image
-FROM base AS runner
-WORKDIR /app
-
+# ---------- runtime ----------
+FROM node:20-alpine
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+WORKDIR /app/web
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/apps/web/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
-
-USER nextjs
+# Copy the built workspace (includes its own node_modules + .next)
+COPY --from=build /app/web ./
 
 EXPOSE 3000
-
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["node", "server.js"]
+CMD ["npm","start"]
