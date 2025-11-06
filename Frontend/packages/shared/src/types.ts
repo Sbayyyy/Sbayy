@@ -22,40 +22,43 @@ export interface UserLogin {
   password: string;
 }
 
-// Product types
+// Product types (matched to Backend ListingResponse)
 export interface Product {
   id: string;
   title: string;
   description: string;
-  price: number;
-  currency: string;
-  images: string[];
-  category: string;
-  condition: 'new' | 'used' | 'refurbished';
-  location: string;
-  seller: {
+  priceAmount: number;        // Backend field name
+  priceCurrency: string;      // Backend field name
+  imageUrls: string[];        // Backend field name
+  categoryPath?: string;      // Backend field name
+  condition: string;          // Backend: "New" | "Used" | "Refurbished" (PascalCase)
+  region?: string;            // Backend field name
+  stock: number;              // Backend field name
+  thumbnailUrl?: string;      // Backend field name
+  createdAt: string;
+  
+  // Optional frontend helper properties
+  seller?: {
     id: string;
     name: string;
     rating?: number;
   };
-  stockQuantity?: number;
-  status: 'active' | 'sold' | 'inactive';
-  views: number;
-  favorites: number;
-  createdAt: string;
-  updatedAt: string;
+  status?: 'active' | 'sold' | 'inactive';
+  views?: number;
+  favorites?: number;
+  updatedAt?: string;
 }
 
 export interface ProductCreate {
   title: string;
   description: string;
-  price: number;
-  currency?: string;
-  images?: string[];
-  category: string;
-  stockQuantity?: number;
-  condition: 'new' | 'used' | 'refurbished';
-  location: string;
+  priceAmount: number;
+  priceCurrency?: string;
+  imageUrls?: string[];
+  categoryPath?: string;
+  stock?: number;
+  condition: string;  // "New" | "Used" | "Refurbished"
+  region: string;
 }
 
 // Category types
@@ -117,12 +120,13 @@ export interface AuthResponse {
 export interface ProductUpdate {
   title?: string;
   description?: string;
-  price?: number;
-  images?: string[];
-  category?: string;
-  condition?: 'new' | 'used' | 'refurbished';
-  location?: string;
-  stockQuantity?: number;
+  priceAmount?: number;
+  priceCurrency?: string;
+  imageUrls?: string[];
+  categoryPath?: string;
+  condition?: string;
+  region?: string;
+  stock?: number;
   status?: 'active' | 'sold' | 'inactive';
 }
 

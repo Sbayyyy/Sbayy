@@ -6,7 +6,6 @@ import { getAllListings } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
 import { Loader2, AlertCircle, Filter } from 'lucide-react';
 import { set } from 'zod/v4';
-import { mockProducts } from '@/lib/api/mockdata';
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -27,20 +26,12 @@ export default function BrowsePage() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      
-      // Test with mock data
-      /*
-      await new Promise(res => setTimeout(res, 1000));
-      setProducts(mockProducts); // Leere Liste zum Testen des Empty States
-      setHasMore(false);
-      return;
-      */
-        
       const data = await getAllListings(1, 20);
       
       if (data && data.items) {
         setProducts(data.items);
-        setHasMore(data.pagination?.page < data.pagination?.pages);
+        // Wenn weniger als 20 Items zurückkommen, keine weiteren Seiten
+        setHasMore(data.items.length >= 20);
       } else if (Array.isArray(data)) {
         // Fallback wenn API direkt Array zurückgibt
         setProducts(data);
@@ -65,7 +56,8 @@ export default function BrowsePage() {
       if (data && data.items) {
         setProducts(prev => [...prev, ...data.items]);
         setPage(nextPage);
-        setHasMore(data.pagination?.page < data.pagination?.pages);
+        // Wenn weniger als 20 Items zurückkommen, keine weiteren Seiten
+        setHasMore(data.items.length >= 20);
       }
     } catch (err) {
       console.error('Error loading more:', err);

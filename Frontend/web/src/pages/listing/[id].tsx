@@ -16,12 +16,13 @@ import {
 import { getListingById } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
-import { getMockProductById } from '@/lib/api/mockdata';
+import { useCartStore } from '@/lib/cartStore';
 
 export default function ListingDetail() {
   const router = useRouter();
   const { id } = router.query;
   const { user } = useAuthStore();
+  const { addItem } = useCartStore();
   
   const [listing, setListing] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,39 +38,22 @@ export default function ListingDetail() {
   }, [id]);
 
   const loadListing = async (listingId: string) => {
-    // mock data
-    
-    try {
-        setLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
-        const mochData = getMockProductById(listingId);
-        if (mochData) {
-            setListing(mochData);
-        } else {
-            setError('فشل تحميل المنتج');
-        }
-    } catch (err: any) {
-        setError('فشل تحميل المنتج');
-    } finally {
-        setLoading(false);
-    }
-    };
-    
-    /* for later
     try {
       setLoading(true);
       const data = await getListingById(listingId);
       setListing(data);
     } catch (err: any) {
+      console.error('Error loading listing:', err);
       setError(err.response?.data?.message || 'فشل تحميل المنتج');
     } finally {
       setLoading(false);
     }
   };
-    */
   const handleAddToCart = () => {
-    // TODO: Implement cart functionality
-    alert(`تمت إضافة ${quantity} من ${listing?.title} إلى السلة`);
+    if (listing) {
+      addItem(listing, quantity);
+      // Cart opens automatically via store
+    }
   };
 
   const handleBuyNow = () => {
@@ -100,17 +84,17 @@ export default function ListingDetail() {
   };
 
   const nextImage = () => {
-    if (listing?.images && listing.images.length > 0) {
+    if (listing?.imageUrls && listing.imageUrls.length > 0) {
       setSelectedImageIndex((prev) => 
-        prev === listing.images.length - 1 ? 0 : prev + 1
+        prev === listing.imageUrls.length - 1 ? 0 : prev + 1
       );
     }
   };
 
   const prevImage = () => {
-    if (listing?.images && listing.images.length > 0) {
+    if (listing?.imageUrls && listing.imageUrls.length > 0) {
       setSelectedImageIndex((prev) => 
-        prev === 0 ? listing.images.length - 1 : prev - 1
+        prev === 0 ? listing.imageUrls.length - 1 : prev - 1
       );
     }
   };
@@ -140,17 +124,17 @@ export default function ListingDetail() {
   }
 
   const conditionLabels: Record<string, string> = {
-    'new': 'جديد',
-    'like-new': 'كالجديد',
-    'good': 'جيد',
-    'fair': 'مقبول',
-    'poor': 'سيئ',
-    'used': 'مستعمل',
-    'refurbished': 'مجدد'
+    'New': 'جديد',
+    'LikeNew': 'كالجديد',
+    'Good': 'جيد',
+    'Fair': 'مقبول',
+    'Poor': 'سيئ',
+    'Used': 'مستعمل',
+    'Refurbished': 'مجدد'
   };
 
-  const maxQuantity = listing.stockQuantity || 1;
-  const isAvailable = listing.stockQuantity === undefined || listing.stockQuantity > 0;
+  const maxQuantity = listing.stock || 1;
+  const isAvailable = listing.stock === undefined || listing.stock > 0;
   const isOwnListing = user?.id === listing.seller?.id;
 
   return (
@@ -168,8 +152,8 @@ export default function ListingDetail() {
               الرئيسية
             </button>
             <span className="mx-2 text-gray-400">/</span>
-            <button onClick={() => router.push(`/?category=${listing.category}`)} className="text-gray-500 hover:text-gray-700">
-              {listing.category}
+            <button onClick={() => router.push(`/?category=${listing.categoryPath}`)} className="text-gray-500 hover:text-gray-700">
+              {listing.categoryPath || 'منتجات'}
             </button>
             <span className="mx-2 text-gray-400">/</span>
             <span className="text-gray-900 truncate max-w-xs inline-block">{listing.title}</span>
@@ -180,14 +164,14 @@ export default function ListingDetail() {
               {/* Image Gallery */}
               <div>
                 <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
-                  {listing.images && listing.images.length > 0 ? (
+                  {listing.imageUrls && listing.imageUrls.length > 0 ? (
                     <>
                       <img
-                        src={listing.images[selectedImageIndex]}
+                        src={listing.imageUrls[selectedImageIndex]}
                         alt={listing.title}
                         className="w-full h-full object-contain"
                       />
-                      {listing.images.length > 1 && (
+                      {listing.imageUrls.length > 1 && (
                         <>
                           <button
                             onClick={prevImage}
@@ -204,7 +188,7 @@ export default function ListingDetail() {
                             <ChevronRight size={24} />
                           </button>
                           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                            {selectedImageIndex + 1} / {listing.images.length}
+                            {selectedImageIndex + 1} / {listing.imageUrls.length}
                           </div>
                         </>
                       )}
@@ -217,9 +201,9 @@ export default function ListingDetail() {
                 </div>
 
                 {/* Thumbnails */}
-                {listing.images && listing.images.length > 1 && (
+                {listing.imageUrls && listing.imageUrls.length > 1 && (
                   <div className="grid grid-cols-5 gap-2">
-                    {listing.images.map((image, index) => (
+                    {listing.imageUrls.map((image, index) => (
                       <button
                         key={index}
                         onClick={() => setSelectedImageIndex(index)}
@@ -249,7 +233,7 @@ export default function ListingDetail() {
 
                   <div className="flex items-center gap-4 mb-6">
                     <span className="text-3xl font-bold text-primary-600">
-                      {listing.price.toLocaleString('ar-SY')} ل.س
+                      {listing.priceAmount.toLocaleString('ar-SY')} {listing.priceCurrency || 'ل.س'}
                     </span>
                     {listing.condition && (
                       <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
@@ -293,27 +277,27 @@ export default function ListingDetail() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">الفئة</p>
-                        <p className="font-medium">{listing.category}</p>
+                        <p className="font-medium">{listing.categoryPath || 'غير مصنف'}</p>
                       </div>
                       {listing.condition && (
                         <div>
                           <p className="text-sm text-gray-500">الحالة</p>
-                          <p className="font-medium">{conditionLabels[listing.condition]}</p>
+                          <p className="font-medium">{conditionLabels[listing.condition] || listing.condition}</p>
                         </div>
                       )}
-                      {listing.location && (
+                      {listing.region && (
                         <div>
                           <p className="text-sm text-gray-500">الموقع</p>
                           <p className="font-medium flex items-center gap-1">
                             <MapPin size={16} />
-                            {listing.location}
+                            {listing.region}
                           </p>
                         </div>
                       )}
-                      {listing.stockQuantity !== undefined && (
+                      {listing.stock !== undefined && (
                         <div>
                           <p className="text-sm text-gray-500">الكمية المتوفرة</p>
-                          <p className="font-medium">{listing.stockQuantity}</p>
+                          <p className="font-medium">{listing.stock}</p>
                         </div>
                       )}
                     </div>

@@ -19,13 +19,13 @@ import ImageUpload from '../../components/imageUpload';
 interface ProductFormData {
   title: string;
   description: string;
-  price: number | string;
-  currency?: string;
-  images?: string[];
-  category: string;
-  condition: 'new' | 'used' | 'refurbished';
-  location: string;
-  stockQuantity?: number | string;
+  priceAmount: number | string;
+  priceCurrency?: string;
+  imageUrls?: string[];
+  categoryPath: string;
+  condition: string;  // "New" | "Used" | "Refurbished"
+  region: string;
+  stock?: number | string;
 }
 
 export default function SellPage() {
@@ -35,13 +35,13 @@ export default function SellPage() {
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
     description: '',
-    price: '',
-    currency: 'SYP',
-    images: [],
-    category: '',
-    condition: 'new',
-    location: '',
-    stockQuantity: ''
+    priceAmount: '',
+    priceCurrency: 'SYP',
+    imageUrls: [],
+    categoryPath: '',
+    condition: 'New',
+    region: '',
+    stock: ''
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof ProductCreate, string>>>({});
@@ -67,35 +67,35 @@ export default function SellPage() {
     if (descError) newErrors.description = descError;
 
     const priceError = getListingPriceValidationMessage(
-      formData.price === '' ? NaN : formData.price
+      formData.priceAmount === '' ? NaN : formData.priceAmount
     );
-    if (priceError) newErrors.price = priceError;
+    if (priceError) newErrors.priceAmount = priceError as any;
 
-    const categoryError = getListingCategoryValidationMessage(formData.category);
-    if (categoryError) newErrors.category = categoryError;
+    const categoryError = getListingCategoryValidationMessage(formData.categoryPath);
+    if (categoryError) newErrors.categoryPath = categoryError as any;
 
-    const locationError = getListingLocationValidationMessage(sanitizeInput(formData.location));
-    if (locationError) newErrors.location = locationError;
+    const locationError = getListingLocationValidationMessage(sanitizeInput(formData.region));
+    if (locationError) newErrors.region = locationError as any;
 
-    // Validate stockQuantity
-    if (formData.stockQuantity === '' || formData.stockQuantity === undefined) {
-      newErrors.stockQuantity = 'الكمية مطلوبة';
+    // Validate stock
+    if (formData.stock === '' || formData.stock === undefined) {
+      newErrors.stock = 'الكمية مطلوبة' as any;
     } else {
-      const quantity = typeof formData.stockQuantity === 'string' 
-        ? parseInt(formData.stockQuantity, 10) 
-        : formData.stockQuantity;
+      const quantity = typeof formData.stock === 'string' 
+        ? parseInt(formData.stock, 10) 
+        : formData.stock;
       
       if (isNaN(quantity)) {
-        newErrors.stockQuantity = 'الكمية يجب أن تكون رقماً صحيحاً';
+        newErrors.stock = 'الكمية يجب أن تكون رقماً صحيحاً' as any;
       } else if (!Number.isInteger(quantity)) {
-        newErrors.stockQuantity = 'الكمية يجب أن تكون رقماً صحيحاً';
+        newErrors.stock = 'الكمية يجب أن تكون رقماً صحيحاً' as any;
       } else if (quantity < 1) {
-        newErrors.stockQuantity = 'الكمية يجب أن تكون 1 على الأقل';
+        newErrors.stock = 'الكمية يجب أن تكون 1 على الأقل' as any;
       }
     }
 
-    if (formData.images && formData.images.length === 0) {
-      newErrors.images = 'يجب إضافة صورة واحدة على الأقل';
+    if (formData.imageUrls && formData.imageUrls.length === 0) {
+      newErrors.imageUrls = 'يجب إضافة صورة واحدة على الأقل' as any;
     }
 
     setErrors(newErrors);
@@ -108,7 +108,7 @@ export default function SellPage() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'price' || name === 'stockQuantity' 
+      [name]: name === 'priceAmount' || name === 'stock' 
         ? (value === '' ? '' : parseFloat(value))
         : value
     }));
@@ -130,18 +130,22 @@ export default function SellPage() {
     try {
       // Convert form data to API format
       const submitData: ProductCreate = {
-        ...formData,
-        price: typeof formData.price === 'string' ? parseFloat(formData.price) : formData.price,
-        stockQuantity: typeof formData.stockQuantity === 'string' 
-          ? (formData.stockQuantity === '' ? 1 : parseFloat(formData.stockQuantity))
-          : formData.stockQuantity
+        title: formData.title,
+        description: formData.description,
+        priceAmount: typeof formData.priceAmount === 'string' ? parseFloat(formData.priceAmount) : formData.priceAmount,
+        priceCurrency: formData.priceCurrency || 'SYP',
+        imageUrls: formData.imageUrls || [],
+        categoryPath: formData.categoryPath,
+        condition: formData.condition,
+        region: formData.region,
+        stock: typeof formData.stock === 'string' 
+          ? (formData.stock === '' ? 1 : parseInt(formData.stock, 10))
+          : formData.stock || 1
       };
 
       const response = await createListing(submitData);
-      if (response.success) {
-        // Redirect to the created listing
-        router.push(`/listing/${response.data.id}`);
-      }
+      // Redirect to the created listing
+      router.push(`/listing/${response.id}`);
     } catch (error: any) {
       setApiError(error.response?.data?.message || 'حدث خطأ أثناء نشر المنتج');
     } finally {
@@ -208,51 +212,51 @@ export default function SellPage() {
               {/* Images */}
               <div>
                 <ImageUpload
-                  images={formData.images || []}
-                  onChange={(images) => setFormData(prev => ({ ...prev, images }))}
+                  images={formData.imageUrls || []}
+                  onChange={(images) => setFormData(prev => ({ ...prev, imageUrls: images }))}
                 />
-                {errors.images && <p className="mt-1 text-sm text-red-500">{errors.images}</p>}
+                {errors.imageUrls && <p className="mt-1 text-sm text-red-500">{errors.imageUrls}</p>}
               </div>
 
               {/* Price & Stock */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="price" className="block text-sm font-medium mb-2">
+                  <label htmlFor="priceAmount" className="block text-sm font-medium mb-2">
                     السعر (ل.س) *
                   </label>
                   <input
                     type="number"
-                    id="price"
-                    name="price"
-                    value={formData.price}
+                    id="priceAmount"
+                    name="priceAmount"
+                    value={formData.priceAmount}
                     onChange={handleChange}
                     disabled={isLoading}
                     min="0"
                     step="1000"
-                    className={`w-full input ${errors.price ? 'border-2 border-red-500' : ''}`}
+                    className={`w-full input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
                     placeholder="100000"
                   />
-                  {errors.price && <p className="mt-1 text-sm text-red-500">{errors.price}</p>}
+                  {errors.priceAmount && <p className="mt-1 text-sm text-red-500">{errors.priceAmount}</p>}
                 </div>
 
                 <div>
-                  <label htmlFor="stockQuantity" className="block text-sm font-medium mb-2">
+                  <label htmlFor="stock" className="block text-sm font-medium mb-2">
                     الكمية المتوفرة *
                   </label>
                   <input
                     type="number"
-                    id="stockQuantity"
-                    name="stockQuantity"
-                    value={formData.stockQuantity}
+                    id="stock"
+                    name="stock"
+                    value={formData.stock}
                     onChange={handleChange}
                     disabled={isLoading}
                     min="1"
                     step="1"
-                    className={`w-full input ${errors.stockQuantity ? 'border-2 border-red-500' : ''}`}
+                    className={`w-full input ${errors.stock ? 'border-2 border-red-500' : ''}`}
                     placeholder="1"
                   />
-                  {errors.stockQuantity && (
-                    <p className="mt-1 text-sm text-red-500">{errors.stockQuantity}</p>
+                  {errors.stock && (
+                    <p className="mt-1 text-sm text-red-500">{errors.stock}</p>
                   )}
                 </div>
               </div>
@@ -260,16 +264,16 @@ export default function SellPage() {
               {/* Category & Condition */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="category" className="block text-sm font-medium mb-2">
+                  <label htmlFor="categoryPath" className="block text-sm font-medium mb-2">
                     الفئة *
                   </label>
                   <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
+                    id="categoryPath"
+                    name="categoryPath"
+                    value={formData.categoryPath}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className={`w-full input ${errors.category ? 'border-2 border-red-500' : ''}`}
+                    className={`w-full input ${errors.categoryPath ? 'border-2 border-red-500' : ''}`}
                   >
                     <option value="">اختر الفئة</option>
                     <option value="electronics">إلكترونيات</option>
@@ -279,8 +283,8 @@ export default function SellPage() {
                     <option value="real-estate">عقارات</option>
                     <option value="other">أخرى</option>
                   </select>
-                  {errors.category && (
-                    <p className="mt-1 text-sm text-red-500">{errors.category}</p>
+                  {errors.categoryPath && (
+                    <p className="mt-1 text-sm text-red-500">{errors.categoryPath}</p>
                   )}
                 </div>
 
@@ -296,30 +300,31 @@ export default function SellPage() {
                     disabled={isLoading}
                     className="w-full input"
                   >
-                    <option value="new">جديد</option>
-                    <option value="used">مستعمل</option>
-                    <option value="refurbished">مجدد</option>
+                    <option value="New">جديد</option>
+                    <option value="Used">مستعمل</option>
+                    <option value="Refurbished">مجدد</option>
+                    <option value="LikeNew">كالجديد</option>
                   </select>
                 </div>
               </div>
 
               {/* Location */}
               <div>
-                <label htmlFor="location" className="block text-sm font-medium mb-2">
+                <label htmlFor="region" className="block text-sm font-medium mb-2">
                   الموقع *
                 </label>
                 <input
                   type="text"
-                  id="location"
-                  name="location"
-                  value={formData.location}
+                  id="region"
+                  name="region"
+                  value={formData.region}
                   onChange={handleChange}
                   disabled={isLoading}
-                  className={`w-full input ${errors.location ? 'border-2 border-red-500' : ''}`}
+                  className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
                   placeholder="مثال: دمشق - المزة"
                 />
-                {errors.location && (
-                  <p className="mt-1 text-sm text-red-500">{errors.location}</p>
+                {errors.region && (
+                  <p className="mt-1 text-sm text-red-500">{errors.region}</p>
                 )}
               </div>
 

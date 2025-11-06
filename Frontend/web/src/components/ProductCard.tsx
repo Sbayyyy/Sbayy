@@ -19,15 +19,19 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
   };
 
   const conditionLabels: Record<string, string> = {
-    'new': 'جديد',
-    'used': 'مستعمل',
-    'refurbished': 'مجدد'
+    'New': 'جديد',
+    'Used': 'مستعمل',
+    'Refurbished': 'مجدد',
+    'LikeNew': 'كالجديد',
+    'Good': 'جيد',
+    'Fair': 'مقبول',
+    'Poor': 'سيئ'
   };
 
-  const imageUrl = product.images?.[0] || null;
-  const formattedPrice = product.price.toLocaleString('ar-SY');
+  const imageUrl = product.imageUrls?.[0] || null;
+  const formattedPrice = product.priceAmount.toLocaleString('ar-SY');
   const isAvailable = product.status === 'active' && 
-    (product.stockQuantity === undefined || product.stockQuantity > 0);
+    (product.stock === undefined || product.stock > 0);
 
   return (
     <Link href={`/listing/${product.id}`}>
@@ -74,10 +78,10 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
             {product.title}
           </h3>
 
-          {product.location && (
+          {product.region && (
             <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
               <MapPin size={14} />
-              <span>{product.location}</span>
+              <span>{product.region}</span>
             </div>
           )}
 

@@ -5,7 +5,6 @@ import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ProductCardSkeleton from '@/components/ProductCardSkeleton';
-import { mockProducts } from '@/lib/api/mockdata';
 
 
 export default function Home() {
@@ -17,14 +16,6 @@ export default function Home() {
 
   const loadFeaturedProducts = async () => {
     try {
-      // for testing with mock data
-      
-      // await new Promise(res => setTimeout(res, 1000)); // Simuliere Ladezeit
-      // setFeaturedProducts(mockProducts.slice(0, 8)); // Verwende Mock-Daten
-      // return;
-
-
-
       const data = await getAllListings(1, 8); // Nur erste 8 Produkte
       if (data && data.items) {
         setFeaturedProducts(data.items);
