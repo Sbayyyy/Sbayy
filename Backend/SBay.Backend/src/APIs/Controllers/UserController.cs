@@ -1,7 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +12,8 @@ using SBay.Domain.Entities;
 
 namespace SBay.Backend.Api.Controllers;
 
+[ApiController]
+[Route("api/users")]
 public class UserController : ControllerBase
 {
     private readonly EfDataProvider _data;
@@ -33,40 +34,72 @@ public class UserController : ControllerBase
         _jwt = jwtOptions.Value;
         _userResolver = userResolver;
     }
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> GetMe(CancellationToken ct)
+    {
+        var uid = await _userResolver.GetUserIdAsync(User, ct);
+        if (!uid.HasValue || uid.Value == Guid.Empty) return Unauthorized();
+
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == uid.Value, ct);
+        if (user is null) return NotFound();
+
+        var listingsCount = await _db.Set<Listing>().AsNoTracking().CountAsync(l => l.SellerId == uid.Value, ct);
+        // TODO: enable when chat feature is ready
+        // var chatsCount = await _db.Set<Chat>().AsNoTracking().CountAsync(c => c.BuyerID == uid.Value || c.SellerID == uid.Value, ct);
+        // var unreadMessagesCount = await _db.Set<Message>().AsNoTracking().CountAsync(m => m.ReceiverID == uid.Value && !m.IsRead, ct);
+
+        var dto = new UserDto(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.Phone,
+            user.Role,
+            user.IsSeller,
+            user.CreatedAt,
+            user.LastSeen
+        );
+
+        return Ok(dto);
+    }
 
     // PUT: /api/users/me
     [HttpPut("me")]
     [Authorize]
     public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest req, CancellationToken ct)
     {
-        /*TODO:
-         Multiple concerns with the update logic.
+        var uid = await _userResolver.GetUserIdAsync(User, ct);
+        if (!uid.HasValue || uid.Value == Guid.Empty) return Unauthorized();
 
-Redundant persistence calls? Lines 56-57 call both _data.Users.UpdateAsync and _data.Uow.SaveChangesAsync. Verify whether UpdateAsync already persists changes. If it does, SaveChangesAsync is redundant; if it doesn't, the naming is misleading.
-
-Missing input validation. The method only trims input but doesn't validate:
-
-Maximum length constraints (e.g., DisplayName and Phone likely have DB column limits)
-Format validation for Phone (e.g., regex pattern)
-Content validation (e.g., prevent control characters, XSS)
-Unnecessary updates. The method always calls UpdateAsync even if no fields changed, causing unnecessary DB writes and potential concurrency conflicts.
-
-Mixed data access. Line 48 uses _db.Users directly while line 56 uses _data.Users.UpdateAsync, mixing EF context and repository patterns inconsistently.
-         */
-        var userId = await _userResolver.GetUserIdAsync(User, ct);
-        if (userId == Guid.Empty) return Unauthorized();
-        if (userId==null) return Unauthorized("User not found");
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId.Value, ct);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == uid.Value, ct);
         if (user is null) return NotFound();
 
-        if (!string.IsNullOrWhiteSpace(req.DisplayName))
-            user.DisplayName = req.DisplayName.Trim();
-        if (!string.IsNullOrWhiteSpace(req.Phone))
-            user.Phone = req.Phone.Trim();
+        var changed = false;
 
-        await _data.Users.UpdateAsync(user, ct);
-        await _data.Uow.SaveChangesAsync(ct);
+        if (!string.IsNullOrWhiteSpace(req.DisplayName))
+        {
+            var dn = req.DisplayName.Trim();
+            if (!string.Equals(user.DisplayName, dn, StringComparison.Ordinal))
+            {
+                user.DisplayName = dn;
+                changed = true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(req.Phone))
+        {
+            var ph = req.Phone.Trim();
+            if (!string.Equals(user.Phone, ph, StringComparison.Ordinal))
+            {
+                user.Phone = ph;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            await _db.SaveChangesAsync(ct);
 
         return Ok(user.ToDto());
     }
 }
+
