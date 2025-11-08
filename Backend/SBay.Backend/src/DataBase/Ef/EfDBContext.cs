@@ -126,11 +126,6 @@ namespace SBay.Domain.Database
                 );
             });
             base.OnModelCreating(modelBuilder);
-            modelBuilder.ApplyConfiguration(new ListingConfiguration());
-            modelBuilder.ApplyConfiguration(new ImageListingConfiguration());
-            modelBuilder.ApplyConfiguration(new OrderConfiguration());
-            modelBuilder.ApplyConfiguration(new OrderItemConfiguration());
-            
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(EfDbContext).Assembly);
         }
     }

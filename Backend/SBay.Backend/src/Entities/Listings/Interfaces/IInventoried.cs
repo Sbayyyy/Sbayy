@@ -1,7 +1,8 @@
-﻿namespace SBay.Domain.Entities
+namespace SBay.Domain.Entities
 {
     public interface IInventoried
     {
-        int StockQuantity { get; }                   
+        int StockQuantity { get; }
     }
 }
+

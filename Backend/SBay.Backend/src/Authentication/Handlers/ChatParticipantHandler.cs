@@ -32,9 +32,12 @@ public class ChatParticipantHandler: AuthorizationHandler<ChatParticipantRequire
         }
 
 
-        if (otherId.Value == me.Value || otherId.Value != me.Value)
+        if (!otherId.HasValue) return;
+
+        // Intended check: authorize only when the caller is not the "other" user
+        // Adjust to equality if policy should allow only the other participant.
+        if (otherId.Value != me.Value)
         {
-            
             context.Succeed(requirement);
         }
     }

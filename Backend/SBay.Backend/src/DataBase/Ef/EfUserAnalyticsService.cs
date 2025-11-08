@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 
 using SBay.Backend.APIs.Records;
+using SBay.Backend.DataBase.Interfaces;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 

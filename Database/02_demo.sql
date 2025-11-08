@@ -177,7 +177,7 @@ WITH buyer AS (SELECT id FROM users WHERE email = 'buyer@example.com'),
      sel   AS (SELECT id FROM users WHERE email = 'seller@example.com'),
      item  AS (SELECT id, price_amount, price_currency FROM listings WHERE title = 'Vintage Chair' LIMIT 1)
 INSERT INTO orders (id, buyer_id, seller_id, status, total_amount, total_currency, created_at, updated_at)
-SELECT gen_random_uuid(), buyer.id, sel.id, 'created', item.price_amount, item.price_currency, now(), now()
+SELECT gen_random_uuid(), buyer.id, sel.id, 'pending', item.price_amount, item.price_currency, now(), now()
 FROM buyer, sel, item
 WHERE NOT EXISTS (
   SELECT 1 FROM orders o

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SBay.Backend.APIs.Records;
+using SBay.Backend.DataBase.Interfaces;
 using SBay.Domain.Authentication;
 using SBay.Domain.Entities;
 
