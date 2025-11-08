@@ -107,12 +107,16 @@ public sealed class OrdersController : ControllerBase
 
         foreach (var it in requestedItems)
         {
+            if (it.ListingId == Guid.Empty || !listingById.TryGetValue(it.ListingId, out var l))
+            {
+                return ValidationProblem("Invalid or unknown ListingId for item.");
+            }
+
             if (it.Quantity <= 0)
             {
                 return ValidationProblem("Item quantity must be greater than 0.");
             }
 
-            var l = listingById[it.ListingId];
             order.Items.Add(new OrderItem
             {
                 Id = Guid.NewGuid(),

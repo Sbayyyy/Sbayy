@@ -18,8 +18,10 @@ BEGIN
     CREATE TYPE item_condition AS ENUM ('Unknown','New','LikeNew','Good','Fair','Poor');
   END IF;
 
+  -- Align with EF OrderStatus enum and converter (lowercase values).
+  -- We intentionally omit any non-modeled states (e.g., 'created').
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
-    CREATE TYPE order_status AS ENUM ('created','pending','paid','shipped','completed','cancelled');
+    CREATE TYPE order_status AS ENUM ('pending','paid','shipped','completed','cancelled');
   END IF;
 END $$;
 
@@ -81,6 +83,20 @@ BEGIN
       WHERE table_name='orders' AND column_name='total_currency'
     ) THEN
       EXECUTE 'ALTER TABLE orders ADD COLUMN total_currency varchar(3) DEFAULT ''EUR''';
+    END IF;
+
+    -- If status column exists as text, and current values are compatible,
+    -- migrate it to the PostgreSQL enum type used by EF mapping.
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='orders' AND column_name='status' AND udt_name <> 'order_status'
+    ) THEN
+      -- Ensure no unexpected statuses are present before altering the type
+      IF NOT EXISTS (
+        SELECT 1 FROM orders WHERE status NOT IN ('pending','paid','shipped','completed','cancelled')
+      ) THEN
+        EXECUTE 'ALTER TABLE orders ALTER COLUMN status TYPE order_status USING status::order_status';
+      END IF;
     END IF;
   END IF;
 
@@ -286,7 +302,8 @@ CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   buyer_id  UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   seller_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  status TEXT NOT NULL DEFAULT 'pending',
+  -- Use PostgreSQL enum that matches EF mapping; default is lowercase
+  status order_status NOT NULL DEFAULT 'pending',
   total_amount NUMERIC(12,2) NOT NULL CHECK (total_amount >= 0),
   total_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
