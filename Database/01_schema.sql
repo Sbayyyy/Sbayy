@@ -76,13 +76,13 @@ BEGIN
       SELECT 1 FROM information_schema.columns
       WHERE table_name='orders' AND column_name='total_amount'
     ) THEN
-      EXECUTE 'ALTER TABLE orders ADD COLUMN total_amount numeric(12,2)';
+      EXECUTE 'ALTER TABLE orders ADD COLUMN total_amount numeric(12,2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0)';
     END IF;
     IF NOT EXISTS (
       SELECT 1 FROM information_schema.columns
       WHERE table_name='orders' AND column_name='total_currency'
     ) THEN
-      EXECUTE 'ALTER TABLE orders ADD COLUMN total_currency varchar(3) DEFAULT ''SYP''';
+      EXECUTE 'ALTER TABLE orders ADD COLUMN total_currency varchar(3) NOT NULL DEFAULT ''SYP''';
     END IF;
 
     -- If status column exists as text, and current values are compatible,
