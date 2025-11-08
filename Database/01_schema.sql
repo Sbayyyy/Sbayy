@@ -85,18 +85,20 @@ BEGIN
       EXECUTE 'ALTER TABLE orders ADD COLUMN total_currency varchar(3) NOT NULL DEFAULT ''SYP''';
     END IF;
 
-    -- If status column exists as text, and current values are compatible,
-    -- migrate it to the PostgreSQL enum type used by EF mapping.
+    -- If status column exists as text, backfill and normalize values, then convert to enum.
+    -- Policy: perform a safe backfill for unknown/legacy statuses to 'pending' so conversion succeeds.
+    -- Rationale: ensures automated upgrades complete without manual DBA intervention.
     IF EXISTS (
       SELECT 1 FROM information_schema.columns
       WHERE table_schema='public' AND table_name='orders' AND column_name='status' AND udt_name <> 'order_status'
     ) THEN
-      -- Ensure no unexpected statuses are present before altering the type
-      IF NOT EXISTS (
-        SELECT 1 FROM orders WHERE status NOT IN ('pending','paid','shipped','completed','cancelled')
-      ) THEN
-        EXECUTE 'ALTER TABLE orders ALTER COLUMN status TYPE order_status USING status::order_status';
-      END IF;
+      -- Normalize to lowercase for known values
+      EXECUTE 'UPDATE orders SET status = lower(status) WHERE status IS NOT NULL';
+      -- Backfill any NULL or unexpected values to ''pending''
+      EXECUTE 'UPDATE orders SET status = ''pending''
+               WHERE status IS NULL OR status NOT IN (''pending'',''paid'',''shipped'',''completed'',''cancelled'')';
+      -- Convert to enum type now that data is clean
+      EXECUTE 'ALTER TABLE orders ALTER COLUMN status TYPE order_status USING status::order_status';
     END IF;
   END IF;
 
