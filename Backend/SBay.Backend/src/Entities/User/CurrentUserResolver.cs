@@ -18,7 +18,7 @@ public class CurrentUserResolver : ICurrentUserResolver
         var ext = user.FindFirstValue("user_id");
         if (!string.IsNullOrWhiteSpace(ext))
         {
-            // Project directly to Id to avoid tracking a whole entity
+            
             var internalId = await _dbContext.Users.AsNoTracking()
                 .Where(u => u.ExternalId == ext)
                 .Select(u => u.Id)

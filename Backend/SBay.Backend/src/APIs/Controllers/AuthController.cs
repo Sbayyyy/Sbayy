@@ -32,7 +32,7 @@ public class AuthController : ControllerBase
         _jwt = jwt.Value;
     }
 
-    // POST /api/auth/register
+    
     [HttpPost("register")]
     [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
@@ -63,7 +63,7 @@ public class AuthController : ControllerBase
         return CreatedAtAction(nameof(GetMe), new { }, new AuthResponse(dto, token));
     }
 
-    // POST /api/auth/login
+    
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest req, CancellationToken ct)
@@ -94,7 +94,7 @@ public class AuthController : ControllerBase
         return Ok(new AuthResponse(dto, token));
     }
 
-    // GET /api/auth/me
+    
     [HttpGet("me")]
     [Authorize(AuthenticationSchemes = "SBayJwt")]
     public async Task<IActionResult> GetMe(CancellationToken ct)
@@ -115,8 +115,8 @@ public class AuthController : ControllerBase
 
         var claims = new List<Claim>
         {
-            new("sub", user.Id.ToString()),     // <- matches NameClaimType = "sub"
-            new("role", user.Role),             // <- matches RoleClaimType = "role"
+            new("sub", user.Id.ToString()),     
+            new("role", user.Role),             
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };

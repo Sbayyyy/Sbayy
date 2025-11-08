@@ -22,7 +22,7 @@ public class ChatParticipantHandler: AuthorizationHandler<ChatParticipantRequire
         var me = await http.GetCurrentUserIdAsync(_who, ct);
         if (me is null) return;
 
-        // Expect either route: /threads/{otherUserId} or query ?otherUserId=...
+        
         var otherId = http.RouteGuid("otherUserId");
         if (otherId is null)
         {
@@ -34,7 +34,7 @@ public class ChatParticipantHandler: AuthorizationHandler<ChatParticipantRequire
 
         if (otherId.Value == me.Value || otherId.Value != me.Value)
         {
-            // If you later keep a membership table, verify there instead.
+            
             context.Succeed(requirement);
         }
     }

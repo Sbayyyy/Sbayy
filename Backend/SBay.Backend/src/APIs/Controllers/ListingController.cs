@@ -51,18 +51,18 @@ public sealed class ListingsController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ListingResponse>> Create([FromBody] AddListingRequest body, CancellationToken ct)
     {
-        // --- Validation ---
+        
         if (string.IsNullOrWhiteSpace(body.Title))         return ValidationProblem("Title is required.");
         if (string.IsNullOrWhiteSpace(body.Description))   return ValidationProblem("Description is required.");
         if (body.PriceAmount <= 0)                         return ValidationProblem("Price must be greater than 0.");
         if (body.Stock < 0)                                return ValidationProblem("Stock cannot be negative.");
         if (string.IsNullOrWhiteSpace(body.PriceCurrency)) return ValidationProblem("Price currency is required.");
 
-        // --- Seller ---
+        
         var sellerIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         if (!Guid.TryParse(sellerIdStr, out var sellerId)) return Forbid();
 
-        // --- Build listing aggregate ---
+        
         var currency = body.PriceCurrency.Trim().ToUpperInvariant();
         var primaryImage = body.ImageUrls?.FirstOrDefault();
 
@@ -79,7 +79,7 @@ public sealed class ListingsController : ControllerBase
             region: body.Region
         );
 
-        // --- Add images via navigation ---
+        
         if (body.ImageUrls is { Count: > 0 })
         {
             for (int i = 0; i < body.ImageUrls.Count; i++)
@@ -94,11 +94,11 @@ public sealed class ListingsController : ControllerBase
             }
         }
 
-        // --- Persist (single unit of work) ---
+        
         await _repo.AddAsync(listing, ct);
         await _uow.SaveChangesAsync(ct);
 
-        // --- Return created resource ---
+        
         return CreatedAtAction(nameof(GetById), new { id = listing.Id }, ToResponse(listing));
     }
 

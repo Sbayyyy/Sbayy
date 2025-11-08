@@ -55,41 +55,29 @@ builder.Services.AddCors(o =>
 // BUILD PIPELINE
 // ───────────────────────────────────────────────
 var app = builder.Build();
-
-app.Use(async (ctx, next) =>
+app.Use((ctx, next) =>
 {
-    var requestId = ctx.Request.Headers.ContainsKey("X-Request-ID") ? (string?)ctx.Request.Headers["X-Request-ID"] : null;
-    if (string.IsNullOrWhiteSpace(requestId))
+    var reqId = ctx.Request.Headers.TryGetValue("X-Request-Id", out var v)
+        ? v.ToString()
+        : Guid.NewGuid().ToString("n");
+
+    var traceId = System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier;
+
+    ctx.Response.OnStarting(() =>
     {
-        requestId = Guid.NewGuid().ToString("N");
-        ctx.Response.Headers["X-Request-ID"] = requestId;
-    }
-    var sw = System.Diagnostics.Stopwatch.StartNew();
-    try
-    {
-        await next();
-    }
-    finally
-    {
-        sw.Stop();
-        var traceId = System.Diagnostics.Activity.Current?.TraceId.ToString();
-        if (!string.IsNullOrEmpty(traceId)) ctx.Response.Headers["X-Trace-Id"] = traceId;
-        app.Logger.LogInformation("{method} {path} -> {status} in {elapsed}ms rid={rid} tid={tid}",
-            ctx.Request.Method,
-            ctx.Request.Path.Value,
-            ctx.Response.StatusCode,
-            sw.ElapsedMilliseconds,
-            requestId,
-            traceId);
-    }
+        if (!ctx.Response.Headers.ContainsKey("X-Request-Id"))
+            ctx.Response.Headers.Append("X-Request-Id", reqId);
+
+        if (!ctx.Response.Headers.ContainsKey("X-Trace-Id"))
+            ctx.Response.Headers.Append("X-Trace-Id", traceId);
+
+        return Task.CompletedTask;
+    });
+
+    return next();
 });
 
-// Ensure DB created (optional; remove in prod)
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
-    db.Database.EnsureCreated();
-}
+// Skip EnsureCreated: schema is managed by SQL migrations/seed scripts
 
 // Middleware pipeline
 if (app.Environment.IsDevelopment())

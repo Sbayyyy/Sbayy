@@ -17,7 +17,7 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
             AllowAutoRedirect = false
         });
 
-        // Use your fake auth scheme; parameter can be anything (or null) depending on your handler
+        
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
     }
@@ -32,7 +32,7 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
             priceAmount = 100.00m,
             priceCurrency = "EUR",
             stock = 2,
-            condition = "New",                       // <- string, not enum
+            condition = "New",                       
             categoryPath = "electronics/mobiles",
             region = "BW",
             imageUrls = new[]
@@ -54,7 +54,7 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         result.Stock.Should().Be(2);
         result.Condition.ToString().Should().Be("New");
 
-        // Images & thumbnail
+        
         result.ImageUrls.Should().NotBeNull();
         result.ImageUrls!.Count.Should().Be(2);
         result.ImageUrls[0].Should().Be("https://cdn.example.com/img/phone1-1.jpg");
@@ -67,9 +67,9 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
     {
         var bad = new
         {
-            // title missing
+            
             description = "No title here",
-            priceAmount = 0m,     // invalid
+            priceAmount = 0m,     
             priceCurrency = "",
         };
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using NpgsqlTypes;
 using SBay.Backend.DataBase.Queries;
@@ -58,19 +58,27 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
     if (!string.IsNullOrWhiteSpace(text))
     {
-        var patternContains = "%" + text.Replace(@"\", @"\\")
+        var escaped = text.Replace(@"\", @"\\")
             .Replace("%",  @"\%")
-            .Replace("_",  @"\_") + "%";
+            .Replace("_",  @"\_");
+        var patternContains = "%" + escaped + "%";
+        var patternStarts   = escaped + "%";
 
         query = query
             .Where(l =>
                 EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
-                    .Matches(EF.Functions.PlainToTsQuery("simple", text)))
+                    .Matches(EF.Functions.PlainToTsQuery("simple", text))
+                || EF.Functions.ILike(l.Title, patternContains)
+                || EF.Functions.ILike(l.Description, patternContains))
             .OrderByDescending(l =>
                 EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
                     .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
+            
+            .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts))
+            
             .ThenBy(l => l.Title.ToLower().IndexOf(text.ToLower()))
-            .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, "\\"))
+            
+            .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains))
             .ThenByDescending(l => l.CreatedAt);
     }
     else

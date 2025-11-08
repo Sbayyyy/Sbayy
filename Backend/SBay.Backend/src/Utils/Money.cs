@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Text.Json.Serialization;
 
 namespace SBay.Domain.ValueObjects
 {
-    /// <summary>
-    /// Immutable value object representing a monetary amount and currency.
-    /// </summary>
+    
+    
+    
     public record class Money
     {
         public decimal Amount { get; init; }
@@ -20,9 +20,9 @@ namespace SBay.Domain.ValueObjects
             Currency = currency.ToUpperInvariant();
         }
 
-        // ───────────────────────────────
-        // Operators
-        // ───────────────────────────────
+        
+        
+        
         public static Money operator +(Money a, Money b)
         {
             if (a.Currency != b.Currency)
@@ -43,9 +43,9 @@ namespace SBay.Domain.ValueObjects
         public static Money operator *(int quantity, Money a)
             => a * quantity;
 
-        // ───────────────────────────────
-        // Helpers
-        // ───────────────────────────────
+        
+        
+        
         public Money Zero() => new(0m, Currency);
 
         public override string ToString() => $"{Amount:0.00} {Currency}";

@@ -99,7 +99,7 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
         e.HasIndex("CategoryId")
          .HasDatabaseName("idx_listings_category");
 
-        e.Property<NpgsqlTsVector>("SearchVec")      // shadow prop (not on the C# class)
+        e.Property<NpgsqlTsVector>("SearchVec")      
          .HasColumnName("search_vec")
          .HasColumnType("tsvector")
          .ValueGeneratedOnAddOrUpdate();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +19,7 @@ namespace SBay.Backend.Tests.DB
 
         public EfListingRepository_SearchTests(TestDatabaseFixture fx) : base(fx) => _fx = fx;
 
-        // Ensures there's a seller row that satisfies FK listings.seller_id -> users(id)
+        
         private static async Task<Guid> EnsureSellerAsync(EfDbContext ctx, string email = "seller.repos@example.com")
         {
             var existing = await ctx.Users
@@ -32,16 +32,16 @@ namespace SBay.Backend.Tests.DB
 
             var newId = Guid.NewGuid();
             var rows = await ctx.Database.ExecuteSqlRawAsync(@"
-INSERT INTO users (id, email, password_hash, is_seller, created_at)
-VALUES ({0}, {1}, {2}, TRUE, now())
+INSERT INTO users (id, email, password_hash, role, is_seller, created_at)
+VALUES ({0}, {1}, {2}, 'seller', TRUE, now())
 ON CONFLICT (email) DO NOTHING;",
                 newId, email, "$test_hash");
 
-            // If inserted by us, return the id we used
+            
             if (rows > 0)
                 return newId;
 
-            // Otherwise, someone else inserted it between SELECT and INSERT — re-read safely
+            
             var id = await ctx.Users
                 .Where(u => u.Email == email)
                 .Select(u => u.Id)
@@ -55,7 +55,7 @@ ON CONFLICT (email) DO NOTHING;",
 
         private static async Task SeedSampleAsync(EfDbContext ctx)
         {
-            // Clean in dependency-safe way
+            
             await ctx.Database.ExecuteSqlRawAsync(@"
 TRUNCATE TABLE
     order_items,
@@ -151,7 +151,7 @@ RESTART IDENTITY CASCADE;");
         {
             await using var db = _fx.CreateContext();
 
-            // Clean before paging seed
+            
             await db.Database.ExecuteSqlRawAsync(@"
 TRUNCATE TABLE
     order_items,

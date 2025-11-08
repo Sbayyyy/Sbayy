@@ -1,4 +1,4 @@
-namespace SBay.Domain.Entities
+﻿namespace SBay.Domain.Entities
 {
     using System;
     using System.Collections.Generic;
@@ -10,11 +10,11 @@ namespace SBay.Domain.Entities
     {
         public Guid Id { get; private set; } = Guid.NewGuid();
 
-        // Optional owner FK
+        
         public Guid? UserId { get; private set; }
 
-        // Backing list is mutable internally; externally expose read-only view
-        [JsonInclude]                 // serialize items
+        
+        [JsonInclude]                 
         private List<CartItem> _items { get; set; } = new();
         [JsonIgnore]
         public IReadOnlyList<CartItem> Items => _items;
@@ -25,12 +25,12 @@ namespace SBay.Domain.Entities
         [JsonIgnore]
         public Money Subtotal => _items.Count == 0
             ? new Money(0m, Currency)
-            : _items.Select(i => i.LineTotal).Aggregate((a, b) => a + b); // uses Money + operator
+            : _items.Select(i => i.LineTotal).Aggregate((a, b) => a + b); 
 
         public DateTime UpdatedAt { get; internal set; }
 
 
-        private ShoppingCart() { } // for EF/JSON
+        private ShoppingCart() { } 
         public ShoppingCart(Guid? userId = null) => UserId = userId;
 
         public void AddItem(Listing listing, int quantity = 1)
@@ -38,7 +38,7 @@ namespace SBay.Domain.Entities
             if (listing is null) throw new ArgumentNullException(nameof(listing));
             if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity));
 
-            // Single-currency enforcement
+            
             if (_items.Count > 0 && _items[0].UnitPrice.Currency != listing.Price.Currency)
                 throw new InvalidOperationException("All items in the cart must share the same currency.");
 
@@ -61,7 +61,7 @@ namespace SBay.Domain.Entities
             item.ChangeQuantity(quantity);
         }
 
-        // Convenience helpers
+        
         public bool TrySetQuantity(Guid listingId, int quantity)
         {
             if (quantity <= 0) return false;

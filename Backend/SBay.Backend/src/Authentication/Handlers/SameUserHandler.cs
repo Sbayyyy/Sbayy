@@ -23,7 +23,7 @@ public sealed class SameUserHandler
         var me = await http.GetCurrentUserIdAsync(_who, ct);
         if (me is null) return;
 
-        // Expect route value "userId" (e.g., /users/{userId})
+        
         var userId = http.RouteGuid("userId");
         if (userId is null) return;
 
