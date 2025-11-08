@@ -22,40 +22,43 @@ export interface UserLogin {
   password: string;
 }
 
-// Product types
+// Product types (matched to Backend ListingResponse)
 export interface Product {
   id: string;
   title: string;
   description: string;
-  price: number;
-  currency: string;
-  images: string[];
-  category: string;
-  condition: 'new' | 'used' | 'refurbished';
-  location: string;
-  seller: {
+  priceAmount: number;        // Backend field name
+  priceCurrency: string;      // Backend field name
+  imageUrls: string[];        // Backend field name
+  categoryPath?: string;      // Backend field name
+  condition: string;          // Backend: "New" | "Used" | "Refurbished" (PascalCase)
+  region?: string;            // Backend field name
+  stock: number;              // Backend field name
+  thumbnailUrl?: string;      // Backend field name
+  createdAt: string;
+  
+  // Optional frontend helper properties
+  seller?: {
     id: string;
     name: string;
     rating?: number;
   };
-  stockQuantity?: number;
-  status: 'active' | 'sold' | 'inactive';
-  views: number;
-  favorites: number;
-  createdAt: string;
-  updatedAt: string;
+  status?: 'active' | 'sold' | 'inactive';
+  views?: number;
+  favorites?: number;
+  updatedAt?: string;
 }
 
 export interface ProductCreate {
   title: string;
   description: string;
-  price: number;
-  currency?: string;
-  images?: string[];
-  category: string;
-  stockQuantity?: number;
-  condition: 'new' | 'used' | 'refurbished';
-  location: string;
+  priceAmount: number;
+  priceCurrency?: string;
+  imageUrls?: string[];
+  categoryPath?: string;
+  stock?: number;
+  condition: string;  // "New" | "Used" | "Refurbished"
+  region: string;
 }
 
 // Category types
@@ -117,12 +120,72 @@ export interface AuthResponse {
 export interface ProductUpdate {
   title?: string;
   description?: string;
-  price?: number;
-  images?: string[];
-  category?: string;
-  condition?: 'new' | 'used' | 'refurbished';
-  location?: string;
-  stockQuantity?: number;
+  priceAmount?: number;
+  priceCurrency?: string;
+  imageUrls?: string[];
+  categoryPath?: string;
+  condition?: string;
+  region?: string;
+  stock?: number;
   status?: 'active' | 'sold' | 'inactive';
 }
 
+// Seller Stats
+export interface SellerStats {
+  totalRevenue: number;
+  totalOrders: number;
+  newCustomers: number;
+  conversionRate: number;
+  revenueChange: number;
+  ordersChange: number;
+  customersChange: number;
+  conversionChange: number;
+  activeProducts: number;
+  ordersCompleted: number;
+  awaitingShipment: number;
+}
+
+// Order Interface
+export interface Order {
+  id: string;
+  orderId: string;
+  customerName: string;
+  productName: string;
+  quantity: number;
+  amount: number;
+  status: 'Shipped' | 'Processing' | 'Delivered' | 'Pending';
+  payment: 'Paid' | 'Pending' | 'Waiting';
+  date: string;
+}
+
+// Chart Data
+export interface DailyRevenue {
+  day: string;
+  revenue: number;
+}
+
+export interface WeeklySales {
+  week: string;
+  sales: number;
+}
+
+// Search & Filter Types
+export interface SearchFilters {
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  condition?: 'New' | 'Used' | 'Refurbished' | 'LikeNew';
+  region?: string;
+  sortBy?: 'price' | 'date' | 'popular';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+export interface SearchResponse {
+  items: Product[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}

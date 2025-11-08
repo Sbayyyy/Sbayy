@@ -3,10 +3,8 @@ import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
 import { getAllListings } from '@/lib/api/listings';
-import { Product } from '@sbay/shared';
-import { Loader2, AlertCircle, Filter } from 'lucide-react';
-import { set } from 'zod/v4';
-import { mockProducts } from '@/lib/api/mockdata';
+import { Product, SearchFilters } from '@sbay/shared';
+import { Loader2, AlertCircle, Filter, X } from 'lucide-react';
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -20,32 +18,29 @@ export default function BrowsePage() {
   // Favorites State (später aus Store)
   const [favorites, setFavorites] = useState<string[]>([]);
 
+  // Filter State
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [filters, setFilters] = useState<SearchFilters>({
+    category: '',
+    minPrice: undefined,
+    maxPrice: undefined,
+    condition: undefined,
+    sortBy: 'date',
+    sortOrder: 'desc'
+  });
+
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [filters]); // Reload wenn Filter sich ändern
 
   const loadProducts = async () => {
     try {
       setLoading(true);
+      const data = await getAllListings(1, 20, filters);
       
-      // Test with mock data
-      /*
-      await new Promise(res => setTimeout(res, 1000));
-      setProducts(mockProducts); // Leere Liste zum Testen des Empty States
-      setHasMore(false);
-      return;
-      */
-        
-      const data = await getAllListings(1, 20);
-      
-      if (data && data.items) {
-        setProducts(data.items);
-        setHasMore(data.pagination?.page < data.pagination?.pages);
-      } else if (Array.isArray(data)) {
-        // Fallback wenn API direkt Array zurückgibt
-        setProducts(data);
-        setHasMore(false);
-      }
+      setProducts(data.items || []);
+      setHasMore(data.items.length >= 20);
+      setPage(1);
     } catch (err: any) {
       console.error('Error loading products:', err);
       setError('فشل تحميل المنتجات. يرجى المحاولة مرة أخرى.');
@@ -60,13 +55,11 @@ export default function BrowsePage() {
     try {
       setLoadingMore(true);
       const nextPage = page + 1;
-      const data = await getAllListings(nextPage, 20);
+      const data = await getAllListings(nextPage, 20, filters);
       
-      if (data && data.items) {
-        setProducts(prev => [...prev, ...data.items]);
-        setPage(nextPage);
-        setHasMore(data.pagination?.page < data.pagination?.pages);
-      }
+      setProducts(prev => [...prev, ...(data.items || [])]);
+      setPage(nextPage);
+      setHasMore(data.items.length >= 20);
     } catch (err) {
       console.error('Error loading more:', err);
     } finally {
@@ -161,17 +154,27 @@ export default function BrowsePage() {
                 </p>
               </div>
 
-              {/* Sort & Filter - TODO: Implement later */}
+              {/* Sort & Filter */}
               <div className="flex gap-3">
-                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={() => setShowMobileFilters(!showMobileFilters)}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors lg:hidden"
+                >
                   <Filter size={18} />
                   تصفية
                 </button>
-                <select className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500">
-                  <option value="newest">الأحدث</option>
-                  <option value="price-low">السعر: من الأقل للأعلى</option>
-                  <option value="price-high">السعر: من الأعلى للأقل</option>
-                  <option value="popular">الأكثر مشاهدة</option>
+                <select 
+                  value={`${filters.sortBy}-${filters.sortOrder}`}
+                  onChange={(e) => {
+                    const [sortBy, sortOrder] = e.target.value.split('-') as [any, any];
+                    setFilters(prev => ({ ...prev, sortBy, sortOrder }));
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="date-desc">الأحدث</option>
+                  <option value="price-asc">السعر: من الأقل للأعلى</option>
+                  <option value="price-desc">السعر: من الأعلى للأقل</option>
+                  <option value="popular-desc">الأكثر مشاهدة</option>
                 </select>
               </div>
             </div>
@@ -180,7 +183,233 @@ export default function BrowsePage() {
 
         {/* Products Grid */}
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="flex gap-8">
+            {/* Sidebar - Desktop */}
+            <aside className="hidden lg:block w-64 flex-shrink-0">
+              <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-24">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">تصفية النتائج</h3>
+                
+                {/* Categories */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">الفئة</h4>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setFilters(prev => ({ ...prev, category: '' }))}
+                      className={`block w-full text-right px-3 py-2 rounded-lg text-sm transition-colors ${
+                        !filters.category 
+                          ? 'bg-primary-50 text-primary-700 font-medium' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      جميع الفئات
+                    </button>
+                    {['إلكترونيات', 'أزياء', 'منزل وحديقة', 'سيارات', 'رياضة'].map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setFilters(prev => ({ ...prev, category: cat }))}
+                        className={`block w-full text-right px-3 py-2 rounded-lg text-sm transition-colors ${
+                          filters.category === cat
+                            ? 'bg-primary-50 text-primary-700 font-medium'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Price Range */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">السعر (ل.س)</h4>
+                  <div className="space-y-3">
+                    <input
+                      type="number"
+                      placeholder="من"
+                      value={filters.minPrice || ''}
+                      onChange={(e) => setFilters(prev => ({ 
+                        ...prev, 
+                        minPrice: e.target.value ? parseFloat(e.target.value) : undefined 
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    <input
+                      type="number"
+                      placeholder="إلى"
+                      value={filters.maxPrice || ''}
+                      onChange={(e) => setFilters(prev => ({ 
+                        ...prev, 
+                        maxPrice: e.target.value ? parseFloat(e.target.value) : undefined 
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Condition */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">الحالة</h4>
+                  <div className="space-y-2">
+                    {[
+                      { value: undefined, label: 'الكل' },
+                      { value: 'New', label: 'جديد' },
+                      { value: 'Used', label: 'مستعمل' },
+                      { value: 'Refurbished', label: 'مجدد' },
+                      { value: 'LikeNew', label: 'مثل الجديد' }
+                    ].map(item => (
+                      <label key={item.label} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="condition"
+                          checked={filters.condition === item.value}
+                          onChange={() => setFilters(prev => ({ ...prev, condition: item.value as any }))}
+                          className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-700">{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Clear Filters */}
+                <button
+                  onClick={() => setFilters({
+                    category: '',
+                    minPrice: undefined,
+                    maxPrice: undefined,
+                    condition: undefined,
+                    sortBy: 'date',
+                    sortOrder: 'desc'
+                  })}
+                  className="w-full px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  إعادة تعيين الفلاتر
+                </button>
+              </div>
+            </aside>
+
+            {/* Mobile Filters */}
+            {showMobileFilters && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 z-50 lg:hidden" onClick={() => setShowMobileFilters(false)}>
+                <div className="fixed inset-y-0 right-0 w-80 bg-white shadow-xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900">تصفية النتائج</h3>
+                      <button onClick={() => setShowMobileFilters(false)}>
+                        <X size={24} className="text-gray-500" />
+                      </button>
+                    </div>
+
+                    {/* Same filters as desktop */}
+                    <div className="mb-6">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">الفئة</h4>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, category: '' }));
+                            setShowMobileFilters(false);
+                          }}
+                          className={`block w-full text-right px-3 py-2 rounded-lg text-sm transition-colors ${
+                            !filters.category 
+                              ? 'bg-primary-50 text-primary-700 font-medium' 
+                              : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          جميع الفئات
+                        </button>
+                        {['إلكترونيات', 'أزياء', 'منزل وحديقة', 'سيارات', 'رياضة'].map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => {
+                              setFilters(prev => ({ ...prev, category: cat }));
+                              setShowMobileFilters(false);
+                            }}
+                            className={`block w-full text-right px-3 py-2 rounded-lg text-sm transition-colors ${
+                              filters.category === cat
+                                ? 'bg-primary-50 text-primary-700 font-medium'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">السعر (ل.س)</h4>
+                      <div className="space-y-3">
+                        <input
+                          type="number"
+                          placeholder="من"
+                          value={filters.minPrice || ''}
+                          onChange={(e) => setFilters(prev => ({ 
+                            ...prev, 
+                            minPrice: e.target.value ? parseFloat(e.target.value) : undefined 
+                          }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                        <input
+                          type="number"
+                          placeholder="إلى"
+                          value={filters.maxPrice || ''}
+                          onChange={(e) => setFilters(prev => ({ 
+                            ...prev, 
+                            maxPrice: e.target.value ? parseFloat(e.target.value) : undefined 
+                          }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">الحالة</h4>
+                      <div className="space-y-2">
+                        {[
+                          { value: undefined, label: 'الكل' },
+                          { value: 'New', label: 'جديد' },
+                          { value: 'Used', label: 'مستعمل' },
+                          { value: 'Refurbished', label: 'مجدد' },
+                          { value: 'LikeNew', label: 'مثل الجديد' }
+                        ].map(item => (
+                          <label key={item.label} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="condition-mobile"
+                              checked={filters.condition === item.value}
+                              onChange={() => setFilters(prev => ({ ...prev, condition: item.value as any }))}
+                              className="w-4 h-4 text-primary-600"
+                            />
+                            <span className="text-sm text-gray-700">{item.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setFilters({
+                          category: '',
+                          minPrice: undefined,
+                          maxPrice: undefined,
+                          condition: undefined,
+                          sortBy: 'date',
+                          sortOrder: 'desc'
+                        });
+                        setShowMobileFilters(false);
+                      }}
+                      className="w-full px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      إعادة تعيين الفلاتر
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Main Content */}
+            <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map(product => (
               <ProductCard
                 key={product.id}
@@ -217,6 +446,8 @@ export default function BrowsePage() {
               لقد وصلت إلى نهاية القائمة
             </p>
           )}
+            </div>
+          </div>
         </div>
       </div>
     </Layout>

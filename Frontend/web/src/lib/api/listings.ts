@@ -1,52 +1,73 @@
 import { api } from '../api';
-import type { ProductCreate, ProductUpdate } from '@sbay/shared';
+import type { Product, ProductCreate, ProductUpdate, SearchFilters, SearchResponse } from '@sbay/shared';
 
 /**
  * Listing erstellen
  */
-export const createListing = async (data: ProductCreate) => {
-  const response = await api.post('/listings', data);
+export const createListing = async (data: ProductCreate): Promise<Product> => {
+  const response = await api.post<Product>('/listings', data);
   return response.data;
 };
 
 /**
  * Listing aktualisieren
  */
-export const updateListing = async (id: string, data: ProductUpdate) => {
-  const response = await api.put(`/listings/${id}`, data);
+export const updateListing = async (id: string, data: ProductUpdate): Promise<Product> => {
+  const response = await api.put<Product>(`/listings/${id}`, data);
   return response.data;
 };
 
 /**
  * Listing löschen
  */
-export const deleteListing = async (id: string) => {
-  const response = await api.delete(`/listings/${id}`);
-  return response.data;
+export const deleteListing = async (id: string): Promise<void> => {
+  await api.delete(`/listings/${id}`);
 };
 
 /**
  * Einzelnes Listing abrufen
  */
-export const getListingById = async (id: string) => {
-  const response = await api.get(`/listings/${id}`);
+export const getListingById = async (id: string): Promise<Product> => {
+  const response = await api.get<Product>(`/listings/${id}`);
   return response.data;
 };
 
 /**
  * Meine Listings abrufen
  */
-export const getMyListings = async () => {
-  const response = await api.get('/listings/my-listings');
+export const getMyListings = async (): Promise<Product[]> => {
+  const response = await api.get<Product[]>('/listings/my-listings');
   return response.data;
 };
 
 /**
- * Alle Listings abrufen (mit Pagination)
+ * Alle Listings abrufen (mit Pagination und Filtern)
  */
-export const getAllListings = async (page = 1, limit = 20) => {
-  const response = await api.get('/listings', {
-    params: { page, limit }
+export const getAllListings = async (
+  page = 1, 
+  limit = 20,
+  filters?: SearchFilters
+): Promise<SearchResponse> => {
+  const response = await api.get<Product[]>('/listings', {
+    params: { 
+      page, 
+      limit,
+      category: filters?.category,
+      minPrice: filters?.minPrice,
+      maxPrice: filters?.maxPrice,
+      condition: filters?.condition,
+      sortBy: filters?.sortBy || 'date',
+      sortOrder: filters?.sortOrder || 'desc'
+    }
   });
-  return response.data;
+  
+  // Backend sendet Array, wir wrappen es in SearchResponse
+  const items = response.data;
+  return {
+    items,
+    total: items.length,
+    page,
+    limit,
+    totalPages: Math.ceil(items.length / limit)
+  };
 };
