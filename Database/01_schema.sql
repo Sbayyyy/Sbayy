@@ -82,7 +82,7 @@ BEGIN
       SELECT 1 FROM information_schema.columns
       WHERE table_name='orders' AND column_name='total_currency'
     ) THEN
-      EXECUTE 'ALTER TABLE orders ADD COLUMN total_currency varchar(3) DEFAULT ''EUR''';
+      EXECUTE 'ALTER TABLE orders ADD COLUMN total_currency varchar(3) DEFAULT ''SYP''';
     END IF;
 
     -- If status column exists as text, and current values are compatible,
@@ -126,7 +126,7 @@ BEGIN
       SELECT 1 FROM information_schema.columns
       WHERE table_name='order_items' AND column_name='price_currency'
     ) THEN
-      EXECUTE 'ALTER TABLE order_items ADD COLUMN price_currency varchar(3) DEFAULT ''EUR''';
+      EXECUTE 'ALTER TABLE order_items ADD COLUMN price_currency varchar(3) DEFAULT ''SYP''';
     END IF;
   END IF;
 END $$;
@@ -165,9 +165,12 @@ CREATE TABLE IF NOT EXISTS listings (
   title TEXT NOT NULL,
   description TEXT,
   price_amount NUMERIC(12,2) NOT NULL CHECK (price_amount >= 0),
-  price_currency VARCHAR(8) NOT NULL DEFAULT 'SYP',
+  -- Currency is ISO-4217 3-letter code. Marketplace default is SYP.
+  -- If multi-currency is introduced, conversions will be handled at app level,
+  -- DB remains 3-letter codes.
+  price_currency VARCHAR(3) NOT NULL DEFAULT 'SYP',
   original_price_amount NUMERIC(12,2),
-  original_price_currency VARCHAR(8),
+  original_price_currency VARCHAR(3),
   stock_quantity INT NOT NULL DEFAULT 1 CHECK (stock_quantity >= 0),
   region TEXT,
   status listing_status NOT NULL DEFAULT 'active',
@@ -291,7 +294,8 @@ CREATE TABLE IF NOT EXISTS cart_items (
   listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
   quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
   price_at_added NUMERIC(12,2) NOT NULL CHECK (price_at_added >= 0),
-  currency VARCHAR(8) NOT NULL DEFAULT 'EUR',
+  -- Cart item currency stored as 3-letter ISO code; default SYP for now.
+  currency VARCHAR(3) NOT NULL DEFAULT 'SYP',
   PRIMARY KEY (cart_id, listing_id)
 );
 
@@ -305,7 +309,8 @@ CREATE TABLE IF NOT EXISTS orders (
   -- Use PostgreSQL enum that matches EF mapping; default is lowercase
   status order_status NOT NULL DEFAULT 'pending',
   total_amount NUMERIC(12,2) NOT NULL CHECK (total_amount >= 0),
-  total_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+  -- Order total currency (3-letter ISO); default SYP for now.
+  total_currency VARCHAR(3) NOT NULL DEFAULT 'SYP',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -319,7 +324,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
   quantity   INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
   price_amount NUMERIC(12,2) NOT NULL CHECK (price_amount >= 0),
-  price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR'
+  -- Order item currency (3-letter ISO); default SYP to match listings/orders.
+  price_currency VARCHAR(3) NOT NULL DEFAULT 'SYP'
 );
 
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);

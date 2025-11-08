@@ -22,7 +22,7 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='total_currency') THEN
-      ALTER TABLE orders ADD COLUMN total_currency varchar(8) NOT NULL DEFAULT 'SYP';
+      ALTER TABLE orders ADD COLUMN total_currency varchar(3) NOT NULL DEFAULT 'SYP';
     END IF;
 
   END IF;
@@ -38,7 +38,7 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='order_items' AND column_name='price_currency') THEN
-      ALTER TABLE order_items ADD COLUMN price_currency varchar(8) NOT NULL DEFAULT 'SYP';
+      ALTER TABLE order_items ADD COLUMN price_currency varchar(3) NOT NULL DEFAULT 'SYP';
     END IF;
   END IF;
 END
@@ -49,9 +49,9 @@ ALTER TABLE listings
     ADD COLUMN IF NOT EXISTS stock_quantity integer NOT NULL DEFAULT 1,
     ADD COLUMN IF NOT EXISTS category_path  text,
     ADD COLUMN IF NOT EXISTS price_amount   numeric(12,2) NOT NULL DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS price_currency varchar(8)    NOT NULL DEFAULT 'SYP',
+    ADD COLUMN IF NOT EXISTS price_currency varchar(3)    NOT NULL DEFAULT 'SYP',
     ADD COLUMN IF NOT EXISTS original_price_amount   numeric(12,2),
-    ADD COLUMN IF NOT EXISTS original_price_currency varchar(8),
+    ADD COLUMN IF NOT EXISTS original_price_currency varchar(3),
     ADD COLUMN IF NOT EXISTS region        text,
     ADD COLUMN IF NOT EXISTS search_vec    tsvector;
 
