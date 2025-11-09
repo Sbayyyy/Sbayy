@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SBay.Backend.Messaging;
 using SBay.Domain.Database;
 using SBay.Domain.ValueObjects;
 using SBay.Domain.Authentication;
@@ -29,6 +30,11 @@ builder.Services.AddScoped<IReadStore<Listing>>(sp => sp.GetRequiredService<EfLi
 builder.Services.AddScoped<IWriteStore<Listing>>(sp => sp.GetRequiredService<EfListingRepository>());
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IChatEvents, NoOpChatEvents>();
+builder.Services.AddScoped<IUserOwnership, UserOwnership>();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IChatEvents, ChatEvents>();
 
 // Controllers + Auth
 builder.Services.AddControllers();
@@ -51,6 +57,7 @@ builder.Services.AddCors(o =>
 // BUILD PIPELINE
 // ───────────────────────────────────────────────
 var app = builder.Build();
+app.MapHub<ChatHub>("/hubs/chat");
 
 // ───────────────────────────────────────────────
 // Request/Trace logging middleware (safe)

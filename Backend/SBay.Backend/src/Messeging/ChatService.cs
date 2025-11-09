@@ -7,18 +7,36 @@ public class ChatService : IChatService
     private readonly EfDbContext _db;
     public ChatService(EfDbContext db) => _db = db;
 
-    public async Task<Chat> GetOrCreateAsync(Guid buyerId, Guid sellerId, Guid? listingId,
-        CancellationToken ct = default)
+    public async Task<Chat> OpenOrGetAsync(Guid me, Guid otherUserId, Guid? listingId, IUserOwnership ownership, CancellationToken ct = default)
     {
-        var chat = await _db.Set<Chat>().FirstOrDefaultAsync(c =>
-            c.BuyerId == buyerId && c.SellerId == sellerId && c.ListingId == listingId, ct);
+        var isSeller = listingId.HasValue && await ownership.IsOwnerOfListingAsync(me, listingId.Value, ct);
+        var buyerId  = isSeller ? otherUserId : me;
+        var sellerId = isSeller ? me : otherUserId;
+
+        var chat = await _db.Set<Chat>().FirstOrDefaultAsync(
+            c => c.BuyerId == buyerId && c.SellerId == sellerId && c.ListingId == listingId, ct);
 
         if (chat is not null) return chat;
 
         chat = new Chat { Id = Guid.NewGuid(), BuyerId = buyerId, SellerId = sellerId, ListingId = listingId };
         _db.Add(chat);
-        await _db.SaveChangesAsync(ct);
-        return chat;
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+            return chat;
+        }
+        catch (DbUpdateException)
+        {
+            // another thread created it at the same time
+            return await _db.Set<Chat>().FirstAsync(
+                c => c.BuyerId == buyerId && c.SellerId == sellerId && c.ListingId == listingId, ct);
+        }
+    }
+
+
+    public Task<Chat> OpenOrGetAsync(Guid buyerId, Guid sellerId, Guid? listingId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<Message> SendAsync(Guid chatId, Guid senderId, string content, CancellationToken ct = default)
@@ -46,7 +64,32 @@ public class ChatService : IChatService
     {
         var q = _db.Set<Message>().Where(m =>
             m.ChatId == chatId && m.ReceiverId == readerId && !m.IsRead && m.CreatedAt <= upTo);
-        var affectedRows = await q.ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true), ct);
-        return affectedRows;
+        if (_db.Database.IsRelational())
+        {
+            var affectedRows = await q.ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true), ct);
+            return affectedRows;
+        }
+        else
+        {
+            var items = await q.ToListAsync(ct);
+            foreach (var m in items) m.IsRead = true;
+            await _db.SaveChangesAsync(ct);
+            return items.Count;
+        }
     }
+    public async Task<IReadOnlyList<Chat>> GetInboxAsync(
+        Guid me,
+        int take = 20,
+        int skip = 0,
+        CancellationToken ct = default)
+    {
+        return await _db.Set<Chat>()
+            .AsNoTracking()
+            .Where(c => c.BuyerId == me || c.SellerId == me)
+            .OrderByDescending(c => c.LastMessageAt ?? c.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
 }
