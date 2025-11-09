@@ -1,0 +1,1 @@
+public sealed record UserStatsDto(int ListingsCount, int ActiveListingsCount, int OrdersCount, int ItemsSold, decimal Revenue, decimal Aov);

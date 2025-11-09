@@ -1,8 +1,8 @@
-namespace SBay.Domain.Entities
+﻿namespace SBay.Domain.Entities
 {
     public interface IPriced
     {
-        ValueObjects.Money Price { get; }            // current unit price (incl/excl tax? decide)
-        ValueObjects.Money? OriginalPrice { get; }   // present when discounted, else null
+        ValueObjects.Money Price { get; }            
+        ValueObjects.Money? OriginalPrice { get; }   
     }
 }

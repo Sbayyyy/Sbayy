@@ -1,4 +1,4 @@
-using SBay.Domain.Entities;
+﻿using SBay.Domain.Entities;
 using SBay.Domain.ValueObjects;
 
 namespace SBay.Domain.Entities;
@@ -16,7 +16,7 @@ public class Listing :
     public Money? OriginalPrice { get; private set; }
 
     public int StockQuantity { get; private set; } = 1;
-    public string? ThumbnailUrl { get; private set; }  // ✅ exists in DB
+    public string? ThumbnailUrl { get; private set; }  
     public string? CategoryPath { get; private set; }
     public string? Region { get; private set; }
 
@@ -26,10 +26,10 @@ public class Listing :
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; private set; }
 
-    // navigation
+    
     public ICollection<ListingImage> Images { get; private set; } = new List<ListingImage>();
 
-    private Listing() { } // EF
+    private Listing() { } 
 
     public Listing(Guid sellerId, string title, string desc, Money price,
                    int stock = 1, ItemCondition condition = ItemCondition.New,

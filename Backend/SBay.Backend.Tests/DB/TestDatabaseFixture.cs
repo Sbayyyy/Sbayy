@@ -23,8 +23,8 @@ public class TestDatabaseFixture : IAsyncLifetime
             .UseSnakeCaseNamingConvention()
             .Options;
 
+        
         await using var db = new EfDbContext(_options);
-        await db.Database.EnsureCreatedAsync();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

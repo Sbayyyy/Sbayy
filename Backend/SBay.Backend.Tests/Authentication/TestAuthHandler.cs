@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     public const string SchemeName = "TestAuth";
-    public static readonly Guid SellerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    public static Guid SellerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,

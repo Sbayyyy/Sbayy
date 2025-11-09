@@ -25,5 +25,8 @@
   <ItemGroup>
   <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
 </ItemGroup>
+  <ItemGroup>
+    <Folder Include="src\APIs\interfaces\" />
+  </ItemGroup>
 
 </Project>

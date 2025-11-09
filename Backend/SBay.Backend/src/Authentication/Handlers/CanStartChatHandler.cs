@@ -22,7 +22,7 @@ public sealed class CanStartChatHandler:AuthorizationHandler<CanStartChatRequire
 
         var ct = http.RequestAborted;
 
-        // Expect route like: /api/listings/{listingId}/messages
+        
         var listingId = http.RouteGuid("listingId");
         if (listingId is null) return;
 
@@ -31,7 +31,7 @@ public sealed class CanStartChatHandler:AuthorizationHandler<CanStartChatRequire
 
         var listing = await _db.Listings.AsNoTracking()
             .Where(x => x.Id == listingId.Value)
-            .Select(x => new { x.SellerId /*, x.Status*/ })
+            .Select(x => new { x.SellerId  })
             .FirstOrDefaultAsync(ct);
 
         if (listing is null) return;

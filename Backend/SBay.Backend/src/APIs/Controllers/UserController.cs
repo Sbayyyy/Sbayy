@@ -63,7 +63,7 @@ public class UserController : ControllerBase
         return Ok(dto);
     }
 
-    // PUT: /api/users/me
+
     [HttpPut("me")]
     [Authorize]
     public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest req, CancellationToken ct)
