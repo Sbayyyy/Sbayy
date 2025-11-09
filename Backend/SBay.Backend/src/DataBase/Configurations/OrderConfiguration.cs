@@ -13,7 +13,11 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         var statusConverter = new ValueConverter<OrderStatus, string>(
             v => v.ToString().ToLowerInvariant(),
             s => Enum.Parse<OrderStatus>(s, true));
-        b.Property(x => x.Status).HasConversion(statusConverter);
+        b.Property(x => x.Status)
+            .HasColumnName("status")
+            .HasColumnType("text")
+            .HasConversion(statusConverter)
+            .HasDefaultValue(OrderStatus.Pending).HasMaxLength(20);
         b.Property(x => x.TotalAmount).HasColumnType("numeric(12,2)");
         b.Property(x => x.TotalCurrency).HasMaxLength(3).IsRequired();
         b.Property(x => x.CreatedAt).HasDefaultValueSql("now()");

@@ -17,120 +17,6 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'item_condition') THEN
     CREATE TYPE item_condition AS ENUM ('Unknown','New','LikeNew','Good','Fair','Poor');
   END IF;
-
-  -- Align with EF OrderStatus enum and converter (lowercase values).
-  -- We intentionally omit any non-modeled states (e.g., 'created').
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
-    CREATE TYPE order_status AS ENUM ('pending','paid','shipped','completed','cancelled');
-  END IF;
-END $$;
-
--- ─────────────────────────────────────────────────────────────────────────────
--- Legacy-to-current migrations (safe if rerun)
--- ─────────────────────────────────────────────────────────────────────────────
-
-DO $$
-BEGIN
-  -- Ensure users.created_at has a default if the table exists but older schema lacked it
-  IF to_regclass('public.users') IS NOT NULL THEN
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema='public' AND table_name='users' AND column_name='created_at' AND column_default IS NULL
-    ) THEN
-      EXECUTE 'ALTER TABLE users ALTER COLUMN created_at SET DEFAULT now()';
-    END IF;
-
-    -- Ensure users.role has a default as well for legacy DBs
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema='public' AND table_name='users' AND column_name='role' AND column_default IS NULL
-    ) THEN
-      EXECUTE 'ALTER TABLE users ALTER COLUMN role SET DEFAULT ''user''';
-    END IF;
-  END IF;
-
-  -- Safeguard: only run orders migrations if table exists
-  IF to_regclass('public.orders') IS NOT NULL THEN
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='orders' AND column_name='total'
-    ) AND NOT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='orders' AND column_name='total_amount'
-    ) THEN
-      EXECUTE 'ALTER TABLE orders RENAME COLUMN total TO total_amount';
-    END IF;
-
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='orders' AND column_name='currency'
-    ) AND NOT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='orders' AND column_name='total_currency'
-    ) THEN
-      EXECUTE 'ALTER TABLE orders RENAME COLUMN currency TO total_currency';
-    END IF;
-
-    -- Ensure columns exist (if table predated them)
-    IF NOT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='orders' AND column_name='total_amount'
-    ) THEN
-      EXECUTE 'ALTER TABLE orders ADD COLUMN total_amount numeric(12,2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0)';
-    END IF;
-    IF NOT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='orders' AND column_name='total_currency'
-    ) THEN
-      EXECUTE 'ALTER TABLE orders ADD COLUMN total_currency varchar(3) NOT NULL DEFAULT ''SYP''';
-    END IF;
-
-    -- If status column exists as text, backfill and normalize values, then convert to enum.
-    -- Policy: perform a safe backfill for unknown/legacy statuses to 'pending' so conversion succeeds.
-    -- Rationale: ensures automated upgrades complete without manual DBA intervention.
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema='public' AND table_name='orders' AND column_name='status' AND udt_name <> 'order_status'
-    ) THEN
-      -- Normalize to lowercase for known values
-      EXECUTE 'UPDATE orders SET status = lower(status) WHERE status IS NOT NULL';
-      -- Backfill any NULL or unexpected values to ''pending''
-      EXECUTE 'UPDATE orders SET status = ''pending''
-               WHERE status IS NULL OR status NOT IN (''pending'',''paid'',''shipped'',''completed'',''cancelled'')';
-      -- Convert to enum type now that data is clean
-      EXECUTE 'ALTER TABLE orders ALTER COLUMN status TYPE order_status USING status::order_status';
-    END IF;
-  END IF;
-
-  -- Safeguard: only run order_items migrations if table exists
-  IF to_regclass('public.order_items') IS NOT NULL THEN
-    -- order_items: rename price -> price_amount
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='order_items' AND column_name='price'
-    ) AND NOT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='order_items' AND column_name='price_amount'
-    ) THEN
-      EXECUTE 'ALTER TABLE order_items RENAME COLUMN price TO price_amount';
-    END IF;
-
-    -- add price_amount if still missing (older DBs)
-    IF NOT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='order_items' AND column_name='price_amount'
-    ) THEN
-      EXECUTE 'ALTER TABLE order_items ADD COLUMN price_amount numeric(12,2)';
-    END IF;
-
-    -- add price_currency if missing
-    IF NOT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name='order_items' AND column_name='price_currency'
-    ) THEN
-      EXECUTE 'ALTER TABLE order_items ADD COLUMN price_currency varchar(3) DEFAULT ''SYP''';
-    END IF;
-  END IF;
 END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -162,24 +48,21 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS listings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  category_id INT REFERENCES categories(id) ON DELETE SET NULL,
+  category_id INT REFERENCES categories(id),
   category_path TEXT,
   title TEXT NOT NULL,
   description TEXT,
   price_amount NUMERIC(12,2) NOT NULL CHECK (price_amount >= 0),
-  -- Currency is ISO-4217 3-letter code. Marketplace default is SYP.
-  -- If multi-currency is introduced, conversions will be handled at app level,
-  -- DB remains 3-letter codes.
-  price_currency VARCHAR(3) NOT NULL DEFAULT 'SYP',
+  price_currency VARCHAR(8) NOT NULL DEFAULT 'SYP',
   original_price_amount NUMERIC(12,2),
-  original_price_currency VARCHAR(3),
+  original_price_currency VARCHAR(8),
   stock_quantity INT NOT NULL DEFAULT 1 CHECK (stock_quantity >= 0),
   region TEXT,
-  status listing_status NOT NULL DEFAULT 'active',
+  status TEXT NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  thumbnail_url TEXT,
-  condition item_condition NOT NULL DEFAULT 'Unknown',
+  updated_at TIMESTAMPTZ,
+  thumbnail_url TEXT DEFAULT NULL,
+  condition TEXT NOT NULL DEFAULT 'Unknown',
   search_vec tsvector
 );
 
@@ -296,7 +179,6 @@ CREATE TABLE IF NOT EXISTS cart_items (
   listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
   quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
   price_at_added NUMERIC(12,2) NOT NULL CHECK (price_at_added >= 0),
-  -- Cart item currency stored as 3-letter ISO code; default SYP for now.
   currency VARCHAR(3) NOT NULL DEFAULT 'SYP',
   PRIMARY KEY (cart_id, listing_id)
 );
@@ -308,10 +190,8 @@ CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   buyer_id  UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   seller_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  -- Use PostgreSQL enum that matches EF mapping; default is lowercase
-  status order_status NOT NULL DEFAULT 'pending',
+  status TEXT NOT NULL DEFAULT 'pending',
   total_amount NUMERIC(12,2) NOT NULL CHECK (total_amount >= 0),
-  -- Order total currency (3-letter ISO); default SYP for now.
   total_currency VARCHAR(3) NOT NULL DEFAULT 'SYP',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -326,7 +206,6 @@ CREATE TABLE IF NOT EXISTS order_items (
   listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
   quantity   INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
   price_amount NUMERIC(12,2) NOT NULL CHECK (price_amount >= 0),
-  -- Order item currency (3-letter ISO); default SYP to match listings/orders.
   price_currency VARCHAR(3) NOT NULL DEFAULT 'SYP'
 );
 

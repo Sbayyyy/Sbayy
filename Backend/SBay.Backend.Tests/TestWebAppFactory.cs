@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Linq;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SBay.Domain.Database;
-
+using SBay.Domain.Entities;
 
 public class TestWebAppFactory : WebApplicationFactory<Program>
 {
@@ -22,13 +23,6 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            
-            
-            
-            
-            
-
-            
             services.AddAuthentication(o =>
             {
                 o.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
@@ -37,25 +31,28 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
                 TestAuthHandler.SchemeName, _ => { });
 
-            
             var sp = services.BuildServiceProvider();
             using var scope = sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
-            
 
-            
-            var sellerId = TestAuthHandler.SellerId;
-            var exists = db.Users.AsNoTracking().Any(u => u.Id == sellerId);
-            if (!exists)
+            const string sellerEmail = "seller@example.com";
+            var seller = db.Users.AsNoTracking().FirstOrDefault(u => u.Email == sellerEmail);
+            if (seller == null)
             {
-                db.Database.ExecuteSqlRaw(@"
-INSERT INTO users (id, email, password_hash, display_name, role, is_seller, created_at)
-VALUES ({0}, {1}, {2}, {3}, 'seller', TRUE, now())
-ON CONFLICT (email) DO NOTHING;",
-                    sellerId,
-                    "test.seller@example.com",
-                    "$test_hash",
-                    "Test Seller");
+                var user = new User
+                {
+                    Id = TestAuthHandler.SellerId,
+                    Email = sellerEmail,
+                    PasswordHash = "hash",
+                    IsSeller = true,
+                    Role = "user"
+                };
+                db.Users.Add(user);
+                db.SaveChanges();
+            }
+            else
+            {
+                TestAuthHandler.SellerId = seller.Id;
             }
         });
     }

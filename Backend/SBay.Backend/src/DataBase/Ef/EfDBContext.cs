@@ -45,6 +45,10 @@ namespace SBay.Domain.Database
                 e.Ignore(x => x.Region);
                 e.Ignore(x => x.UserName);
             });
+            modelBuilder.Entity<User>()
+                .Property(x => x.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .ValueGeneratedOnAdd();
             modelBuilder.Entity<Message>(e =>
             {
                 e.HasKey(m => m.Id);
@@ -125,8 +129,10 @@ namespace SBay.Domain.Database
                     }
                 );
             });
+            
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(EfDbContext).Assembly);
+            modelBuilder.HasPostgresEnum<ItemCondition>("item_condition");
         }
     }
 }

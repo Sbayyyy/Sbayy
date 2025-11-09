@@ -1,11 +1,13 @@
 public enum ItemCondition
 {
-    Unknown = 0,
+    Unknown,
     New,
-    LikeNew,
     Used,
-    ForParts
-}
+    LikeNew,
+    ForParts,
+    Refurbished,
+    Damaged
+};
 public static class ItemConditionExtensions
 {
     public static ItemCondition FromString(string? condition)

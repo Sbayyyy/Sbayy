@@ -1,12 +1,19 @@
 BEGIN;
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Extensions
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Safe column migrations
+-- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 BEGIN
   IF to_regclass('public.orders') IS NOT NULL THEN
+    -- Rename legacy columns if they exist
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='total')
        AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='total_amount') THEN
       ALTER TABLE orders RENAME COLUMN total TO total_amount;
@@ -17,6 +24,7 @@ BEGIN
       ALTER TABLE orders RENAME COLUMN currency TO total_currency;
     END IF;
 
+    -- Ensure total columns exist
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='total_amount') THEN
       ALTER TABLE orders ADD COLUMN total_amount numeric(12,2) NOT NULL DEFAULT 0;
     END IF;
@@ -25,6 +33,20 @@ BEGIN
       ALTER TABLE orders ADD COLUMN total_currency varchar(3) NOT NULL DEFAULT 'SYP';
     END IF;
 
+    -- ✅ Ensure status column exists as TEXT (no enum anymore)
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='orders' AND column_name='status' AND udt_name <> 'text'
+    ) THEN
+      ALTER TABLE orders ALTER COLUMN status TYPE text USING status::text;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name='orders' AND column_name='status'
+    ) THEN
+      ALTER TABLE orders ADD COLUMN status text NOT NULL DEFAULT 'pending';
+    END IF;
   END IF;
 
   IF to_regclass('public.order_items') IS NOT NULL THEN
@@ -44,7 +66,9 @@ BEGIN
 END
 $$;
 
-
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Listings adjustments
+-- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE listings
     ADD COLUMN IF NOT EXISTS stock_quantity integer NOT NULL DEFAULT 1,
     ADD COLUMN IF NOT EXISTS category_path  text,
@@ -78,6 +102,9 @@ END$$;
 CREATE INDEX IF NOT EXISTS idx_listings_search_vec ON listings USING GIN (search_vec);
 CREATE INDEX IF NOT EXISTS idx_listings_title_trgm ON listings USING GIN (title gin_trgm_ops);
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Demo data
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO categories (name) VALUES
   ('Electronics'), ('Home'), ('Clothing'), ('Vehicles'),
   ('Services'), ('Real Estate'), ('Books')
@@ -90,11 +117,12 @@ VALUES
   ('10000000-0000-0000-0000-000000000003', 'support@example.com', '$dev_hash_support', 'Support Agent', '+963900000003', 'admin',  false)
 ON CONFLICT (email) DO NOTHING;
 
+-- Listings
 INSERT INTO listings (id, seller_id, category_id, category_path, title, description,
-                      price_amount, price_currency, status, created_at, updated_at, thumbnail_url)
+                      price_amount, price_currency, status, created_at, updated_at, thumbnail_url, condition)
 SELECT gen_random_uuid(), u.id, c.id, 'electronics/phones',
        'Demo Phone - Model X', 'A demo smartphone listing for development.',
-       149.99, 'SYP', 'active', now() - interval '1 day', now(), 'https://example.local/img/demo-phone-thumb.jpg'
+       149.99, 'SYP', 'active', now() - interval '1 day', now(), 'https://example.local/img/demo-phone-thumb.jpg', 'New'
 FROM users u
 JOIN categories c ON c.name = 'Electronics'
 WHERE u.email = 'seller@example.com'
@@ -131,6 +159,7 @@ WHERE u.email = 'seller@example.com'
 
 UPDATE listings SET title = title WHERE search_vec IS NULL;
 
+-- Listing images
 INSERT INTO listing_images (id, listing_id, url, position)
 SELECT gen_random_uuid(), l.id, 'https://example.local/img/demo-phone-1.jpg', 0
 FROM listings l
@@ -158,6 +187,7 @@ WHERE l.title = 'Used Bicycle'
         WHERE li.listing_id = l.id AND li.url = 'https://example.local/img/bicycle-1.jpg'
       );
 
+-- Cart and order seed
 INSERT INTO carts (id, user_id, updated_at)
 SELECT gen_random_uuid(), u.id, now()
 FROM users u
@@ -173,6 +203,7 @@ WHERE NOT EXISTS (
   SELECT 1 FROM cart_items ci WHERE ci.cart_id = c.id AND ci.listing_id = l.id
 );
 
+-- ✅ Order + order_items use TEXT status now
 WITH buyer AS (SELECT id FROM users WHERE email = 'buyer@example.com'),
      sel   AS (SELECT id FROM users WHERE email = 'seller@example.com'),
      item  AS (SELECT id, price_amount, price_currency FROM listings WHERE title = 'Vintage Chair' LIMIT 1)

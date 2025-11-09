@@ -1,16 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using SBay.Domain.Database;
-using SBay.Domain.ValueObjects;  // for ConnectAuthenticators
+using SBay.Domain.ValueObjects;
 using SBay.Domain.Authentication;
-using SBay.Domain.Entities; // for JwtOptions etc.
+using SBay.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ───────────────────────────────────────────────
 // CONFIGURATION
 // ───────────────────────────────────────────────
-
-// Load configuration files (appsettings.json, env vars, etc.)
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
@@ -19,12 +17,11 @@ builder.Configuration
 // ───────────────────────────────────────────────
 // SERVICES
 // ───────────────────────────────────────────────
-
-// Database (PostgreSQL)
 var connStr = builder.Configuration.GetConnectionString("Default")
               ?? throw new InvalidOperationException("Missing connection string 'Default'.");
 builder.Services.AddDbContext<EfDbContext>(opt =>
     opt.UseNpgsql(connStr).UseSnakeCaseNamingConvention());
+
 builder.Services.AddScoped<IDataProvider, EfDataProvider>();
 builder.Services.AddScoped<EfListingRepository>();
 builder.Services.AddScoped<IListingRepository>(sp => sp.GetRequiredService<EfListingRepository>());
@@ -33,16 +30,15 @@ builder.Services.AddScoped<IWriteStore<Listing>>(sp => sp.GetRequiredService<EfL
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
-// Controllers
+// Controllers + Auth
 builder.Services.AddControllers();
-// JWT & Authentication
 ConnectAuthenticators.connectAuthenticators(builder);
 
-// Swagger (optional but useful for testing manually)
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// CORS (optional)
+// CORS
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("AllowAll", p => p
@@ -55,51 +51,77 @@ builder.Services.AddCors(o =>
 // BUILD PIPELINE
 // ───────────────────────────────────────────────
 var app = builder.Build();
-app.Use((ctx, next) =>
+
+// ───────────────────────────────────────────────
+// Request/Trace logging middleware (safe)
+// ───────────────────────────────────────────────
+app.Use(async (ctx, next) =>
 {
-    var reqId = ctx.Request.Headers.TryGetValue("X-Request-Id", out var v)
+    // Generate or propagate Request ID
+    var requestId = ctx.Request.Headers.TryGetValue("X-Request-ID", out var v)
         ? v.ToString()
-        : Guid.NewGuid().ToString("n");
+        : Guid.NewGuid().ToString("N");
 
-    var traceId = System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier;
+    // Set headers early (before next middleware)
+    if (!ctx.Response.Headers.ContainsKey("X-Request-ID"))
+        ctx.Response.Headers.Append("X-Request-ID", requestId);
 
-    ctx.Response.OnStarting(() =>
+    var traceId = System.Diagnostics.Activity.Current?.TraceId.ToString() ?? ctx.TraceIdentifier;
+    if (!ctx.Response.Headers.ContainsKey("X-Trace-ID"))
+        ctx.Response.Headers.Append("X-Trace-ID", traceId);
+
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    try
     {
-        if (!ctx.Response.Headers.ContainsKey("X-Request-Id"))
-            ctx.Response.Headers.Append("X-Request-Id", reqId);
-
-        if (!ctx.Response.Headers.ContainsKey("X-Trace-Id"))
-            ctx.Response.Headers.Append("X-Trace-Id", traceId);
-
-        return Task.CompletedTask;
-    });
-
-    return next();
+        await next(); // Continue through pipeline
+    }
+    finally
+    {
+        sw.Stop();
+        app.Logger.LogInformation(
+            "{method} {path} -> {status} in {elapsed}ms rid={rid} tid={tid}",
+            ctx.Request.Method,
+            ctx.Request.Path.Value,
+            ctx.Response.StatusCode,
+            sw.ElapsedMilliseconds,
+            requestId,
+            traceId
+        );
+    }
 });
 
-// Skip EnsureCreated: schema is managed by SQL migrations/seed scripts
+// ───────────────────────────────────────────────
+// Ensure database exists (dev-only)
+// ───────────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+    db.Database.EnsureCreated();
+}
 
+// ───────────────────────────────────────────────
 // Middleware pipeline
+// ───────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 if (!app.Environment.IsEnvironment("Testing"))
 {
     app.UseHttpsRedirection();
 }
 
 app.UseRouting();
-
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map Controllers
+// Controllers
 app.MapControllers();
 
+// Health endpoints
 app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/health/ready", async (EfDbContext db, CancellationToken ct) =>
 {
@@ -116,11 +138,9 @@ app.MapGet("/health/ready", async (EfDbContext db, CancellationToken ct) =>
     }
 });
 
-// Map SignalR hubs
-// app.MapHub<ChatHub>("/hubs/chat"); // only if you have a ChatHub class
+// app.MapHub<ChatHub>("/hubs/chat"); // optional SignalR hub
 
-// Run
 app.Run();
 
-// Make Program public & partial so WebApplicationFactory can see it
+// Make Program public & partial for WebApplicationFactory
 public partial class Program { }
