@@ -37,7 +37,7 @@ public sealed class ChatsControllerTests : IClassFixture<TestWebAppFactory>
     public async Task Open_Send_History_Flow_Works()
     {
         var client = _app.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", FakeJwt.For(Guid.NewGuid()));
+        // TestAuthHandler authenticates requests; no JWT needed
 
         var other = Guid.NewGuid();
         var listing = Guid.NewGuid();
