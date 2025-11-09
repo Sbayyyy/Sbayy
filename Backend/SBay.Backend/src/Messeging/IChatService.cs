@@ -2,7 +2,7 @@
 
 public interface IChatService
 {
-    Task<Chat> OpenOrGetAsync(Guid me, Guid otherUserId, Guid? listingId, IUserOwnership ownership,
+    Task<Chat> OpenOrGetAsync(Guid me, Guid otherUserId, Guid? listingId,
         CancellationToken ct = default);
 
     Task<Message> SendAsync(Guid chatId, Guid senderId, string content, CancellationToken ct = default);

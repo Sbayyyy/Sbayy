@@ -1,0 +1,74 @@
+﻿# English profanities
+fuck
+shit
+bitch
+asshole
+bastard
+dick
+pussy
+slut
+whore
+cunt
+motherfucker
+fucker
+bollocks
+bugger
+bloody
+prick
+jerk
+wanker
+twat
+crap
+damn
+hell
+cock
+tits
+boobs
+douchebag
+retard
+moron
+idiot
+sucker
+
+# Arabic profanities
+زب
+كس
+طيز
+خرا
+قحبة
+شرموطة
+لعنك الله
+يلعن
+تف عليك
+كلب
+حمار
+غبي
+وسخ
+متخلف
+سافل
+حقير
+تفو
+ابن الكلب
+ابن الحمار
+ابن الوسخة
+خنزير
+نذل
+وسخة
+شرموط
+يا ابن
+يا بنت
+زبي
+كس اختك
+كس امك
+نيك
+ينيك
+منيوك
+منيوكة
+عرص
+يلعن ابوك
+يلعن امك
+يا قواد
+قواد
+زانية
+زاني
+ديوث

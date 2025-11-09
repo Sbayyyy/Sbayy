@@ -12,18 +12,16 @@ namespace SBay.Backend.Api.Controllers;
 public class ChatsController:ControllerBase
 {
     private readonly IChatService _svc;
-    private readonly IUserOwnership _ownership;
-
-    public ChatsController(IChatService svc, IUserOwnership ownership)
+    
+    public ChatsController(IChatService svc)
     {
         _svc = svc;
-        _ownership = ownership;
     }
     [HttpPost("open")]
     public async Task<ActionResult<OpenChatResponse>> Open([FromBody] OpenChatRequest req, CancellationToken ct)
     {
         var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var chat = await _svc.OpenOrGetAsync(me, req.OtherUserId, req.ListingId, _ownership, ct);
+        var chat = await _svc.OpenOrGetAsync(me, req.OtherUserId, req.ListingId, ct);
         return Ok(new OpenChatResponse(chat.Id));
     }
 
@@ -35,6 +33,7 @@ public class ChatsController:ControllerBase
         return Ok(items);
     }
 
+    [Authorize(Policy = "CanReadThread")]
     [HttpGet("{chatId:guid}/messages")]
     public async Task<ActionResult<IReadOnlyList<Message>>> History(Guid chatId, [FromQuery] DateTime? before, [FromQuery] int take = 50, CancellationToken ct = default)
     {
@@ -64,3 +63,4 @@ public class ChatsController:ControllerBase
     }
     
 }
+
