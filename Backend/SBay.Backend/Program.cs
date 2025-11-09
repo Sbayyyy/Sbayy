@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using SBay.Backend.Messaging;
+using SBay.Backend.Utils;
 using SBay.Domain.Database;
 using SBay.Domain.ValueObjects;
 using SBay.Domain.Authentication;
@@ -6,17 +8,11 @@ using SBay.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ───────────────────────────────────────────────
-// CONFIGURATION
-// ───────────────────────────────────────────────
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-// ───────────────────────────────────────────────
-// SERVICES
-// ───────────────────────────────────────────────
 var connStr = builder.Configuration.GetConnectionString("Default")
               ?? throw new InvalidOperationException("Missing connection string 'Default'.");
 builder.Services.AddDbContext<EfDbContext>(opt =>
@@ -30,15 +26,34 @@ builder.Services.AddScoped<IWriteStore<Listing>>(sp => sp.GetRequiredService<EfL
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
-// Controllers + Auth
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IUserOwnership, UserOwnership>();
+
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IChatEvents, ChatEvents>();
+
+builder.Services.AddSingleton<IClock, SystemClock>();
+
+var filters = Path.Combine(builder.Environment.ContentRootPath, "Messaging", "Filters");
+builder.Services.AddSingleton<HtmlTextSanitizer>();
+builder.Services.AddSingleton(sp =>
+    ProfanityTextSanitizer.FromSources(
+        standalonePath: Path.Combine(filters, "profanity-standalone.txt")
+    ));
+builder.Services.AddSingleton<ITextSanitizer>(sp =>
+    new SanitizationPipeline(new ITextSanitizer[] {
+        sp.GetRequiredService<HtmlTextSanitizer>(),
+        sp.GetRequiredService<ProfanityTextSanitizer>()
+    })
+);
+
+
 builder.Services.AddControllers();
 ConnectAuthenticators.connectAuthenticators(builder);
 
-// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// CORS
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("AllowAll", p => p
@@ -47,22 +62,14 @@ builder.Services.AddCors(o =>
         .AllowAnyOrigin());
 });
 
-// ───────────────────────────────────────────────
-// BUILD PIPELINE
-// ───────────────────────────────────────────────
 var app = builder.Build();
 
-// ───────────────────────────────────────────────
-// Request/Trace logging middleware (safe)
-// ───────────────────────────────────────────────
 app.Use(async (ctx, next) =>
 {
-    // Generate or propagate Request ID
     var requestId = ctx.Request.Headers.TryGetValue("X-Request-ID", out var v)
         ? v.ToString()
         : Guid.NewGuid().ToString("N");
 
-    // Set headers early (before next middleware)
     if (!ctx.Response.Headers.ContainsKey("X-Request-ID"))
         ctx.Response.Headers.Append("X-Request-ID", requestId);
 
@@ -73,7 +80,7 @@ app.Use(async (ctx, next) =>
     var sw = System.Diagnostics.Stopwatch.StartNew();
     try
     {
-        await next(); // Continue through pipeline
+        await next();
     }
     finally
     {
@@ -90,18 +97,13 @@ app.Use(async (ctx, next) =>
     }
 });
 
-// ───────────────────────────────────────────────
-// Ensure database exists (dev-only)
-// ───────────────────────────────────────────────
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
     db.Database.EnsureCreated();
 }
 
-// ───────────────────────────────────────────────
-// Middleware pipeline
-// ───────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -118,10 +120,9 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Controllers
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 
-// Health endpoints
 app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/health/ready", async (EfDbContext db, CancellationToken ct) =>
 {
@@ -138,9 +139,6 @@ app.MapGet("/health/ready", async (EfDbContext db, CancellationToken ct) =>
     }
 });
 
-// app.MapHub<ChatHub>("/hubs/chat"); // optional SignalR hub
-
 app.Run();
 
-// Make Program public & partial for WebApplicationFactory
 public partial class Program { }
