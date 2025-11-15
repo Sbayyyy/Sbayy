@@ -8,6 +8,9 @@
 
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" Version="9.0.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.72.0" />
+    <PackageReference Include="Google.Cloud.Firestore" Version="3.12.0" />
+    <PackageReference Include="Google.Cloud.Storage.V1" Version="4.13.0" />
     <PackageReference Include="HtmlSanitizer" Version="9.0.886" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.10" />
@@ -27,6 +30,7 @@
   <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
 </ItemGroup>
   <ItemGroup>
+    <Folder Include="src\APIs\Controllers\Firebase\" />
     <Folder Include="src\APIs\interfaces\" />
   </ItemGroup>
 

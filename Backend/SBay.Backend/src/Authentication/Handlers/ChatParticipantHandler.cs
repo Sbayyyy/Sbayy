@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using SBay.Domain.Authentication.Requirements;
 using SBay.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 using SBay.Backend.Messaging;
 using SBay.Domain.Database;
 
@@ -11,10 +10,10 @@ public class ChatParticipantHandler: AuthorizationHandler<ChatParticipantRequire
 {
     private readonly ICurrentUserResolver _who;
     private readonly IHttpContextAccessor _http;
-    private readonly EfDbContext _db;
+    private readonly IChatRepository _chats;
 
-    public ChatParticipantHandler(ICurrentUserResolver who, IHttpContextAccessor http, EfDbContext db)
-    { _who = who; _http = http; _db = db; }
+    public ChatParticipantHandler(ICurrentUserResolver who, IHttpContextAccessor http, IChatRepository chats)
+    { _who = who; _http = http; _chats = chats; }
 
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context, ChatParticipantRequirement requirement)
@@ -30,7 +29,7 @@ public class ChatParticipantHandler: AuthorizationHandler<ChatParticipantRequire
         var chatId = http.RouteGuid("chatId");
         if (chatId is Guid cid)
         {
-            var chat = await _db.Set<Chat>().AsNoTracking().FirstOrDefaultAsync(c => c.Id == cid, ct);
+            var chat = await _chats.GetByIdAsync(cid, ct);
             if (chat is not null && (chat.BuyerId == me.Value || chat.SellerId == me.Value))
             {
                 context.Succeed(requirement);
