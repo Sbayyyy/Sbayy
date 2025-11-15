@@ -8,5 +8,7 @@ namespace SBay.Domain.Database
     {
         Task<IReadOnlyList<Entities.Listing>> GetBySellerAsync(Guid sellerId, CancellationToken ct);
         Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery listingQuery, CancellationToken ct);
+        Task<IReadOnlyList<Listing>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct);
+        Task<int> CountBySellerAsync(Guid sellerId, CancellationToken ct);
     }
 }

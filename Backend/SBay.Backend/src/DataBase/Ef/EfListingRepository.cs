@@ -89,6 +89,20 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
     return await query.Skip(skip).Take(size).ToListAsync(ct);
 }
+        public async Task<IReadOnlyList<Listing>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
+        {
+            var idsArray = ids?.Where(id => id != Guid.Empty).Distinct().ToArray() ?? Array.Empty<Guid>();
+            if (idsArray.Length == 0) return Array.Empty<Listing>();
+            return await _db.Set<Listing>()
+                .AsNoTracking()
+                .Where(l => idsArray.Contains(l.Id))
+                .ToListAsync(ct);
+        }
+
+        public async Task<int> CountBySellerAsync(Guid sellerId, CancellationToken ct)
+        {
+            return await _db.Listings.AsNoTracking().CountAsync(l => l.SellerId == sellerId, ct);
+        }
         public async Task AddAsync(Listing entity, CancellationToken ct = default)
         {
             if (entity is null) throw new ArgumentNullException(nameof(entity));

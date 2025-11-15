@@ -4,7 +4,6 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SBay.Domain.Authentication;
@@ -20,14 +19,15 @@ namespace SBay.Backend.Api.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private readonly EfDbContext _db;
+    private readonly IUserRepository _users;
+    private readonly IUnitOfWork _uow;
     private readonly IPasswordHasher<User> _hasher;
     private readonly JwtOptions _jwt;
 
-    public AuthController(EfDbContext db, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt)
+    public AuthController(IUserRepository users, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt)
     {
-
-        _db = db;
+        _users = users;
+        _uow = uow;
         _hasher = hasher;
         _jwt = jwt.Value;
     }
@@ -41,7 +41,7 @@ public class AuthController : ControllerBase
             return BadRequest("Email and password are required.");
 
         var email = req.Email.Trim().ToLowerInvariant();
-        var exists = await _db.Users.AsNoTracking().AnyAsync(u => u.Email == email, ct);
+        var exists = await _users.EmailExistsAsync(email, ct);
         if (exists) return Conflict("Email already in use.");
 
         var user = new User
@@ -55,8 +55,8 @@ public class AuthController : ControllerBase
         };
         user.PasswordHash = _hasher.HashPassword(user, req.Password);
 
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync(ct);
+        await _users.AddAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
 
         var dto = user.ToDto();
         var token = GenerateJwt(user);
@@ -74,7 +74,7 @@ public class AuthController : ControllerBase
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pwd))
             return BadRequest("Email and password are required.");
 
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        var user = await _users.GetByEmailAsync(email, ct);
         if (user is null)
             return Unauthorized("Invalid email or password.");
 
@@ -85,8 +85,8 @@ public class AuthController : ControllerBase
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
             user.PasswordHash = _hasher.HashPassword(user, pwd);
-            _db.Users.Update(user);
-            await _db.SaveChangesAsync(ct);
+            await _users.UpdateAsync(user, ct);
+            await _uow.SaveChangesAsync(ct);
         }
 
         var dto = user.ToDto();
@@ -102,7 +102,7 @@ public class AuthController : ControllerBase
         
         var sub = User.FindFirstValue("sub");
         if (!Guid.TryParse(sub, out var id)) return Unauthorized();
-        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+        var user = await _users.GetByIdAsync(id, ct);
         if (user is null) return NotFound();
 
         return Ok(user.ToDto());

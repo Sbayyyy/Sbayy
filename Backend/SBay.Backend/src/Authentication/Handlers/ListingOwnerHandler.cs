@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
 using SBay.Domain.Authentication.Requirements;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -9,12 +8,12 @@ namespace SBay.Domain.Authentication.Handlers;
 public sealed class ListingOwnerHandler
     : AuthorizationHandler<ListingOwnerRequirement>
 {
-    private readonly EfDbContext _db;
+    private readonly IListingRepository _listings;
     private readonly ICurrentUserResolver _who;
     private readonly IHttpContextAccessor _http;
 
-    public ListingOwnerHandler(EfDbContext db, ICurrentUserResolver who, IHttpContextAccessor http)
-    { _db = db; _who = who; _http = http; }
+    public ListingOwnerHandler(IListingRepository listings, ICurrentUserResolver who, IHttpContextAccessor http)
+    { _listings = listings; _who = who; _http = http; }
 
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context, ListingOwnerRequirement requirement)
@@ -29,12 +28,8 @@ public sealed class ListingOwnerHandler
         var listingId = http.RouteGuid("listingId");
         if (listingId is null) return;
 
-        var sellerId = await _db.Listings.AsNoTracking()
-            .Where(x => x.Id == listingId.Value)
-            .Select(x => x.SellerId)
-            .FirstOrDefaultAsync(ct);
-
-        if (sellerId != Guid.Empty && sellerId == me.Value)
+        var listing = await _listings.GetByIdAsync(listingId.Value, ct);
+        if (listing is not null && listing.SellerId == me.Value)
             context.Succeed(requirement);
     }
 }

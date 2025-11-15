@@ -49,8 +49,6 @@ public sealed class ChatServiceTests
         return new TestDbContext(opts);
     }
 
-    // No-op events no longer required; service doesn't depend on events
-
     private static IUserOwnership Owner(Guid owner)
     {
         var m = new Mock<IUserOwnership>();
@@ -88,6 +86,18 @@ public sealed class ChatServiceTests
         return m.Object;
     }
 
+    private static ChatService CreateService(EfDbContext db, Guid owner, SBay.Backend.Utils.IClock? clock = null)
+    {
+        return new ChatService(
+            new EfChatRepository(db),
+            new EfMessageRepository(db),
+            Sanitizer(),
+            clock ?? Clock(),
+            Owner(owner),
+            Events(),
+            new EfUnitOfWork(db));
+    }
+
     [Fact]
     public async Task OpenOrGet_ShouldCreate_WhenNotExists_ListingOwnerIsSeller()
     {
@@ -95,7 +105,7 @@ public sealed class ChatServiceTests
         var me = Guid.NewGuid();
         var other = Guid.NewGuid();
         var listing = Guid.NewGuid();
-        var svc = new ChatService(db, Sanitizer(), Clock(), Owner(me), Events());
+        var svc = CreateService(db, me);
         var chat = await svc.OpenOrGetAsync(me, other, listing, default);
         Assert.Equal(me, chat.SellerId);
         Assert.Equal(other, chat.BuyerId);
@@ -110,7 +120,7 @@ public sealed class ChatServiceTests
         var me = Guid.NewGuid();
         var other = Guid.NewGuid();
         var listing = Guid.NewGuid();
-        var svc = new ChatService(db, Sanitizer(), Clock(), Owner(me), Events());
+        var svc = CreateService(db, me);
         var c1 = await svc.OpenOrGetAsync(me, other, listing, default);
         var c2 = await svc.OpenOrGetAsync(me, other, listing, default);
         Assert.Equal(c1.Id, c2.Id);
@@ -123,7 +133,7 @@ public sealed class ChatServiceTests
         var me = Guid.NewGuid();
         var other = Guid.NewGuid();
         var listing = Guid.NewGuid();
-        var svc = new ChatService(db, Sanitizer(), Clock(), Owner(me), Events());
+        var svc = CreateService(db, me);
         var chat = await svc.OpenOrGetAsync(me, other, listing, default);
         var dto = await svc.SendAsync(chat.Id, me, "hello", default);
         var saved = await db.Messages.Where(m => m.ChatId == chat.Id).SingleAsync();
@@ -140,7 +150,7 @@ public sealed class ChatServiceTests
         var me = Guid.NewGuid();
         var other1 = Guid.NewGuid();
         var other2 = Guid.NewGuid();
-        var svc = new ChatService(db, Sanitizer(), Clock(), Owner(me), Events());
+        var svc = CreateService(db, me);
         var c1 = await svc.OpenOrGetAsync(me, other1, null, default);
         await svc.SendAsync(c1.Id, me, "a", default);
         await Task.Delay(5);
@@ -158,7 +168,7 @@ public sealed class ChatServiceTests
         using var db = NewDb();
         var me = Guid.NewGuid();
         var other = Guid.NewGuid();
-        var svc = new ChatService(db, Sanitizer(), Clock(), Owner(me), Events());
+        var svc = CreateService(db, me);
         var chat = await svc.OpenOrGetAsync(me, other, null, default);
         await svc.SendAsync(chat.Id, me, "m1", default);
         await svc.SendAsync(chat.Id, me, "m2", default);

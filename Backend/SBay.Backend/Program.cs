@@ -1,10 +1,15 @@
+using System.IO;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
 using Microsoft.EntityFrameworkCore;
+using SBay.Backend.DataBase.Firebase;
+using SBay.Backend.DataBase.Interfaces;
 using SBay.Backend.Messaging;
 using SBay.Backend.Utils;
-using SBay.Domain.Database;
-using SBay.Domain.ValueObjects;
 using SBay.Domain.Authentication;
+using SBay.Domain.Database;
 using SBay.Domain.Entities;
+using SBay.Domain.ValueObjects;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,17 +18,65 @@ builder.Configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-var connStr = builder.Configuration.GetConnectionString("Default")
-              ?? throw new InvalidOperationException("Missing connection string 'Default'.");
-builder.Services.AddDbContext<EfDbContext>(opt =>
-    opt.UseNpgsql(connStr).UseSnakeCaseNamingConvention());
+var providerName = builder.Configuration.GetValue<string>("Database:Provider") ?? "ef";
+var useEf = !string.Equals(providerName, "firestore", StringComparison.OrdinalIgnoreCase);
 
-builder.Services.AddScoped<IDataProvider, EfDataProvider>();
-builder.Services.AddScoped<EfListingRepository>();
-builder.Services.AddScoped<IListingRepository>(sp => sp.GetRequiredService<EfListingRepository>());
-builder.Services.AddScoped<IReadStore<Listing>>(sp => sp.GetRequiredService<EfListingRepository>());
-builder.Services.AddScoped<IWriteStore<Listing>>(sp => sp.GetRequiredService<EfListingRepository>());
-builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+if (useEf)
+{
+    var connStr = builder.Configuration.GetConnectionString("Default")
+                  ?? throw new InvalidOperationException("Missing connection string 'Default'.");
+    builder.Services.AddDbContext<EfDbContext>(opt =>
+        opt.UseNpgsql(connStr).UseSnakeCaseNamingConvention());
+
+    builder.Services.AddScoped<IDataProvider, EfDataProvider>();
+    builder.Services.AddScoped<IUserRepository, EfUserRepository>();
+    builder.Services.AddScoped<IListingRepository, EfListingRepository>();
+    builder.Services.AddScoped<IReadStore<Listing>>(sp => sp.GetRequiredService<IListingRepository>());
+    builder.Services.AddScoped<IWriteStore<Listing>>(sp => sp.GetRequiredService<IListingRepository>());
+    builder.Services.AddScoped<ICartRepository, EfCartRepository>();
+    builder.Services.AddScoped<IOrderRepository, EfOrderRepository>();
+    builder.Services.AddScoped<IChatRepository, EfChatRepository>();
+    builder.Services.AddScoped<IMessageRepository, EfMessageRepository>();
+    builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+    builder.Services.AddScoped<IUserAnalyticsService, EfUserAnalyticsService>();
+}
+else
+{
+    builder.Services.AddSingleton(sp =>
+    {
+        var projectId = builder.Configuration["Firebase:ProjectId"];
+        if (string.IsNullOrWhiteSpace(projectId))
+            throw new InvalidOperationException("Missing Firebase:ProjectId");
+
+        var credentialsPath = builder.Configuration["Firebase:CredentialsPath"];
+        GoogleCredential? credential = null;
+        if (!string.IsNullOrWhiteSpace(credentialsPath))
+        {
+            var fullPath = Path.IsPathRooted(credentialsPath)
+                ? credentialsPath
+                : Path.Combine(builder.Environment.ContentRootPath, credentialsPath);
+            if (!File.Exists(fullPath))
+                throw new InvalidOperationException($"Firebase credentials not found at {fullPath}");
+            credential = GoogleCredential.FromFile(fullPath);
+        }
+
+        var firestoreBuilder = new FirestoreDbBuilder { ProjectId = projectId };
+        if (credential is not null)
+            firestoreBuilder.Credential = credential;
+        return firestoreBuilder.Build();
+    });
+
+    builder.Services.AddScoped<IUserRepository, FirebaseUserRepository>();
+    builder.Services.AddScoped<IListingRepository, FirebaseListingRepository>();
+    builder.Services.AddScoped<ICartRepository, FirebaseCartRepository>();
+    builder.Services.AddScoped<IImageRepository, FirebaseImageRepository>();
+    builder.Services.AddScoped<IOrderRepository, FirebaseOrderRepository>();
+    builder.Services.AddScoped<IChatRepository, FirebaseChatRepository>();
+    builder.Services.AddScoped<IMessageRepository, FirebaseMessageRepository>();
+    builder.Services.AddScoped<IDataProvider, FirebaseDataProvider>();
+    builder.Services.AddScoped<IUnitOfWork, FirestoreUnitOfWork>();
+    builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();
+}
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddScoped<IChatService, ChatService>();
@@ -97,7 +150,7 @@ app.Use(async (ctx, next) =>
     }
 });
 
-if (!app.Environment.IsEnvironment("Testing"))
+if (useEf && !app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
@@ -124,20 +177,39 @@ app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 
 app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }));
-app.MapGet("/health/ready", async (EfDbContext db, CancellationToken ct) =>
+
+if (useEf)
 {
-    try
+    app.MapGet("/health/ready", async (EfDbContext db, CancellationToken ct) =>
     {
-        var can = await db.Database.CanConnectAsync(ct);
-        return can
-            ? Results.Ok(new { status = "ok", db = "up" })
-            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-    }
-    catch
+        try
+        {
+            var can = await db.Database.CanConnectAsync(ct);
+            return can
+                ? Results.Ok(new { status = "ok", db = "up" })
+                : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+        catch
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+    });
+}
+else
+{
+    app.MapGet("/health/ready", async (FirestoreDb db, CancellationToken ct) =>
     {
-        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-    }
-});
+        try
+        {
+            _ = await db.Collection("__health").Document("ping").GetSnapshotAsync(ct);
+            return Results.Ok(new { status = "ok", db = "up" });
+        }
+        catch
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+    });
+}
 
 app.Run();
 

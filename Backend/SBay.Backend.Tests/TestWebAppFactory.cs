@@ -23,6 +23,16 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            var descriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions<EfDbContext>));
+            if (descriptor != null)
+                services.Remove(descriptor);
+
+            services.AddDbContext<EfDbContext>(options =>
+            {
+                options.UseInMemoryDatabase($"WebAppTests-{Guid.NewGuid()}");
+            });
+
             services.AddAuthentication(o =>
             {
                 o.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;

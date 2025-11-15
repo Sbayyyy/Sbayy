@@ -45,6 +45,21 @@ namespace SBay.Domain.Database
                 .FirstOrDefaultAsync(u => u.Id == id, ct);
         }
 
+        public async Task<User?> GetByEmailAsync(string email, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return null;
+            return await _db.Set<User>()
+                .FirstOrDefaultAsync(u => u.Email == email, ct);
+        }
+
+        public async Task<bool> EmailExistsAsync(string email, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return false;
+            return await _db.Set<User>()
+                .AsNoTracking()
+                .AnyAsync(u => u.Email == email, ct);
+        }
+
         public Task RemoveAsync(User entity, CancellationToken ct)
         {
             if (entity is null) throw new ArgumentNullException(nameof(entity));
