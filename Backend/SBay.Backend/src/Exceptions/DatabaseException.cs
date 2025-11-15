@@ -1,24 +1,13 @@
-﻿namespace SBay.Backend.Exceptions;
+namespace SBay.Backend.Exceptions;
 
-public class DatabaseException : Exception, IException
+public class DatabaseException : Exception
 {
-    private string _errorMessage;
-
     public DatabaseException()
-    {
-        _errorMessage = "Database Error";
-        
-    }
+        : base("Database Error") { }
 
-    public DatabaseException(string message) : base(message)
-    {
-        _errorMessage = message;
-    }
+    public DatabaseException(string message)
+        : base(message) { }
 
-    public string what()
-    {
-        return _errorMessage;
-        
-    }
-
+    public DatabaseException(string message, Exception innerException)
+        : base(message, innerException) { }
 }

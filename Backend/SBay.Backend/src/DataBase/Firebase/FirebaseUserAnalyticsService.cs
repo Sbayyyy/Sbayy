@@ -72,25 +72,9 @@ public sealed class FirebaseUserAnalyticsService : IUserAnalyticsService
         var ordersCount = orders.Count;
         var revenue = orders.Sum(x => x.TotalAmount);
 
-        List<OrderItem> items;
-        if (orderIds.Length == 0)
-        {
-            items = new List<OrderItem>();
-        }
-        else
-        {
-            var itemsSnapshot = await EnsureCompleted(
-                _db.Collection("order_items")
-                   .WhereIn("OrderId", orderIds.Cast<object>().ToList())
-                   .GetSnapshotAsync(ct));
-
-            items = itemsSnapshot.Documents
-                .Where(d => d.Exists)
-                .Select(d => d.ConvertTo<OrderItemDocument>()?.ToDomain())
-                .Where(i => i != null)
-                .Cast<OrderItem>()
-                .ToList();
-        }
+        var items = orderIds.Length == 0
+            ? new List<OrderItem>()
+            : await FetchOrderItemsAsync(orderIds, ct);
 
         var itemsSold = items.Sum(x => x.Quantity);
         var aov = ordersCount == 0 ? 0 : revenue / ordersCount;
@@ -124,25 +108,9 @@ public sealed class FirebaseUserAnalyticsService : IUserAnalyticsService
 
         var orderIds = orders.Select(o => o.Id).ToArray();
 
-        List<OrderItem> items;
-        if (orderIds.Length == 0)
-        {
-            items = new List<OrderItem>();
-        }
-        else
-        {
-            var itemsSnapshot = await EnsureCompleted(
-                _db.Collection("order_items")
-                   .WhereIn("OrderId", orderIds.Cast<object>().ToList())
-                   .GetSnapshotAsync(ct));
-
-            items = itemsSnapshot.Documents
-                .Where(d => d.Exists)
-                .Select(d => d.ConvertTo<OrderItemDocument>()?.ToDomain())
-                .Where(i => i != null)
-                .Cast<OrderItem>()
-                .ToList();
-        }
+        var items = orderIds.Length == 0
+            ? new List<OrderItem>()
+            : await FetchOrderItemsAsync(orderIds, ct);
 
         var rows = orders
             .Join(
@@ -183,5 +151,28 @@ public sealed class FirebaseUserAnalyticsService : IUserAnalyticsService
         var aov = ordersCount == 0 ? 0 : revenue / ordersCount;
 
         return new UserAnalyticsDto(itemsSold, revenue, ordersCount, aov, series);
+    }
+
+    private async Task<List<OrderItem>> FetchOrderItemsAsync(Guid[] orderIds, CancellationToken ct)
+    {
+        const int chunkSize = 10;
+        var items = new List<OrderItem>();
+        for (int i = 0; i < orderIds.Length; i += chunkSize)
+        {
+            var chunk = orderIds.Skip(i).Take(chunkSize).Cast<object>().ToList();
+            if (chunk.Count == 0) continue;
+            var snapshot = await EnsureCompleted(
+                _db.Collection("order_items")
+                   .WhereIn("OrderId", chunk)
+                   .GetSnapshotAsync(ct));
+
+            items.AddRange(
+                snapshot.Documents
+                    .Where(d => d.Exists)
+                    .Select(d => d.ConvertTo<OrderItemDocument>()?.ToDomain())
+                    .Where(i => i != null)
+                    .Cast<OrderItem>());
+        }
+        return items;
     }
 }

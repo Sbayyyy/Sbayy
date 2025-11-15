@@ -1,3 +1,4 @@
+using System.Reflection;
 using Google.Cloud.Firestore;
 using SBay.Backend.DataBase.Firebase.Models;
 using SBay.Backend.DataBase.Queries;
@@ -63,18 +64,22 @@ public class FirebaseImageRepository : IImageRepository
 
     public async Task AddAsync(ListingImage entity, CancellationToken ct)
     {
+        var doc = ListingImageDocument.FromDomain(entity);
+        SyncEntityId(entity, doc);
         await EnsureCompleted(
             _db.Collection("listing_images")
-               .Document(entity.Id.ToString())
-               .SetAsync(ListingImageDocument.FromDomain(entity), cancellationToken: ct));
+               .Document(doc.Id.ToString())
+               .SetAsync(doc, cancellationToken: ct));
     }
 
     public async Task UpdateAsync(ListingImage entity, CancellationToken ct)
     {
+        var doc = ListingImageDocument.FromDomain(entity);
+        SyncEntityId(entity, doc);
         await EnsureCompleted(
             _db.Collection("listing_images")
-               .Document(entity.Id.ToString())
-               .SetAsync(ListingImageDocument.FromDomain(entity), cancellationToken: ct));
+               .Document(doc.Id.ToString())
+               .SetAsync(doc, cancellationToken: ct));
     }
 
     public async Task RemoveAsync(ListingImage entity, CancellationToken ct)
@@ -118,5 +123,13 @@ public class FirebaseImageRepository : IImageRepository
             .Select(Convert)
             .OrderBy(i => i.Position)
             .ToList();
+    }
+
+    private static void SyncEntityId(ListingImage entity, ListingImageDocument doc)
+    {
+        if (entity.Id != Guid.Empty) return;
+        typeof(ListingImage)
+            .GetProperty(nameof(ListingImage.Id), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?
+            .SetValue(entity, doc.Id);
     }
 }

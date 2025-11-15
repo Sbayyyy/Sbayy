@@ -38,7 +38,7 @@ public class FirebaseListingRepository : IListingRepository
         return doc.ToDomain();
     }
 
-    public async Task<Listing> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<Listing?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var doc = await EnsureCompleted(
             _db.Collection("listings")
@@ -46,7 +46,7 @@ public class FirebaseListingRepository : IListingRepository
                .GetSnapshotAsync(ct));
 
         if (!doc.Exists)
-            throw new DatabaseException("Listing not found");
+            return null;
 
         return Convert(doc);
     }

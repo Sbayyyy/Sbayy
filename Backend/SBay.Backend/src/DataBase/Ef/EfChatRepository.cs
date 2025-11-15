@@ -38,6 +38,7 @@ public class EfChatRepository : IChatRepository
         var chat = await _db.Set<Chat>().FirstOrDefaultAsync(c => c.Id == chatId, ct);
         if (chat == null) return false;
         chat.LastMessageAt = timestamp;
+        await _db.SaveChangesAsync(ct);
         return true;
     }
 
