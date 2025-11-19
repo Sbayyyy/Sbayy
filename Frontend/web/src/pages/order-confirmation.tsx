@@ -34,7 +34,7 @@ export default function OrderConfirmationPage() {
     // if it's an array, take the first element
     const normalizedOrderId = Array.isArray(orderId) ? orderId[0] : orderId;
     if (!normalizedOrderId) {
-      setError('Ungültige Bestellnummer');
+      setError('رقم طلب غير صالح');
       setLoading(false);
       return;
     }
@@ -46,7 +46,7 @@ export default function OrderConfirmationPage() {
         setOrder(data);
       } catch (err) {
         console.error('Error fetching order:', err);
-        setError('Bestellung konnte nicht geladen werden');
+        setError('فشل تحميل الطلب');
       } finally {
         setLoading(false);
       }
@@ -58,11 +58,11 @@ export default function OrderConfirmationPage() {
   // Loading State
   if (loading) {
     return (
-      <Layout title="Bestellung wird geladen...">
+      <Layout title="جارٍ تحميل الطلب...">
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Bestelldetails werden geladen...</p>
+            <p className="text-gray-600">جارٍ تحميل تفاصيل الطلب...</p>
           </div>
         </div>
       </Layout>
@@ -76,13 +76,13 @@ export default function OrderConfirmationPage() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Fehler</h2>
-            <p className="text-gray-600 mb-6">{error || 'Bestellung nicht gefunden'}</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">خطأ</h2>
+            <p className="text-gray-600 mb-6">{error || 'لم يتم العثور على الطلب'}</p>
             <Link
               href="/"
               className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
             >
-              Zur Startseite
+              إلى الصفحة الرئيسية
             </Link>
           </div>
         </div>

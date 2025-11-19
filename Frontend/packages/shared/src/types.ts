@@ -250,7 +250,7 @@ export interface OrderResponse {
   id: string;
   items: OrderItem[];
   shippingAddress: Address;
-  paymentMethod: 'cod' | 'bank_transfer';
+  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';
   shippingInfo: ShippingInfo;
   total: number;                                        // Total mit Shipping
   subtotal: number;                                     // Total ohne Shipping
