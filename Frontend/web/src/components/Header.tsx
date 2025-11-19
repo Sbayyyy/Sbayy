@@ -48,9 +48,7 @@ export default function Header() {
               <Link href="/browse" className="text-gray-700 hover:text-primary-600 transition-colors">
                 تصفح المنتجات
               </Link>
-              <Link href="/categories" className="text-gray-700 hover:text-primary-600 transition-colors">
-                الفئات
-              </Link>
+              
             </nav>
           </div>
 

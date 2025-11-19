@@ -56,6 +56,8 @@ logs/
 # TypeScript
 *.tsbuildinfo
 
+Frontend\web\.env.example
+
 Backend/SBay.Backend/obj/
 Backend/SBay.Backend/bin/
 Backend/SBay.Backend.Tests/obj/
