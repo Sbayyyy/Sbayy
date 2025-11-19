@@ -189,3 +189,87 @@ export interface SearchResponse {
   limit: number;
   totalPages: number;
 }
+
+// ===== CHECKOUT & ORDER TYPES =====
+
+/**
+ * Shipping Address für Orders
+ * Wird vom User während Checkout eingegeben
+ */
+export interface Address {
+  name: string;           // Vollständiger Name
+  phone: string;          // Telefon (Syrian format: 09xx... oder +963...)
+  street: string;         // Detaillierte Adresse (Straße, Hausnummer)
+  city: string;           // Syrische Stadt/Governorate
+  region?: string;        // Optional: Stadtviertel/Bezirk
+}
+
+/**
+ * Versand-Information (von DHL/Carrier)
+ * Wird nach Stadt berechnet
+ */
+export interface ShippingInfo {
+  cost: number;                          // Versandkosten in SYP
+  carrier: 'dhl' | 'other';              // Versandunternehmen
+  estimatedDays: number;                 // Geschätzte Liefertage
+  trackingNumber?: string;               // Tracking-Nummer (optional)
+}
+
+/**
+ * Ein Artikel im Order
+ */
+export interface OrderItem {
+  productId: string;
+  quantity: number;
+  price: number;          // Preis pro Stück zum Zeitpunkt des Orders
+}
+
+/**
+ * Order-Erstellung vom Frontend
+ * Wird vom Checkout-Form gesendet
+ */
+export interface OrderCreate {
+  items: OrderItem[];                           // Bestellte Produkte
+  shippingAddress: Address;                     // Versand-Adresse
+  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';       // COD = Cash on Delivery
+  saveAddress?: boolean;                        // Adresse speichern für später?
+}
+
+/**
+ * Order-Update (Status-Änderung, nur Backend)
+ */
+export interface OrderUpdate {
+  status?: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  trackingNumber?: string;
+}
+
+/**
+ * Kompletter Order (Response von Backend)
+ */
+export interface OrderResponse {
+  id: string;
+  items: OrderItem[];
+  shippingAddress: Address;
+  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';
+  shippingInfo: ShippingInfo;
+  total: number;                                        // Total mit Shipping
+  subtotal: number;                                     // Total ohne Shipping
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Adresse speichern Request
+ */
+export interface SaveAddressRequest extends Address {
+  // Erbt alle Felder von Address
+}
+
+/**
+ * Versand-Kosten berechnen Request
+ */
+export interface CalculateShippingRequest {
+  city: string;           // Zielstadt
+  weight?: number;        // Optional: Gesamtgewicht
+}
