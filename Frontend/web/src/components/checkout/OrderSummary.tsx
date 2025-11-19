@@ -7,6 +7,7 @@ interface OrderSummaryProps {
   onAgreed: (agreed: boolean) => void;
   agreedToTerms?: boolean;
 }
+/* TODO (Eyas): Add /terms and /privacy pages */
 
 /**
  * OrderSummary Component - Modern Redesign

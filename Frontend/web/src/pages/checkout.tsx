@@ -71,6 +71,7 @@ export default function CheckoutPage() {
     }
   }, [state.address.city]);
 
+  //TODO: should be adjusted with backend shipping calculation
   const handleCalculateShipping = async () => {
     try {
       const shipping = await calculateShipping({ city: state.address.city });
@@ -101,7 +102,7 @@ export default function CheckoutPage() {
           price: item.product.priceAmount
         })),
         shippingAddress: state.address,
-        paymentMethod: state.paymentMethod as 'cod' | 'bank_transfer',
+        paymentMethod: state.paymentMethod,
         saveAddress: state.saveAddressFlag
       };
 

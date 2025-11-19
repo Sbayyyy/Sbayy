@@ -198,7 +198,7 @@ export const getNameValidationMessage = (name: string): string | null => {
   if (!name) return 'الاسم الكامل مطلوب';
   if (name.trim().length < 3) return 'الاسم يجب أن يكون 3 أحرف على الأقل';
   if (name.length > 100) return 'الاسم طويل جداً';
-  if (!/^[\u0600-\u06FFa-zA-Z\s]+$/.test(name)) return 'الاسم يجب أن يحتوي على حروف فقط';
+  if (!/^[\u0600-\u06FFa-zA-Z\s'-\.]+$/.test(name)) return 'الاسم يجب أن يحتوي على حروف فقط';
   return null;
 };
 
@@ -210,7 +210,7 @@ export const getSyrianPhoneValidationMessage = (phone: string): string | null =>
   const cleanPhone = phone.replace(/\s/g, '');
   
   // Syrian phone: starts with 09 or +963
-  if (!/^(\+?963|0)?9\d{8}$/.test(cleanPhone)) {
+  if (!/^(\+963|0)9\d{8}$/.test(cleanPhone)) {
     return 'رقم الهاتف غير صحيح (مثال: 0912345678 أو +963912345678)';
   }
   return null;
@@ -292,6 +292,10 @@ export const formatSyrianPhone = (phone: string): string => {
   if (cleanPhone.startsWith('09')) {
     return `${cleanPhone.substring(0, 4)} ${cleanPhone.substring(4, 7)} ${cleanPhone.substring(7)}`;
   }
-  
+  // If starts with just 9
+  if (cleanPhone.startsWith('9') && cleanPhone.length === 9) {
+    return `0${cleanPhone.substring(0, 3)} ${cleanPhone.substring(3, 6)} ${cleanPhone.substring(6)}`;
+  }
+
   return phone;
 };

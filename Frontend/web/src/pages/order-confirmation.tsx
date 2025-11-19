@@ -31,11 +31,18 @@ export default function OrderConfirmationPage() {
 
   useEffect(() => {
     if (!orderId) return;
+    // if it's an array, take the first element
+    const normalizedOrderId = Array.isArray(orderId) ? orderId[0] : orderId;
+    if (!normalizedOrderId) {
+      setError('Ungültige Bestellnummer');
+      setLoading(false);
+      return;
+    }
 
     const fetchOrder = async () => {
       try {
         setLoading(true);
-        const data = await getOrder(orderId as string);
+        const data = await getOrder(normalizedOrderId);
         setOrder(data);
       } catch (err) {
         console.error('Error fetching order:', err);

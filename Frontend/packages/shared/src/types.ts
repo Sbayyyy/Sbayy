@@ -231,7 +231,7 @@ export interface OrderItem {
 export interface OrderCreate {
   items: OrderItem[];                           // Bestellte Produkte
   shippingAddress: Address;                     // Versand-Adresse
-  paymentMethod: 'cod' | 'bank_transfer';       // COD = Cash on Delivery
+  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';       // COD = Cash on Delivery
   saveAddress?: boolean;                        // Adresse speichern für später?
 }
 
