@@ -1,4 +1,3 @@
-﻿using Microsoft.EntityFrameworkCore;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 
@@ -6,17 +5,12 @@ namespace SBay.Backend.Messaging;
 
 public sealed class UserOwnership : IUserOwnership
 {
-    private readonly EfDbContext _db;
-    public UserOwnership(EfDbContext db) => _db = db;
+    private readonly IListingRepository _listings;
+    public UserOwnership(IListingRepository listings) => _listings = listings;
 
     public async Task<bool> IsOwnerOfListingAsync(Guid userId, Guid listingId, CancellationToken ct)
     {
-        var sellerId = await _db.Set<Listing>()
-            .AsNoTracking()
-            .Where(l => l.Id == listingId)
-            .Select(l => l.SellerId)
-            .FirstOrDefaultAsync(ct);
-
-        return sellerId != Guid.Empty && sellerId == userId;
+        var listing = await _listings.GetByIdAsync(listingId, ct);
+        return listing is not null && listing.SellerId == userId;
     }
 }
