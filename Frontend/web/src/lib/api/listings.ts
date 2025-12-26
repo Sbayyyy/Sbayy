@@ -48,26 +48,49 @@ export const getAllListings = async (
   limit = 20,
   filters?: SearchFilters
 ): Promise<SearchResponse> => {
-  const response = await api.get<Product[]>('/listings', {
+  const response = await api.get<any>('/listings', {
     params: { 
       page, 
-      limit,
+      pageSize: limit, // Backend uses 'pageSize' not 'limit'
+      text: filters?.category, // Backend uses 'text' for search, 'category' for category filter
       category: filters?.category,
       minPrice: filters?.minPrice,
       maxPrice: filters?.maxPrice,
       condition: filters?.condition,
-      sortBy: filters?.sortBy || 'date',
-      sortOrder: filters?.sortOrder || 'desc'
+      region: filters?.region,
     }
   });
   
-  // Backend sendet Array, wir wrappen es in SearchResponse
-  const items = response.data;
+  // Backend should return { items: Product[], total: number } or just Product[]
+  // Handle both cases for compatibility
+  if (response.data && typeof response.data === 'object') {
+    if (Array.isArray(response.data)) {
+      // Backend returns array directly
+      return {
+        items: response.data,
+        total: response.data.length, // Can't know real total from single page
+        page,
+        limit,
+        totalPages: 1, // Unknown without total from backend
+      };
+    } else if (response.data.items && Array.isArray(response.data.items)) {
+      // Backend returns { items, total }
+      return {
+        items: response.data.items,
+        total: response.data.total || response.data.items.length,
+        page,
+        limit,
+        totalPages: Math.ceil((response.data.total || response.data.items.length) / limit),
+      };
+    }
+  }
+  
+  // Fallback
   return {
-    items,
-    total: items.length,
+    items: [],
+    total: 0,
     page,
     limit,
-    totalPages: Math.ceil(items.length / limit)
+    totalPages: 0,
   };
 };

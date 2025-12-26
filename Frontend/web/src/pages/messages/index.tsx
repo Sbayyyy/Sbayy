@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
@@ -43,13 +43,15 @@ export default function MessagesPage() {
       return;
     }
     loadChats();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router]);
 
   useEffect(() => {
     filterChats();
   }, [chats, searchQuery, filter]);
 
-  const loadChats = async () => {
+  const loadChats = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       setLoading(true);
       const data = await getChats(50, 0);
@@ -99,7 +101,7 @@ export default function MessagesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const filterChats = () => {
     let filtered = chats;

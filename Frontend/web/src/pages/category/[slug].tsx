@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
@@ -44,21 +44,8 @@ export default function CategoryPage() {
     sortOrder: 'desc'
   });
 
-  useEffect(() => {
-    if (slug) {
-      setFilters(prev => ({ ...prev, category: slug as string }));
-      setPage(1);
-      loadProducts(true);
-    }
-  }, [slug]);
-
-  useEffect(() => {
-    if (filters.category) {
-      loadProducts(true);
-    }
-  }, [filters]);
-
-  const loadProducts = async (reset = false) => {
+  // Load products with useCallback to prevent infinite loops
+  const loadProducts = useCallback(async (reset = false) => {
     try {
       if (reset) {
         setLoading(true);
@@ -86,7 +73,23 @@ export default function CategoryPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [filters, page, products]); // Include all dependencies
+
+  // Effect for slug change
+  useEffect(() => {
+    if (slug && slug !== filters.category) {
+      setFilters(prev => ({ ...prev, category: slug as string }));
+      setProducts([]); // Clear products when category changes
+      setPage(1);
+    }
+  }, [slug, filters.category]);
+
+  // Effect for filters change
+  useEffect(() => {
+    if (filters.category) {
+      loadProducts(true);
+    }
+  }, [filters, loadProducts]);
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {

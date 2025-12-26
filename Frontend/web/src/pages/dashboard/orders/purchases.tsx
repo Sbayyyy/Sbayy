@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
@@ -32,15 +32,7 @@ export default function PurchasesPage() {
   // Filter State
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login?redirect=/dashboard/orders/purchases');
-      return;
-    }
-    loadOrders();
-  }, [isAuthenticated, statusFilter]);
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getPurchases(page, 20);
@@ -61,7 +53,15 @@ export default function PurchasesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/login?redirect=/dashboard/orders/purchases');
+      return;
+    }
+    loadOrders();
+  }, [isAuthenticated, router, loadOrders]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
