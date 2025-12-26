@@ -29,6 +29,16 @@ export default function BrowsePage() {
     sortOrder: 'desc'
   });
 
+  // Initialize filters from URL query
+  useEffect(() => {
+    if (router.isReady && router.query.category) {
+      setFilters(prev => ({ 
+        ...prev, 
+        category: router.query.category as string 
+      }));
+    }
+  }, [router.isReady, router.query.category]);
+
   useEffect(() => {
     loadProducts();
   }, [filters]); // Reload wenn Filter sich ändern
