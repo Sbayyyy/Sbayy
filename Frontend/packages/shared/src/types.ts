@@ -71,15 +71,58 @@ export interface Category {
   slug: string;
 }
 
-// Message types
+// Message & Chat types (Backend compatible)
 export interface Message {
   id: string;
+  chatId: string;
   senderId: string;
   receiverId: string;
-  productId?: string;
+  listingId?: string;
   content: string;
-  read: boolean;
+  isRead: boolean;
   createdAt: string;
+}
+
+export interface Chat {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  listingId?: string;
+  createdAt: string;
+  lastMessageAt?: string;
+  buyerArchived: boolean;
+  sellerArchived: boolean;
+  messages: Message[];
+}
+
+export interface OpenChatRequest {
+  otherUserId: string;
+  listingId?: string;
+}
+
+export interface OpenChatResponse {
+  id: string;
+}
+
+// Legacy types (keeping for compatibility)
+export interface Conversation {
+  id: string;
+  participant: User;
+  product?: Product;
+  lastMessage: Message;
+  unreadCount: number;
+  updatedAt: string;
+}
+
+export interface ConversationCreate {
+  receiverId: string;
+  productId?: string;
+  initialMessage: string;
+}
+
+export interface MessageSend {
+  conversationId: string;
+  content: string;
 }
 
 // API Response types
@@ -272,4 +315,46 @@ export interface SaveAddressRequest extends Address {
 export interface CalculateShippingRequest {
   city: string;           // Zielstadt
   weight?: number;        // Optional: Gesamtgewicht
+}
+
+// Review & Rating types
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  productId?: string;
+  sellerId?: string;
+  orderId?: string;
+  rating: number;         // 1-5
+  comment: string;
+  helpful: number;        // Count of helpful marks
+  isHelpful?: boolean;    // Current user marked as helpful
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ReviewCreate {
+  productId?: string;
+  sellerId?: string;
+  orderId?: string;
+  rating: number;
+  comment: string;
+}
+
+export interface ReviewUpdate {
+  rating?: number;
+  comment?: string;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
 }

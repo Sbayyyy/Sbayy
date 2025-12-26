@@ -61,7 +61,7 @@ export default function Home() {
               {categories.map(cat => (
                 <Link
                   key={cat.id}
-                  href={`/category/${cat.id}`}
+                  href={`/category/${cat.slug}`}
                   className="card hover:shadow-lg transition-shadow text-center"
                 >
                   <div className="text-4xl mb-3">{cat.icon}</div>
@@ -109,10 +109,10 @@ export default function Home() {
 }
 
 const categories = [
-  { id: '1', name: 'إلكترونيات', icon: '📱' },
-  { id: '2', name: 'أزياء', icon: '👔' },
-  { id: '3', name: 'منزل وحديقة', icon: '🏠' },
-  { id: '4', name: 'سيارات', icon: '🚗' },
-  { id: '5', name: 'عقارات', icon: '🏢' },
-  { id: '6', name: 'شيء آخر', icon: '🏢' }
+  { id: 'electronics', slug: 'electronics', name: 'إلكترونيات', icon: '📱' },
+  { id: 'fashion', slug: 'fashion', name: 'أزياء', icon: '👔' },
+  { id: 'home', slug: 'home', name: 'منزل وحديقة', icon: '🏠' },
+  { id: 'cars', slug: 'cars', name: 'سيارات', icon: '🚗' },
+  { id: 'real-estate', slug: 'real-estate', name: 'عقارات', icon: '🏢' },
+  { id: 'other', slug: 'other', name: 'أخرى', icon: '📦' }
 ];

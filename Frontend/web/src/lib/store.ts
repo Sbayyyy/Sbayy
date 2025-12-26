@@ -22,17 +22,40 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       login: (user, token) => {
-        localStorage.setItem('token', token);
+        // Store in both localStorage (for API interceptor) and Zustand (for React state)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('token', token);
+        }
         set({ user, token, isAuthenticated: true });
       },
       logout: () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        // Clear both storage locations
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+        }
         set({ user: null, token: null, isAuthenticated: false });
       },
     }),
     {
       name: 'auth-storage',
+      // Only persist user info, not token (token in localStorage is source of truth)
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+      // Rehydrate token from localStorage on load
+      onRehydrateStorage: () => (state) => {
+        if (state && typeof window !== 'undefined') {
+          const token = localStorage.getItem('token');
+          if (token) {
+            state.token = token;
+            state.isAuthenticated = true;
+          } else {
+            state.isAuthenticated = false;
+          }
+        }
+      },
     }
   )
 );

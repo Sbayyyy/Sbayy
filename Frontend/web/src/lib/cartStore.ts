@@ -14,12 +14,14 @@ interface CartStore {
   isOpen: boolean; // Für Sidebar
   itemCount: number;
   total: number;
+  error: string | null; // Error messages
   
   // Actions
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
+  clearError: () => void;
   
   // Sidebar Controls
   toggleCart: () => void;
@@ -38,10 +40,18 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
       itemCount: 0,
       total: 0,
+      error: null,
 
       // Actions
       addItem: (product: Product, quantity = 1) => {
         const state = get();
+        
+        // Validate stock
+        if (product.stock !== undefined && product.stock < quantity) {
+          set({ error: `للأسف، المخزون غير كافٍ. المتوفر: ${product.stock}` });
+          return;
+        }
+
         const existingItem = state.items.find(
           (item) => item.product.id === product.id
         );
@@ -49,10 +59,18 @@ export const useCartStore = create<CartStore>()(
         let newItems: CartItem[];
 
         if (existingItem) {
+          const newQuantity = existingItem.quantity + quantity;
+          
+          // Check stock for total quantity
+          if (product.stock !== undefined && newQuantity > product.stock) {
+            set({ error: `لا يمكن إضافة المزيد. المخزون المتوفر: ${product.stock}` });
+            return;
+          }
+          
           // Produkt existiert → Menge erhöhen
           newItems = state.items.map((item) =>
             item.product.id === product.id
-              ? { ...item, quantity: item.quantity + quantity }
+              ? { ...item, quantity: newQuantity }
               : item
           );
         } else {
@@ -79,6 +97,7 @@ export const useCartStore = create<CartStore>()(
           itemCount, 
           total,
           isOpen: true, // Cart automatisch öffnen
+          error: null, // Clear any previous errors
         });
       },
 
@@ -104,11 +123,16 @@ export const useCartStore = create<CartStore>()(
         }
 
         const state = get();
-        const product = state.items.find((item) => item.product.id === productId);
+        const item = state.items.find((item) => item.product.id === productId);
+
+        if (!item) {
+          set({ error: 'المنتج غير موجود في السلة' });
+          return;
+        }
 
         // Stock Validation
-        if (product?.product.stock && quantity > product.product.stock) {
-          console.warn('Nicht genug Lagerbestand');
+        if (item.product.stock !== undefined && quantity > item.product.stock) {
+          set({ error: `المخزون غير كافٍ. المتوفر: ${item.product.stock}` });
           return;
         }
 
@@ -124,7 +148,7 @@ export const useCartStore = create<CartStore>()(
           0
         );
 
-        set({ items: newItems, itemCount, total });
+        set({ items: newItems, itemCount, total, error: null });
       },
 
       clearCart: () => {
@@ -133,7 +157,12 @@ export const useCartStore = create<CartStore>()(
           itemCount: 0, 
           total: 0,
           isOpen: false,
+          error: null,
         });
+      },
+
+      clearError: () => {
+        set({ error: null });
       },
 
       // Sidebar Controls
