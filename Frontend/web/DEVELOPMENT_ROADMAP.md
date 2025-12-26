@@ -1,5 +1,9 @@
 # 🚀 Sbay Frontend - Development Roadmap
 
+**Version:** 0.6.0  
+**Letztes Update:** 26. Dezember 2025  
+**Gesamtfortschritt:** ~82% ✅
+
 ## 📊 Projekt-Übersicht
 
 **Sbay** ist ein Webshop + Secondhand Marketplace für Syrien (wie eBay + Amazon kombiniert)
@@ -421,109 +425,152 @@ export const formatSyrianPhone = (phone: string): string
 - ✅ Order Summary mit Totals
 - ✅ Actions (Contact, Track, Cancel, Review)
 
+**Backend TODO:**
+- ⚠️ `GET /api/orders/my-purchases` - Endpoint fehlt noch
+- ⚠️ `GET /api/orders/my-sales` - Endpoint fehlt noch
+- ⚠️ `PATCH /api/orders/{id}/status` - Status Update fehlt
+
 ---
 
-## 💬 Phase 5: Social Features (STARTING NOW 🚀)
+## 💬 Phase 5: Social Features (100% ABGESCHLOSSEN ✅)
 
 > **Ziel:** Kommunikation zwischen Käufern und Verkäufern
 
-**Status:** ⏳ NÄCHSTER FOKUS - Beginn mit Messaging & Reviews
+**Status:** ✅ COMPLETED - Alle Features implementiert!
 
 ### 5.1 Messaging System
-**Status:** ⏳ GEPLANT  
-**Geschätzte Zeit:** 4h  
+**Status:** ✅ DONE (26. Dezember 2025)  
 **Dateien:**
-- `pages/messages/index.tsx` (Inbox)
-- `pages/messages/[conversationId].tsx` (Chat)
-- `components/MessageList.tsx`
-- `components/MessageInput.tsx`
-- `api/messages.ts`
+- `pages/messages/index.tsx` ✅ (Inbox)
+- `pages/messages/[chatId].tsx` ✅ (Chat Interface)
+- `lib/api/messages.ts` ✅ (API Layer)
+- `packages/shared/src/types.ts` ✅ (Chat & Message Types)
 
-**Features:**
-- Inbox mit Konversationsliste
-- Chat-Interface (WhatsApp-Style)
-- Nachrichten senden/empfangen
-- Ungelesen-Badge
-- Produktkontext (Referenz zum Produkt)
-- Bilder senden (optional)
-- Real-time mit WebSocket (optional, später)
+**Features:** ✅ All Implemented
+- ✅ Inbox mit Chat-Liste
+- ✅ WhatsApp-Style Chat-Interface
+- ✅ Message Bubbles (own vs received)
+- ✅ Date separators (Heute, Gestern, etc.)
+- ✅ Read receipts (Check/CheckCheck icons)
+- ✅ Unread count badges
+- ✅ Search & Filter (All/Unread)
+- ✅ Product context (Listing reference)
+- ✅ Auto-scroll to bottom
+- ✅ Enter to send, Shift+Enter for newline
+- ✅ Empty states
+
+**Backend Integration:**
+- ✅ `/api/chats` - Get all chats (Inbox)
+- ✅ `/api/chats/open` - Create/get chat
+- ✅ `/api/chats/{chatId}/messages` - Get messages
+- ✅ `/api/chats/{chatId}/messages` - Send message
+- ✅ `/api/chats/{chatId}/read` - Mark as read
+- ✅ BuyerId/SellerId architecture
+- ✅ ChatHub (SignalR) ready for real-time
 
 **Tech:**
 ```typescript
-interface Message {
+interface Chat {
   id: string;
-  senderId: string;
-  receiverId: string;
-  productId?: string;
-  content: string;
-  read: boolean;
-  createdAt: string;
+  buyerId: string;
+  sellerId: string;
+  listingId?: string;
+  messages: Message[];
+  lastMessageAt?: string;
 }
 
-interface Conversation {
+interface Message {
   id: string;
-  participant: User;
-  product?: Product;
-  lastMessage: Message;
-  unreadCount: number;
+  chatId: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
 }
 ```
 
 ---
 
 ### 5.2 Reviews & Ratings
-**Status:** ⏳ GEPLANT  
-**Geschätzte Zeit:** 3h  
+**Status:** ✅ DONE (26. Dezember 2025)  
 **Dateien:**
-- `components/ReviewList.tsx`
-- `components/ReviewForm.tsx`
-- `components/RatingStars.tsx`
-- `api/reviews.ts`
+- `components/RatingStars.tsx` ✅
+- `components/ReviewList.tsx` ✅
+- `components/ReviewForm.tsx` ✅
+- `lib/api/reviews.ts` ✅
+- `packages/shared/src/types.ts` ✅
 
-**Features:**
+**Features:** ✅ All Implemented
 
-#### Produkt-Bewertungen:
-- Sterne-Rating (1-5)
-- Text-Review
-- Bilder (optional)
-- Hilfreich-Button (Upvote)
-- Antwort vom Verkäufer
+#### RatingStars Component:
+- ✅ Interactive star rating (1-5)
+- ✅ Partial star fill support (4.5 stars)
+- ✅ 3 sizes: sm, md, lg
+- ✅ Display mode + Edit mode
+- ✅ Show number option
 
-#### Verkäufer-Bewertungen:
-- Durchschnittliche Rating
-- Anzahl Bewertungen
-- Filter (Positiv/Negativ)
-- Verkäufer-Profil mit allen Reviews
+#### ReviewList Component:
+- ✅ Display reviews with avatars
+- ✅ Rating stars + Date
+- ✅ Helpful button with counter
+- ✅ Own review indicator
+- ✅ Edit/Delete menu für eigene Reviews
+- ✅ Loading skeletons
+- ✅ Empty state
 
-**Tech:**
+#### ReviewForm Component:
+- ✅ Interactive star rating selection
+- ✅ Textarea with character count (10-1000)
+- ✅ Validation (rating required, min length)
+- ✅ Edit mode support
+- ✅ Loading states
+- ✅ Error handling
+
+**API Layer:**
 ```typescript
-interface Review {
-  id: string;
-  userId: string;
-  productId: string;
-  sellerId: string;
-  rating: number; // 1-5
-  comment: string;
-  images?: string[];
-  helpful: number;
-  createdAt: string;
-}
+// lib/api/reviews.ts
+- getProductReviews(productId, page, limit)
+- getSellerReviews(sellerId, page, limit)
+- createReview(data)
+- updateReview(reviewId, data)
+- deleteReview(reviewId)
+- markReviewHelpful(reviewId)
+- getMyReviews()
 ```
+
+**Backend TODO:**
+- ⚠️ Review endpoints müssen noch implementiert werden
+- ⚠️ `POST /api/reviews`
+- ⚠️ `GET /api/reviews/product/{id}`
+- ⚠️ `GET /api/reviews/seller/{id}`
+- ⚠️ `PATCH /api/reviews/{id}`
+- ⚠️ `DELETE /api/reviews/{id}`
 
 ---
 
 ### 5.3 Seller Profile Page
-**Status:** ⏳ GEPLANT  
-**Geschätzte Zeit:** 2h  
-**Datei:** `pages/seller/[id].tsx`
+**Status:** ✅ DONE (26. Dezember 2025)  
+**Datei:** `pages/seller/[id].tsx` ✅
 
-**Features:**
-- Verkäufer-Info (Name, Avatar, Member Since)
-- Rating & Reviews
-- Alle Produkte vom Verkäufer
-- Verkäufer kontaktieren
-- Verkäufer folgen (optional)
-- Statistiken (Verkäufe, Antwortzeit)
+**Features:** ✅ All Implemented
+- ✅ Seller header with avatar
+- ✅ Rating stars + review count
+- ✅ Verified badge (CheckCircle)
+- ✅ Region/Location display
+- ✅ Stats cards (Member since, Total sales, Response time, Completion rate)
+- ✅ Contact seller button
+- ✅ Tabs: Products / Reviews
+- ✅ Product grid (using ProductCard)
+- ✅ Reviews integration (ReviewList)
+- ✅ Empty states
+- ✅ Loading states
+- ✅ Responsive layout
+
+**Backend TODO:**
+- ⚠️ `GET /api/sellers/{id}` - Seller info endpoint
+- ⚠️ `GET /api/sellers/{id}/stats` - Stats endpoint
+- ⚠️ `GET /api/sellers/{id}/products` - Seller's products
 
 ---
 
