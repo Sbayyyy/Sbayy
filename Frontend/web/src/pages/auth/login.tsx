@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { isValidEmail } from '@sbay/shared';
 import { login } from '../../lib/api/auth';
+import { useAuthStore } from '@/lib/store';
 
 export default function Login() {
-    
+    const { login: loginStore } = useAuthStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -38,10 +39,12 @@ export default function Login() {
         try {
             const data = await login({ email, password });
             
-            // Successfully logged in, redirecting
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            router.push('/');
+            // Store in AuthStore (which also saves to localStorage)
+            loginStore(data.user, data.token);
+            
+            // Redirect
+            const redirect = router.query.redirect as string;
+            router.push(redirect || '/');
         } catch (error: any) {
             setApiError(error.response?.data?.message || 'خطأ في الاتصال بالخادم');
         } finally {

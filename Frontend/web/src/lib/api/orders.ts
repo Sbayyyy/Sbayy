@@ -4,8 +4,7 @@ import type {
   OrderCreate,
   Address,
   ShippingInfo,
-  CalculateShippingRequest,
-  SaveAddressRequest
+  CalculateShippingRequest
 } from '@sbay/shared';
 
 /**
@@ -116,47 +115,6 @@ export const getSales = async (page = 1, limit = 20): Promise<{ orders: Order[];
 };
 
 /**
- * Get Saved Addresses
- * 
- * Ruft alle gespeicherten Adressen des aktuellen Users ab
- * 
- * TODO (Mo's Backend):
- * - Endpoint: GET /api/addresses
- * - Output: Address[] (filtered by user ID from token)
- * - Auth: Requires JWT token
- */
-export const getAddresses = async (): Promise<Address[]> => {
-  try {
-    const response = await api.get<Address[]>('/addresses');
-    return response.data;
-  } catch (error) {
-    console.error('Failed to fetch addresses:', error);
-    throw error;
-  }
-};
-
-/**
- * Save New Address
- * 
- * Speichert neue Adresse für späteren Gebrauch (z.B. Checkout)
- * 
- * TODO (Mo's Backend):
- * - Endpoint: POST /api/addresses
- * - Input: SaveAddressRequest (name, phone, street, city, region, isDefault?)
- * - Output: Address with id, createdAt
- * - Auth: Requires JWT token (user ID from token)
- */
-export const saveAddress = async (request: SaveAddressRequest): Promise<Address> => {
-  try {
-    const response = await api.post<Address>('/addresses', request);
-    return response.data;
-  } catch (error) {
-    console.error('Failed to save address:', error);
-    throw error;
-  }
-};
-
-/**
  * Update Order Status (Admin/Seller only)
  * 
  * TODO (Mo's Backend):
@@ -203,8 +161,6 @@ export const ordersApi = {
   getOrder,
   getPurchases,
   getSales,
-  getAddresses,
-  saveAddress,
   updateOrderStatus,
   cancelOrder
 };

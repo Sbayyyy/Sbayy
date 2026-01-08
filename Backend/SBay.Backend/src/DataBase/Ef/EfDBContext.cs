@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SBay.Backend.DataBase.Configurations;
+using SBay.Domain.Database.Configurations;
 using Message = SBay.Backend.Messaging.Message;
 using CartItem = SBay.Domain.Entities.CartItem;
 using Listing = SBay.Domain.Entities.Listing;
@@ -7,6 +8,7 @@ using Money = SBay.Domain.ValueObjects.Money;
 using ShoppingCart = SBay.Domain.Entities.ShoppingCart;
 using User = SBay.Domain.Entities.User;
 using Category = SBay.Domain.Entities.Category;
+using Address = SBay.Domain.Entities.Address;
 
 namespace SBay.Domain.Database
 {
@@ -20,6 +22,7 @@ namespace SBay.Domain.Database
         public DbSet<ShoppingCart> Carts => Set<ShoppingCart>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Message> Messages => Set<Message>();
+        public DbSet<Address> Addresses => Set<Address>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -131,6 +134,7 @@ namespace SBay.Domain.Database
             });
             
             base.OnModelCreating(modelBuilder);
+            modelBuilder.ApplyConfiguration(new AddressConfiguration());
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(EfDbContext).Assembly);
             modelBuilder.HasPostgresEnum<ItemCondition>("item_condition");
         }

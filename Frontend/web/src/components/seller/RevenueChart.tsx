@@ -34,7 +34,10 @@ export default function RevenueChart({ data }: RevenueChartProps) {
               borderRadius: '8px',
               fontSize: '14px'
             }}
-            formatter={(value: number) => [`${value.toLocaleString()} ل.س`, 'الإيرادات']}
+            formatter={(value) => {
+              const num = typeof value === 'number' ? value : 0;
+              return [`${num.toLocaleString()} ل.س`, 'الإيرادات'];
+            }}
           />
           <Line 
             type="monotone" 

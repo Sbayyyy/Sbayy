@@ -25,6 +25,45 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         b.HasMany(x => x.Items).WithOne(i => i.Order).HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
         b.HasIndex(x => new { x.SellerId, x.Status, x.CreatedAt }).HasDatabaseName("idx_orders_seller_status_time");
         b.HasIndex(x => new { x.BuyerId, x.CreatedAt }).HasDatabaseName("idx_orders_buyer_time");
+        
+        // ===== NEW: E-Commerce Features Configuration =====
+        
+        // Foreign Key to Address
+        b.Property(x => x.ShippingAddressId)
+            .HasColumnName("shipping_address_id");
+        
+        b.HasOne(x => x.ShippingAddress)
+            .WithMany()
+            .HasForeignKey(x => x.ShippingAddressId)
+            .OnDelete(DeleteBehavior.SetNull);  // Don't delete orders when address is deleted
+        
+        // Payment Method
+        var paymentMethodConverter = new ValueConverter<PaymentMethod, string>(
+            v => v.ToString().ToLowerInvariant(),
+            s => Enum.Parse<PaymentMethod>(s, true));
+        
+        b.Property(x => x.PaymentMethod)
+            .HasColumnName("payment_method")
+            .HasConversion(paymentMethodConverter)
+            .HasMaxLength(50)
+            .HasDefaultValue(PaymentMethod.CashOnDelivery);
+        
+        // Shipping fields
+        b.Property(x => x.ShippingCost)
+            .HasColumnName("shipping_cost")
+            .HasColumnType("numeric(10,2)")
+            .HasDefaultValue(0);
+        
+        b.Property(x => x.ShippingCarrier)
+            .HasColumnName("shipping_carrier")
+            .HasMaxLength(100);
+        
+        b.Property(x => x.EstimatedDeliveryDays)
+            .HasColumnName("estimated_delivery_days");
+        
+        b.Property(x => x.TrackingNumber)
+            .HasColumnName("tracking_number")
+            .HasMaxLength(100);
     }
 }
 

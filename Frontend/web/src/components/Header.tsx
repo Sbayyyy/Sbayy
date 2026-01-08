@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Search, ShoppingCart, User, Menu, X, Heart, Package } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Heart, Package } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { useCartStore } from '@/lib/cartStore';
 
@@ -9,16 +9,7 @@ export default function Header() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -51,25 +42,6 @@ export default function Header() {
               
             </nav>
           </div>
-
-          {/* Search Bar - Desktop */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-8 hidden md:block">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ابحث عن منتجات..."
-                className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-              <button
-                type="submit"
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600"
-              >
-                <Search size={20} />
-              </button>
-            </div>
-          </form>
 
           {/* Actions */}
           <div className="flex items-center gap-3">
@@ -114,10 +86,10 @@ export default function Header() {
                 >
                   <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
                     <span className="text-primary-600 font-bold text-sm">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user?.name?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   </div>
-                  <span className="hidden lg:block text-sm font-medium">{user.name}</span>
+                  <span className="hidden lg:block text-sm font-medium">{user?.name || 'مستخدم'}</span>
                 </button>
 
                 {/* Dropdown Menu */}
@@ -128,6 +100,17 @@ export default function Header() {
                       onClick={() => setUserMenuOpen(false)}
                     />
                     <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-20">
+                      <div className="px-4 py-2 border-b">
+                        <p className="text-sm text-gray-500">مرحباً</p>
+                        <p className="font-semibold text-gray-900">{user?.name || 'مستخدم'}</p>
+                      </div>
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        الملف الشخصي
+                      </Link>
                       <Link
                         href="/dashboard"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
@@ -186,22 +169,6 @@ export default function Header() {
             </button>
           </div>
         </div>
-
-        {/* Mobile Search */}
-        <form onSubmit={handleSearch} className="md:hidden pb-4">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث عن منتجات..."
-              className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-            <button type="submit" className="absolute left-3 top-1/2 -translate-y-1/2">
-              <Search size={20} className="text-gray-400" />
-            </button>
-          </div>
-        </form>
       </div>
 
       {/* Mobile Menu */}
@@ -236,7 +203,36 @@ export default function Header() {
             >
               بيع الآن
             </Link>
-            {!isAuthenticated && (
+
+            {isAuthenticated && user ? (
+              <>
+                <hr className="my-2" />
+                <div className="py-2 px-2 bg-gray-50 rounded">
+                  <p className="text-sm text-gray-500">مرحباً</p>
+                  <p className="font-semibold">{user?.name || 'مستخدم'}</p>
+                </div>
+                <Link
+                  href="/profile"
+                  className="block py-2 text-gray-700"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  الملف الشخصي
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="block py-2 text-gray-700"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  لوحة التحكم
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-right py-2 text-red-600"
+                >
+                  تسجيل الخروج
+                </button>
+              </>
+            ) : (
               <>
                 <hr className="my-2" />
                 <Link

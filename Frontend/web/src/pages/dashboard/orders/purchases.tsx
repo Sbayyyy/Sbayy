@@ -250,12 +250,18 @@ export default function PurchasesPage() {
                       <p className="text-sm font-medium text-gray-700 mb-1">
                         عنوان الشحن:
                       </p>
-                      <p className="text-sm text-gray-600">
-                        {order.shippingAddress.name} • {order.shippingAddress.phone}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {order.shippingAddress.street}, {order.shippingAddress.city}
-                      </p>
+                      {order.shippingAddress ? (
+                        <>
+                          <p className="text-sm text-gray-600">
+                            {order.shippingAddress.name} • {order.shippingAddress.phone}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {order.shippingAddress.street}, {order.shippingAddress.city}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-500">لا يوجد عنوان شحن</p>
+                      )}
                     </div>
 
                     {/* Totals */}

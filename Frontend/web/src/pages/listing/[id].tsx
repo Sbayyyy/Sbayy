@@ -17,6 +17,7 @@ import { getListingById } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
 import { useCartStore } from '@/lib/cartStore';
+import { toast } from '@/lib/toast';
 
 export default function ListingDetail() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function ListingDetail() {
 
   const handleContactSeller = () => {
     // TODO: Implement messaging
-    alert('سيتم فتح محادثة مع البائع');
+    toast.info('سيتم فتح محادثة مع البائع');
   };
 
   const handleShare = async () => {

@@ -5,9 +5,10 @@ import AddressForm from '@/components/checkout/AddressForm';
 import PaymentMethod from '@/components/checkout/PaymentMethod';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import { useCartStore } from '@/lib/cartStore';
-import { createOrder, calculateShipping, saveAddress } from '../lib/api/orders';
+import { createOrder, calculateShipping } from '../lib/api/orders';
+import { getMyAddresses } from '../lib/api/addresses';
 import { validateAddress, isAddressValid } from '@sbay/shared';
-import type { Address, OrderCreate } from '@sbay/shared';
+import type { Address, OrderCreate, SavedAddress } from '@sbay/shared';
 import Link from 'next/link';
 import { 
   ChevronLeft, Check, Shield, Award, Truck, MapPin, 
@@ -18,7 +19,8 @@ type CheckoutStep = 'delivery' | 'payment' | 'review';
 
 interface CheckoutState {
   address: Address;
-  saveAddressFlag: boolean;
+  selectedAddressId: string;
+  savedAddresses: SavedAddress[];
   paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';
   shippingCost: number;
   agreedToTerms: boolean;
@@ -49,13 +51,27 @@ export default function CheckoutPage() {
       city: '',
       region: ''
     },
-    saveAddressFlag: false,
+    selectedAddressId: '',
+    savedAddresses: [],
     paymentMethod: 'cod',
     shippingCost: 0,
     agreedToTerms: false,
     orderError: null,
     addressErrors: {}
   });
+
+  // Load saved addresses on mount
+  useEffect(() => {
+    const loadAddresses = async () => {
+      try {
+        const addresses = await getMyAddresses();
+        setState(prev => ({ ...prev, savedAddresses: addresses }));
+      } catch (error) {
+        console.error('Failed to load addresses:', error);
+      }
+    };
+    loadAddresses();
+  }, []);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -66,21 +82,24 @@ export default function CheckoutPage() {
 
   // Calculate shipping when city changes
   useEffect(() => {
-    if (state.address.city && state.address.city.length > 2) {
-      handleCalculateShipping();
+    const city = state.selectedAddressId 
+      ? state.savedAddresses.find(a => a.id === state.selectedAddressId)?.city
+      : state.address.city;
+    
+    if (city && city.length > 2) {
+      handleCalculateShipping(city);
     }
-  }, [state.address.city]);
+  }, [state.address.city, state.selectedAddressId, state.savedAddresses]);
 
-  //TODO: should be adjusted with backend shipping calculation
-  const handleCalculateShipping = async () => {
+  const handleCalculateShipping = async (city: string) => {
     try {
-      const shipping = await calculateShipping({ city: state.address.city });
+      const shipping = await calculateShipping({ city });
       setState(prev => ({ ...prev, shippingCost: shipping.cost }));
     } catch (error) {
       console.error('Error calculating shipping:', error);
       setState(prev => ({ 
         ...prev, 
-        shippingCost: 500 // Fallback
+        shippingCost: 5000 // Fallback
       }));
     }
   };
@@ -101,9 +120,12 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           price: item.product.priceAmount
         })),
-        shippingAddress: state.address,
         paymentMethod: state.paymentMethod,
-        saveAddress: state.saveAddressFlag
+        // Either use saved address OR new address
+        ...(state.selectedAddressId 
+          ? { savedAddressId: state.selectedAddressId }
+          : { newAddress: state.address }
+        )
       };
 
       const order = await createOrder(orderData);
@@ -125,7 +147,8 @@ export default function CheckoutPage() {
   const total = subtotal + state.shippingCost;
 
   // Validation
-  const isDeliveryValid = state.address.name && state.address.phone && state.address.city && state.address.street;
+  const isDeliveryValid = state.selectedAddressId || 
+    (state.address.name && state.address.phone && state.address.city && state.address.street);
   const isPaymentValid = state.paymentMethod;
   const isReviewValid = isDeliveryValid && isPaymentValid && state.agreedToTerms;
 
@@ -191,21 +214,77 @@ export default function CheckoutPage() {
               {/* DELIVERY STEP */}
               {currentStep === 'delivery' && (
                 <div className="bg-white rounded-lg shadow-sm border p-6">
-                  <AddressForm
-                    value={state.address}
-                    onChange={(address) => setState(prev => ({ ...prev, address }))}
-                    onSaveAddress={(save) => setState(prev => ({ ...prev, saveAddressFlag: save }))}
-                    saveAddressFlag={state.saveAddressFlag}
-                    errors={state.addressErrors}
-                  />
+                  <h2 className="text-xl font-bold mb-6">معلومات التوصيل</h2>
+                  
+                  {/* Saved Addresses Dropdown */}
+                  {state.savedAddresses.length > 0 && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        اختر عنوان محفوظ
+                      </label>
+                      <select
+                        value={state.selectedAddressId}
+                        onChange={(e) => {
+                          const addressId = e.target.value;
+                          setState(prev => ({ ...prev, selectedAddressId: addressId }));
+                          
+                          // Clear new address form if saved address is selected
+                          if (addressId) {
+                            setState(prev => ({ 
+                              ...prev, 
+                              address: { name: '', phone: '', street: '', city: '', region: '' }
+                            }));
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">عنوان جديد</option>
+                        {state.savedAddresses.map(addr => (
+                          <option key={addr.id} value={addr.id}>
+                            {addr.name} - {addr.city}, {addr.street}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Show address form only if no saved address is selected */}
+                  {!state.selectedAddressId && (
+                    <AddressForm
+                      value={state.address}
+                      onChange={(address) => setState(prev => ({ ...prev, address }))}
+                      onSaveAddress={() => {}}
+                      saveAddressFlag={false}
+                      errors={state.addressErrors}
+                    />
+                  )}
+
+                  {/* Show selected address info */}
+                  {state.selectedAddressId && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      {(() => {
+                        const selected = state.savedAddresses.find(a => a.id === state.selectedAddressId);
+                        return selected ? (
+                          <div>
+                            <p className="font-medium">{selected.name}</p>
+                            <p className="text-sm text-gray-700">{selected.phone}</p>
+                            <p className="text-sm text-gray-700">{selected.street}</p>
+                            <p className="text-sm text-gray-700">{selected.city}{selected.region ? `, ${selected.region}` : ''}</p>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
 
                   <button
                     onClick={() => {
                       // Validate address before proceeding
-                      const errors = validateAddress(state.address);
-                      if (Object.keys(errors).length > 0) {
-                        setState(prev => ({ ...prev, addressErrors: errors }));
-                        return;
+                      if (!state.selectedAddressId) {
+                        const errors = validateAddress(state.address);
+                        if (Object.keys(errors).length > 0) {
+                          setState(prev => ({ ...prev, addressErrors: errors }));
+                          return;
+                        }
                       }
                       setState(prev => ({ ...prev, addressErrors: {} }));
                       setCurrentStep('payment');
