@@ -160,10 +160,12 @@ public sealed class OrdersController : ControllerBase
         ShippingQuote? shippingQuote = null;
         if (address != null)
         {
-            // TODO: Replace DefaultItemWeightKg once listing/order item weights are modeled.
             const decimal DefaultItemWeightKg = 1.0m;
-            _logger.LogWarning("Using default item weight for shipping calculation.");
-            var totalWeightKg = req.Items.Where(i => i.Quantity > 0).Sum(i => i.Quantity) * DefaultItemWeightKg;
+            if (req.Items.Any(i => i.WeightKg is null))
+                _logger.LogWarning("Some items are missing weight; using default weight for shipping calculation.");
+            var totalWeightKg = req.Items
+                .Where(i => i.Quantity > 0)
+                .Sum(i => i.Quantity * (i.WeightKg ?? DefaultItemWeightKg));
             shippingQuote = await _shipping.CalculateShippingAsync(address.City, totalWeightKg, ct);
         }
 

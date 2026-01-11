@@ -49,14 +49,16 @@ export default function ConfirmDialog({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        if (!danger) {
+          onClose();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     closeButtonRef.current?.focus();
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [danger, isOpen, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;

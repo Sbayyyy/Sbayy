@@ -76,24 +76,24 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
                 .Where(l =>
                     EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
                         .Matches(EF.Functions.PlainToTsQuery("simple", text))
-                    || EF.Functions.ILike(l.Title, patternContains)
-                    || EF.Functions.ILike(l.Description, patternContains))
+                    || EF.Functions.ILike(l.Title, patternContains, @"\")
+                    || EF.Functions.ILike(l.Description, patternContains, @"\"))
                 .OrderByDescending(l =>
                     EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
                         .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
                 
-                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts))
-                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains))
+                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts, @"\"))
+                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, @"\"))
                 .ThenByDescending(l => l.CreatedAt);
         }
         else
         {
             var escaped = EscapeLike(text);
-            var pattern = "%" + escaped + "%";
+            var pattern = "%" + escaped.ToLowerInvariant() + "%";
             query = query
                 .Where(l =>
-                    EF.Functions.Like(l.Title, pattern, @"\")
-                    || EF.Functions.Like(l.Description ?? string.Empty, pattern, @"\"))
+                    EF.Functions.Like(l.Title.ToLower(), pattern, @"\")
+                    || EF.Functions.Like((l.Description ?? string.Empty).ToLower(), pattern, @"\"))
                 .OrderByDescending(l => l.CreatedAt);
         }
     }
