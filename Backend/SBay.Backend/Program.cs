@@ -76,6 +76,7 @@ else
     builder.Services.AddScoped<IOrderRepository, FirebaseOrderRepository>();
     builder.Services.AddScoped<IChatRepository, FirebaseChatRepository>();
     builder.Services.AddScoped<IMessageRepository, FirebaseMessageRepository>();
+    builder.Services.AddScoped<IAddressRepository, FirebaseAddressRepository>();
     builder.Services.AddScoped<IDataProvider, FirebaseDataProvider>();
     builder.Services.AddScoped<IUnitOfWork, FirestoreUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();

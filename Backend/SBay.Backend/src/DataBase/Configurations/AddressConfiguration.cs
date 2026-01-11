@@ -17,6 +17,7 @@ public sealed class AddressConfiguration : IEntityTypeConfiguration<Address>
         b.HasKey(x => x.Id);
         b.Property(x => x.Id)
             .HasColumnName("id")
+            .HasDefaultValueSql("gen_random_uuid()")
             .ValueGeneratedOnAdd();
         
         // Foreign Key

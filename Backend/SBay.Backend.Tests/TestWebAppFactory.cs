@@ -10,6 +10,8 @@ using SBay.Domain.Entities;
 
 public class TestWebAppFactory : WebApplicationFactory<Program>
 {
+    private readonly string _dbName = $"WebAppTests-{Guid.NewGuid()}";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -23,14 +25,40 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            var descriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<EfDbContext>));
-            if (descriptor != null)
-                services.Remove(descriptor);
+            var optionsDescriptors = services
+                .Where(d =>
+                    d.ServiceType == typeof(DbContextOptions) ||
+                    d.ServiceType == typeof(DbContextOptions<EfDbContext>))
+                .ToList();
+            foreach (var d in optionsDescriptors)
+                services.Remove(d);
+
+            var optionsConfigDescriptors = services
+                .Where(d =>
+                    d.ServiceType.FullName?.StartsWith("Microsoft.EntityFrameworkCore.Infrastructure.IDbContextOptionsConfiguration`1", StringComparison.Ordinal) == true)
+                .ToList();
+            foreach (var d in optionsConfigDescriptors)
+                services.Remove(d);
+
+            var npgsqlDescriptors = services
+                .Where(d =>
+                    (d.ImplementationType?.FullName?.Contains("Npgsql") ?? false) ||
+                    (d.ServiceType.FullName?.Contains("Npgsql") ?? false) ||
+                    (d.ImplementationInstance?.GetType().FullName?.Contains("Npgsql") ?? false))
+                .ToList();
+            foreach (var d in npgsqlDescriptors)
+                services.Remove(d);
+
+            var providerDescriptors = services
+                .Where(d =>
+                    string.Equals(d.ServiceType.FullName, "Microsoft.EntityFrameworkCore.Infrastructure.IDatabaseProvider", StringComparison.Ordinal))
+                .ToList();
+            foreach (var d in providerDescriptors)
+                services.Remove(d);
 
             services.AddDbContext<EfDbContext>(options =>
             {
-                options.UseInMemoryDatabase($"WebAppTests-{Guid.NewGuid()}");
+                options.UseInMemoryDatabase(_dbName);
             });
 
             services.AddAuthentication(o =>
@@ -41,29 +69,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
                 TestAuthHandler.SchemeName, _ => { });
 
-            var sp = services.BuildServiceProvider();
-            using var scope = sp.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
-
-            const string sellerEmail = "seller@example.com";
-            var seller = db.Users.AsNoTracking().FirstOrDefault(u => u.Email == sellerEmail);
-            if (seller == null)
-            {
-                var user = new User
-                {
-                    Id = TestAuthHandler.SellerId,
-                    Email = sellerEmail,
-                    PasswordHash = "hash",
-                    IsSeller = true,
-                    Role = "user"
-                };
-                db.Users.Add(user);
-                db.SaveChanges();
-            }
-            else
-            {
-                TestAuthHandler.SellerId = seller.Id;
-            }
+            // Intentionally skip seeding to avoid forcing provider initialization here.
         });
     }
 }

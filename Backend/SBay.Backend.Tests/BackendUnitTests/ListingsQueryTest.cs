@@ -8,15 +8,31 @@ public class ListingQueryTests
     [Fact]
     public void Defaults_Should_Be_Clamped()
     {
-        var q = new ListingQuery(page: 0, pageSize: 999);
-        q.Page.Should().Be(1);
-        q.PageSize.Should().Be(24);
+        var q = new ListingQuery
+        {
+            Page = 0,
+            PageSize = 999
+        };
+
+        var act = () => q.Validate();
+        act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact]
     public void Values_Should_Pass_Through()
     {
-        var q = new ListingQuery(text: "screw", category: "tools", page: 2, pageSize: 20, minPrice: 5, maxPrice: 15);
+        var q = new ListingQuery
+        {
+            Text = "screw",
+            Category = "tools",
+            Page = 2,
+            PageSize = 20,
+            MinPrice = 5,
+            MaxPrice = 15
+        };
+
+        var act = () => q.Validate();
+        act.Should().NotThrow();
         q.Text.Should().Be("screw");
         q.Category.Should().Be("tools");
         q.Page.Should().Be(2);

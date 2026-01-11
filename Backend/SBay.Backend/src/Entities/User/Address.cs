@@ -9,7 +9,7 @@ namespace SBay.Domain.Entities;
 public sealed class Address
 {
     [Key]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Id { get; set; }
     
     /// <summary>
     /// User who owns this address

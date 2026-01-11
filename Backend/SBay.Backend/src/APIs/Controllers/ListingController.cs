@@ -113,6 +113,15 @@ public sealed class ListingsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ListingResponse>>> Search([FromQuery] ListingQuery q, CancellationToken ct)
     {
+        try
+        {
+            q.Validate();
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+
         var items = await _repo.SearchAsync(q, ct);
         return items.Select(ToResponse).ToList();
     }

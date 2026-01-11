@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Layout from '@/components/Layout';import { toast } from '@/lib/toast';
-import ConfirmDialog from '@/components/ConfirmDialog';import { getOrder, updateOrderStatus, cancelOrder } from '@/lib/api/orders';
+import Layout from '@/components/Layout';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { getOrder, updateOrderStatus, cancelOrder } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
 import { 
@@ -31,7 +32,6 @@ export default function OrderDetailsPage() {
   
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState(false);
 

@@ -1,5 +1,17 @@
+import { useEffect, useId, useRef } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 
+/**
+ * Props for the ConfirmDialog component.
+ * @property {boolean} isOpen - Controls whether the dialog is visible.
+ * @property {() => void} onClose - Called when the dialog is dismissed.
+ * @property {() => void} onConfirm - Called when the user confirms the action.
+ * @property {string} title - Dialog title text.
+ * @property {string} message - Dialog body text.
+ * @property {string} [confirmText] - Confirm button label (default "تأكيد").
+ * @property {string} [cancelText] - Cancel button label (default "إلغاء").
+ * @property {boolean} [danger] - When true, renders the dialog in a destructive style.
+ */
 interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,6 +23,11 @@ interface ConfirmDialogProps {
   danger?: boolean;
 }
 
+/**
+ * Confirmation dialog with optional destructive styling.
+ * @param {ConfirmDialogProps} props - Component props.
+ * @returns {JSX.Element} Rendered dialog or null when closed.
+ */
 export default function ConfirmDialog({
   isOpen,
   onClose,
@@ -21,6 +38,62 @@ export default function ConfirmDialog({
   cancelText = 'إلغاء',
   danger = false
 }: ConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const titleId = useId();
+  const descId = useId();
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    closeButtonRef.current?.focus();
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const container = dialogRef.current;
+      if (!container) return;
+
+      const focusable = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        if (!active || active === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (!active || active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    const container = dialogRef.current;
+    container?.addEventListener('keydown', handleTab);
+    return () => container?.removeEventListener('keydown', handleTab);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleConfirm = () => {
@@ -37,9 +110,18 @@ export default function ConfirmDialog({
       />
       
       {/* Dialog */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 animate-in fade-in zoom-in duration-200">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
+        className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 animate-in fade-in zoom-in duration-200"
+      >
         <button
           onClick={onClose}
+          ref={closeButtonRef}
+          aria-label="Close dialog"
           className="absolute left-4 top-4 text-gray-400 hover:text-gray-600"
         >
           <X size={20} />
@@ -53,8 +135,8 @@ export default function ConfirmDialog({
           )}
           
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-            <p className="text-gray-600 mb-6">{message}</p>
+            <h3 id={titleId} className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
+            <p id={descId} className="text-gray-600 mb-6">{message}</p>
 
             <div className="flex gap-3 justify-end">
               <button

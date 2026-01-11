@@ -11,6 +11,7 @@ namespace SBay.Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/orders")]
+[Authorize]
 public sealed class OrdersController : ControllerBase
 {
     private readonly ICurrentUserResolver _resolver;
@@ -64,6 +65,14 @@ public sealed class OrdersController : ControllerBase
         if (addressId == null && req.NewAddress != null)
         {
             // Create and save new address
+            if (string.IsNullOrWhiteSpace(req.NewAddress.Name) ||
+                string.IsNullOrWhiteSpace(req.NewAddress.Phone) ||
+                string.IsNullOrWhiteSpace(req.NewAddress.Street) ||
+                string.IsNullOrWhiteSpace(req.NewAddress.City))
+            {
+                return BadRequest("Name, phone, street, and city are required.");
+            }
+
             var newAddr = new Address
             {
                 UserId = me.Value,
@@ -128,7 +137,9 @@ public sealed class OrdersController : ControllerBase
         ShippingQuote? shippingQuote = null;
         if (address != null)
         {
-            shippingQuote = await _shipping.CalculateShippingAsync(address.City, 1.0m, ct);
+            const decimal DefaultItemWeightKg = 1.0m;
+            var totalWeightKg = req.Items.Sum(i => i.Quantity) * DefaultItemWeightKg;
+            shippingQuote = await _shipping.CalculateShippingAsync(address.City, totalWeightKg, ct);
         }
 
         var listingById = listings.ToDictionary(l => l.Id);

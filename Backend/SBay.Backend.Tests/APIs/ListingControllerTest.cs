@@ -76,4 +76,22 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         var response = await _client.PostAsJsonAsync("/api/listings", bad);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task Search_ShouldFail_WhenPageIsOutOfRange()
+    {
+        var response = await _client.GetAsync("/api/listings?page=0");
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("Page must be");
+    }
+
+    [Fact]
+    public async Task Search_ShouldFail_WhenPageSizeIsOutOfRange()
+    {
+        var response = await _client.GetAsync("/api/listings?page=1&pageSize=1000");
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("PageSize must be");
+    }
 }

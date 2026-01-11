@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import AddressForm from '@/components/checkout/AddressForm';
@@ -80,18 +80,7 @@ export default function CheckoutPage() {
     }
   }, [items, router]);
 
-  // Calculate shipping when city changes
-  useEffect(() => {
-    const city = state.selectedAddressId 
-      ? state.savedAddresses.find(a => a.id === state.selectedAddressId)?.city
-      : state.address.city;
-    
-    if (city && city.length > 2) {
-      handleCalculateShipping(city);
-    }
-  }, [state.address.city, state.selectedAddressId, state.savedAddresses]);
-
-  const handleCalculateShipping = async (city: string) => {
+  const handleCalculateShipping = useCallback(async (city: string) => {
     try {
       const shipping = await calculateShipping({ city });
       setState(prev => ({ ...prev, shippingCost: shipping.cost }));
@@ -102,7 +91,18 @@ export default function CheckoutPage() {
         shippingCost: 5000 // Fallback
       }));
     }
-  };
+  }, []);
+
+  // Calculate shipping when city changes
+  useEffect(() => {
+    const city = state.selectedAddressId 
+      ? state.savedAddresses.find(a => a.id === state.selectedAddressId)?.city
+      : state.address.city;
+    
+    if (city && city.length > 2) {
+      handleCalculateShipping(city);
+    }
+  }, [handleCalculateShipping, state.address.city, state.selectedAddressId, state.savedAddresses]);
 
   const handlePlaceOrder = async () => {
     if (!state.agreedToTerms) {
@@ -253,7 +253,6 @@ export default function CheckoutPage() {
                     <AddressForm
                       value={state.address}
                       onChange={(address) => setState(prev => ({ ...prev, address }))}
-                      onSaveAddress={() => {}}
                       saveAddressFlag={false}
                       errors={state.addressErrors}
                     />

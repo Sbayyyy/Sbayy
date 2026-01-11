@@ -187,7 +187,7 @@ export default function ProfilePage() {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    readOnly
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
@@ -244,7 +244,9 @@ export default function ProfilePage() {
                   عضو منذ
                 </label>
                 <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
-                  {new Date().toLocaleDateString('ar-SY', { year: 'numeric', month: 'long' })}
+                  {user?.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString('ar-SY', { year: 'numeric', month: 'long' })
+                    : 'Unknown'}
                 </p>
               </div>
             </div>

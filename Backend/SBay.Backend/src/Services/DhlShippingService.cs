@@ -64,6 +64,9 @@ public sealed class DhlShippingService : IShippingService
         decimal totalWeight,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(city))
+            throw new ArgumentException("City is required.", nameof(city));
+
         // Normalize city name
         var normalizedCity = city.Trim();
         
