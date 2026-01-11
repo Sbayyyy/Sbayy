@@ -6,7 +6,7 @@ import PaymentMethod from '@/components/checkout/PaymentMethod';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import { useCartStore } from '@/lib/cartStore';
 import { createOrder, calculateShipping } from '../lib/api/orders';
-import { getMyAddresses } from '../lib/api/addresses';
+import { getMyAddresses } from '@/lib/api/addresses';
 import { validateAddress, isAddressValid } from '@sbay/shared';
 import type { Address, OrderCreate, SavedAddress } from '@sbay/shared';
 import Link from 'next/link';
