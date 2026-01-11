@@ -7,55 +7,43 @@ namespace SBay.Backend.Services;
 public sealed class DhlShippingService : IShippingService
 {
     // Syrian cities base shipping costs (in SYP)
-    private static readonly Dictionary<string, decimal> CityRates = new()
+    private static readonly Dictionary<string, decimal> CityRates = new(StringComparer.OrdinalIgnoreCase)
     {
         // Major cities
         ["Damascus"] = 5000,
-        ["damascus"] = 5000,
         ["دمشق"] = 5000,
         
         ["Aleppo"] = 7000,
-        ["aleppo"] = 7000,
         ["حلب"] = 7000,
         
         ["Homs"] = 6000,
-        ["homs"] = 6000,
         ["حمص"] = 6000,
         
         ["Latakia"] = 8000,
-        ["latakia"] = 8000,
         ["اللاذقية"] = 8000,
         
         ["Hama"] = 6500,
-        ["hama"] = 6500,
         ["حماة"] = 6500,
         
         ["Tartus"] = 8500,
-        ["tartus"] = 8500,
         ["طرطوس"] = 8500,
         
         ["Deir ez-Zor"] = 9000,
-        ["deir ez-zor"] = 9000,
         ["دير الزور"] = 9000,
         
         ["Raqqa"] = 9500,
-        ["raqqa"] = 9500,
         ["الرقة"] = 9500,
         
         ["Idlib"] = 7500,
-        ["idlib"] = 7500,
         ["إدلب"] = 7500,
         
         ["Daraa"] = 6500,
-        ["daraa"] = 6500,
         ["درعا"] = 6500,
         
         ["As-Suwayda"] = 6000,
-        ["as-suwayda"] = 6000,
         ["السويداء"] = 6000,
         
         ["Quneitra"] = 7000,
-        ["quneitra"] = 7000,
         ["القنيطرة"] = 7000
     };
     
@@ -66,9 +54,11 @@ public sealed class DhlShippingService : IShippingService
     {
         if (string.IsNullOrWhiteSpace(city))
             throw new ArgumentException("City is required.", nameof(city));
+        if (totalWeight < 0)
+            throw new ArgumentException("Total weight must be >= 0.", nameof(totalWeight));
 
         // Normalize city name
-        var normalizedCity = city.Trim();
+        var normalizedCity = city.Trim().ToLowerInvariant();
         
         // Get base cost (default 10000 for unknown cities)
         var baseCost = CityRates.GetValueOrDefault(normalizedCity, 10000m);

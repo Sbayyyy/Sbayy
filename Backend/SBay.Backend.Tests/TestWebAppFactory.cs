@@ -49,6 +49,15 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             foreach (var d in npgsqlDescriptors)
                 services.Remove(d);
 
+            var dbContextDescriptors = services
+                .Where(d =>
+                    d.ServiceType == typeof(EfDbContext) ||
+                    d.ImplementationType == typeof(EfDbContext) ||
+                    d.ImplementationInstance?.GetType() == typeof(EfDbContext))
+                .ToList();
+            foreach (var d in dbContextDescriptors)
+                services.Remove(d);
+
             var providerDescriptors = services
                 .Where(d =>
                     string.Equals(d.ServiceType.FullName, "Microsoft.EntityFrameworkCore.Infrastructure.IDatabaseProvider", StringComparison.Ordinal))

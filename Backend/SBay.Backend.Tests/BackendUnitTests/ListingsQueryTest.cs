@@ -6,7 +6,7 @@ namespace SBay.Backend.Tests.BackendUnitTests;
 public class ListingQueryTests
 {
     [Fact]
-    public void Defaults_Should_Be_Clamped()
+    public void Validate_Should_Throw_For_InvalidPageAndPageSize()
     {
         var q = new ListingQuery
         {

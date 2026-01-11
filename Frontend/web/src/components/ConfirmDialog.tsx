@@ -70,7 +70,7 @@ export default function ConfirmDialog({
         container.querySelectorAll<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         )
-      ).filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+      ).filter(el => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true');
 
       if (focusable.length === 0) return;
 

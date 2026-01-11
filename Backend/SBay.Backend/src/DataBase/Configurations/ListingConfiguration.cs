@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NpgsqlTypes;
+using SBay.Domain.Database;
 using SBay.Domain.Entities;
 
 public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
@@ -101,7 +102,7 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
          .HasDatabaseName("idx_listings_category");
 
         var provider = e.Metadata.Model.FindAnnotation("Relational:ProviderName")?.Value?.ToString();
-        if (string.Equals(provider, "Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.Ordinal))
+        if (string.Equals(provider, DatabaseProviders.PostgresProviderName, StringComparison.Ordinal))
         {
             e.Property<NpgsqlTsVector>("SearchVec")      // shadow prop (not on the C# class)
              .HasColumnName("search_vec")

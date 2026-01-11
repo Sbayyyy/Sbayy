@@ -43,6 +43,8 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
     var skip = (page - 1) * size;
 
     IQueryable<Listing> query = _db.Listings.AsNoTracking();
+    var provider = _db.Model.FindAnnotation("Relational:ProviderName")?.Value?.ToString();
+    var isPostgres = string.Equals(provider, DatabaseProviders.PostgresProviderName, StringComparison.Ordinal);
 
     if (!string.IsNullOrEmpty(q.Category))
         query = query.Where(l => l.CategoryPath == q.Category);
@@ -58,28 +60,40 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
     if (!string.IsNullOrWhiteSpace(text))
     {
-        var escaped = text.Replace(@"\", @"\\")
-            .Replace("%",  @"\%")
-            .Replace("_",  @"\_");
-        var patternContains = "%" + escaped + "%";
-        var patternStarts   = escaped + "%";
+        if (isPostgres)
+        {
+            var escaped = text.Replace(@"\", @"\\")
+                .Replace("%",  @"\%")
+                .Replace("_",  @"\_");
+            var patternContains = "%" + escaped + "%";
+            var patternStarts   = escaped + "%";
 
-        query = query
-            .Where(l =>
-                EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
-                    .Matches(EF.Functions.PlainToTsQuery("simple", text))
-                || EF.Functions.ILike(l.Title, patternContains)
-                || EF.Functions.ILike(l.Description, patternContains))
-            .OrderByDescending(l =>
-                EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
-                    .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
-            
-            .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts))
-            
-            .ThenBy(l => l.Title.ToLower().IndexOf(text.ToLower()))
-            
-            .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains))
-            .ThenByDescending(l => l.CreatedAt);
+            query = query
+                .Where(l =>
+                    EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
+                        .Matches(EF.Functions.PlainToTsQuery("simple", text))
+                    || EF.Functions.ILike(l.Title, patternContains)
+                    || EF.Functions.ILike(l.Description, patternContains))
+                .OrderByDescending(l =>
+                    EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
+                        .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
+                
+                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts))
+                
+                .ThenBy(l => l.Title.ToLower().IndexOf(text.ToLower()))
+                
+                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains))
+                .ThenByDescending(l => l.CreatedAt);
+        }
+        else
+        {
+            var lowered = text.ToLowerInvariant();
+            query = query
+                .Where(l =>
+                    l.Title.ToLower().Contains(lowered)
+                    || (l.Description ?? string.Empty).ToLower().Contains(lowered))
+                .OrderByDescending(l => l.CreatedAt);
+        }
     }
     else
     {

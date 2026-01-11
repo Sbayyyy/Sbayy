@@ -49,7 +49,8 @@ public sealed class OrdersController : ControllerBase
         if (req.Items == null || req.Items.Count == 0) return ValidationProblem("At least one item is required.");
 
         // ===== NEW: Validate Payment Method =====
-        var paymentMethod = req.PaymentMethod?.ToLower() switch
+        var paymentMethodValue = req.PaymentMethod?.Trim().ToLowerInvariant();
+        var paymentMethod = paymentMethodValue switch
         {
             "cod" => PaymentMethod.CashOnDelivery,
             "bank_transfer" => PaymentMethod.BankTransfer,
@@ -61,6 +62,7 @@ public sealed class OrdersController : ControllerBase
 
         // ===== NEW: Handle Address (saved OR new) =====
         Guid? addressId = req.SavedAddressId;
+        Address? newAddress = null;
         
         if (addressId == null && req.NewAddress != null)
         {
@@ -73,7 +75,7 @@ public sealed class OrdersController : ControllerBase
                 return BadRequest("Name, phone, street, and city are required.");
             }
 
-            var newAddr = new Address
+            newAddress = new Address
             {
                 UserId = me.Value,
                 Name = req.NewAddress.Name.Trim(),
@@ -82,9 +84,6 @@ public sealed class OrdersController : ControllerBase
                 City = req.NewAddress.City.Trim(),
                 Region = req.NewAddress.Region?.Trim()
             };
-            await _addresses.AddAsync(newAddr, ct);
-            await _uow.SaveChangesAsync(ct);
-            addressId = newAddr.Id;
         }
         
         // Validate address
@@ -94,6 +93,10 @@ public sealed class OrdersController : ControllerBase
             address = await _addresses.GetByIdAsync(addressId.Value, ct);
             if (address == null) return BadRequest("Address not found");
             if (address.UserId != me.Value) return Forbid();
+        }
+        else if (newAddress != null)
+        {
+            address = newAddress;
         }
 
         if (req.SellerId != Guid.Empty)
@@ -138,8 +141,15 @@ public sealed class OrdersController : ControllerBase
         if (address != null)
         {
             const decimal DefaultItemWeightKg = 1.0m;
-            var totalWeightKg = req.Items.Sum(i => i.Quantity) * DefaultItemWeightKg;
+            var totalWeightKg = req.Items.Where(i => i.Quantity > 0).Sum(i => i.Quantity) * DefaultItemWeightKg;
             shippingQuote = await _shipping.CalculateShippingAsync(address.City, totalWeightKg, ct);
+        }
+
+        if (newAddress != null)
+        {
+            await _addresses.AddAsync(newAddress, ct);
+            if (newAddress.Id != Guid.Empty)
+                addressId = newAddress.Id;
         }
 
         var listingById = listings.ToDictionary(l => l.Id);
@@ -155,6 +165,7 @@ public sealed class OrdersController : ControllerBase
             
             // ===== NEW: E-Commerce Fields =====
             ShippingAddressId = addressId,
+            ShippingAddress = newAddress ?? address,
             PaymentMethod = paymentMethod.Value,
             ShippingCost = shippingQuote?.Cost ?? 0,
             ShippingCarrier = shippingQuote?.Carrier,

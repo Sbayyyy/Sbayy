@@ -14,17 +14,26 @@ public sealed class FirebaseAddressRepository : IAddressRepository
 
     private static async Task<T> EnsureCompleted<T>(Task<T> task)
     {
-        var result = await task;
-        if (!task.IsCompletedSuccessfully)
-            throw new DatabaseException("Operation failed");
-        return result;
+        try
+        {
+            return await task;
+        }
+        catch (Exception ex)
+        {
+            throw new DatabaseException("Operation failed", ex);
+        }
     }
 
     private static async Task EnsureCompleted(Task task)
     {
-        await task;
-        if (!task.IsCompletedSuccessfully)
-            throw new DatabaseException("Operation failed");
+        try
+        {
+            await task;
+        }
+        catch (Exception ex)
+        {
+            throw new DatabaseException("Operation failed", ex);
+        }
     }
 
     private static Address Convert(DocumentSnapshot snapshot)
