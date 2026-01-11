@@ -106,7 +106,7 @@ export default function ConfirmDialog({
       {/* Overlay */}
       <div 
         className="absolute inset-0 bg-black/50"
-        onClick={onClose}
+        onClick={danger ? undefined : onClose}
       />
       
       {/* Dialog */}

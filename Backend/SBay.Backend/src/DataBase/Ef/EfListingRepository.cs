@@ -68,9 +68,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
     {
         if (isPostgres)
         {
-            var escaped = text.Replace(@"\", @"\\")
-                .Replace("%",  @"\%")
-                .Replace("_",  @"\_");
+            var escaped = EscapeLike(text);
             var patternContains = "%" + escaped + "%";
             var patternStarts   = escaped + "%";
 
@@ -85,9 +83,6 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
                         .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
                 
                 .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts))
-                
-                .ThenBy(l => l.Title.ToLower().IndexOf(text.ToLower()))
-                
                 .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains))
                 .ThenByDescending(l => l.CreatedAt);
         }

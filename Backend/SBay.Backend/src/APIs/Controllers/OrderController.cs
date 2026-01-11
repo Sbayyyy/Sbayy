@@ -78,14 +78,31 @@ public sealed class OrdersController : ControllerBase
                 return BadRequest("Name, phone, street, and city are required.");
             }
 
+            var name = req.NewAddress.Name.Trim();
+            var phone = req.NewAddress.Phone.Trim();
+            var street = req.NewAddress.Street.Trim();
+            var city = req.NewAddress.City.Trim();
+            var region = req.NewAddress.Region?.Trim();
+
+            if (name.Length > 100)
+                return BadRequest("Name must be 100 characters or less.");
+            if (phone.Length > 20)
+                return BadRequest("Phone must be 20 characters or less.");
+            if (street.Length > 200)
+                return BadRequest("Street must be 200 characters or less.");
+            if (city.Length > 100)
+                return BadRequest("City must be 100 characters or less.");
+            if (region != null && region.Length > 100)
+                return BadRequest("Region must be 100 characters or less.");
+
             newAddress = new Address
             {
                 UserId = me.Value,
-                Name = req.NewAddress.Name.Trim(),
-                Phone = req.NewAddress.Phone.Trim(),
-                Street = req.NewAddress.Street.Trim(),
-                City = req.NewAddress.City.Trim(),
-                Region = req.NewAddress.Region?.Trim()
+                Name = name,
+                Phone = phone,
+                Street = street,
+                City = city,
+                Region = region
             };
         }
         
