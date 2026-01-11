@@ -61,7 +61,7 @@ public sealed class OrdersController : ControllerBase
             return BadRequest("Invalid payment method. Use: 'cod', 'bank_transfer', or 'meet_in_person'");
 
         // ===== NEW: Handle Address (saved OR new) =====
-        Guid? addressId = req.SavedAddressId;
+        Guid? addressId = req.SavedAddressId == Guid.Empty ? null : req.SavedAddressId;
         Address? newAddress = null;
         
         if (addressId == null && req.NewAddress != null)
@@ -145,11 +145,15 @@ public sealed class OrdersController : ControllerBase
             shippingQuote = await _shipping.CalculateShippingAsync(address.City, totalWeightKg, ct);
         }
 
+        await using var tx = await _uow.BeginTransactionAsync(ct);
+
         if (newAddress != null)
         {
             await _addresses.AddAsync(newAddress, ct);
-            if (newAddress.Id != Guid.Empty)
-                addressId = newAddress.Id;
+            await _uow.SaveChangesAsync(ct);
+            if (newAddress.Id == Guid.Empty)
+                throw new InvalidOperationException("Failed to persist shipping address.");
+            addressId = newAddress.Id;
         }
 
         var listingById = listings.ToDictionary(l => l.Id);
@@ -195,6 +199,8 @@ public sealed class OrdersController : ControllerBase
 
         await _orders.AddAsync(order, ct);
         await _uow.SaveChangesAsync(ct);
+        if (tx is Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction dbTx)
+            await dbTx.CommitAsync(ct);
 
         var dto = ToDto(order, address);
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, dto);

@@ -9,7 +9,14 @@ namespace SBay.Domain.Database
     public sealed class EfListingRepository : IListingRepository, IReadStore<Listing>, IWriteStore<Listing>
     {
         private readonly EfDbContext _db;
-        public EfListingRepository(EfDbContext db) => _db = db;
+        private readonly bool _isPostgres;
+
+        public EfListingRepository(EfDbContext db)
+        {
+            _db = db;
+            var provider = _db.Model.FindAnnotation("Relational:ProviderName")?.Value?.ToString();
+            _isPostgres = string.Equals(provider, DatabaseProviders.PostgresProviderName, StringComparison.Ordinal);
+        }
 
         public async Task<Listing?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
@@ -43,8 +50,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
     var skip = (page - 1) * size;
 
     IQueryable<Listing> query = _db.Listings.AsNoTracking();
-    var provider = _db.Model.FindAnnotation("Relational:ProviderName")?.Value?.ToString();
-    var isPostgres = string.Equals(provider, DatabaseProviders.PostgresProviderName, StringComparison.Ordinal);
+    var isPostgres = _isPostgres;
 
     if (!string.IsNullOrEmpty(q.Category))
         query = query.Where(l => l.CategoryPath == q.Category);
@@ -87,11 +93,12 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
         }
         else
         {
-            var lowered = text.ToLowerInvariant();
+            var escaped = EscapeLike(text);
+            var pattern = "%" + escaped + "%";
             query = query
                 .Where(l =>
-                    l.Title.ToLower().Contains(lowered)
-                    || (l.Description ?? string.Empty).ToLower().Contains(lowered))
+                    EF.Functions.Like(l.Title, pattern)
+                    || EF.Functions.Like(l.Description ?? string.Empty, pattern))
                 .OrderByDescending(l => l.CreatedAt);
         }
     }
@@ -103,6 +110,13 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
     return await query.Skip(skip).Take(size).ToListAsync(ct);
 }
+
+        private static string EscapeLike(string input)
+        {
+            return input.Replace("[", "[[]")
+                .Replace("%", "[%]")
+                .Replace("_", "[_]");
+        }
         public async Task<IReadOnlyList<Listing>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
         {
             var idsArray = ids?.Where(id => id != Guid.Empty).Distinct().ToArray() ?? Array.Empty<Guid>();

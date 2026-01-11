@@ -40,7 +40,14 @@ public sealed class FirebaseAddressRepository : IAddressRepository
     {
         var doc = snapshot.ConvertTo<AddressDocument>()
                   ?? throw new DatabaseException("Address conversion failed");
-        return doc.ToDomain();
+        try
+        {
+            return doc.ToDomain();
+        }
+        catch (Exception ex)
+        {
+            throw new DatabaseException($"Address conversion failed for document '{snapshot.Reference.Path}'.", ex);
+        }
     }
 
     public async Task<Address?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -61,7 +68,7 @@ public sealed class FirebaseAddressRepository : IAddressRepository
                .OrderByDescending("CreatedAt")
                .GetSnapshotAsync(ct));
 
-        if (snapshot == null || snapshot.Count == 0)
+        if (snapshot.Count == 0)
             return new List<Address>();
 
         return snapshot.Documents
@@ -98,7 +105,7 @@ public sealed class FirebaseAddressRepository : IAddressRepository
         await EnsureCompleted(
             _db.Collection("addresses")
                .Document(address.Id.ToString())
-               .SetAsync(AddressDocument.FromDomain(address), cancellationToken: ct));
+               .SetAsync(AddressDocument.FromDomain(address), SetOptions.MergeAll, cancellationToken: ct));
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

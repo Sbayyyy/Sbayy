@@ -1,5 +1,7 @@
 namespace SBay.Backend.Services;
 
+using System.Diagnostics;
+
 /// <summary>
 /// DHL Syria shipping cost calculator
 /// Provides shipping rates for Syrian cities
@@ -58,10 +60,12 @@ public sealed class DhlShippingService : IShippingService
             throw new ArgumentException("Total weight must be >= 0.", nameof(totalWeight));
 
         // Normalize city name
-        var normalizedCity = city.Trim().ToLowerInvariant();
+        var cityKey = city.Trim();
         
         // Get base cost (default 10000 for unknown cities)
-        var baseCost = CityRates.GetValueOrDefault(normalizedCity, 10000m);
+        var baseCost = CityRates.GetValueOrDefault(cityKey, 10000m);
+        if (baseCost == 10000m)
+            Debug.WriteLine($"Unknown city for shipping rates: {cityKey}");
         
         // Add weight surcharge (1000 SYP per kg over 1kg)
         var weightSurcharge = totalWeight > 1 
@@ -71,7 +75,7 @@ public sealed class DhlShippingService : IShippingService
         var totalCost = baseCost + weightSurcharge;
         
         // Estimate delivery days based on city
-        var estimatedDays = EstimateDeliveryDays(normalizedCity);
+        var estimatedDays = EstimateDeliveryDays(cityKey);
         
         var quote = new ShippingQuote(
             Cost: totalCost,

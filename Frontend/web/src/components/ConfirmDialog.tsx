@@ -122,7 +122,7 @@ export default function ConfirmDialog({
           onClick={onClose}
           ref={closeButtonRef}
           aria-label="Close dialog"
-          className="absolute left-4 top-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-4 left-4 rtl:left-auto rtl:right-4 text-gray-400 hover:text-gray-600"
         >
           <X size={20} />
         </button>
