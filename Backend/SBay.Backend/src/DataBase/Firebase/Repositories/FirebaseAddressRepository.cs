@@ -93,26 +93,44 @@ public sealed class FirebaseAddressRepository : IAddressRepository
         if (address.CreatedAt == default)
             address.CreatedAt = DateTime.UtcNow;
 
-        await EnsureCompleted(
-            _db.Collection("addresses")
-               .Document(address.Id.ToString())
-               .SetAsync(AddressDocument.FromDomain(address), cancellationToken: ct));
+        var docRef = _db.Collection("addresses")
+            .Document(address.Id.ToString());
+        var batch = FirestoreWriteContext.Batch;
+        if (batch != null)
+        {
+            batch.Set(docRef, AddressDocument.FromDomain(address));
+            return;
+        }
+
+        await EnsureCompleted(docRef.SetAsync(AddressDocument.FromDomain(address), cancellationToken: ct));
     }
 
     public async Task UpdateAsync(Address address, CancellationToken ct = default)
     {
         address.UpdatedAt = DateTime.UtcNow;
-        await EnsureCompleted(
-            _db.Collection("addresses")
-               .Document(address.Id.ToString())
-               .SetAsync(AddressDocument.FromDomain(address), SetOptions.MergeAll, cancellationToken: ct));
+        var docRef = _db.Collection("addresses")
+            .Document(address.Id.ToString());
+        var batch = FirestoreWriteContext.Batch;
+        if (batch != null)
+        {
+            batch.Set(docRef, AddressDocument.FromDomain(address), SetOptions.MergeAll);
+            return;
+        }
+
+        await EnsureCompleted(docRef.SetAsync(AddressDocument.FromDomain(address), SetOptions.MergeAll, cancellationToken: ct));
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        await EnsureCompleted(
-            _db.Collection("addresses")
-               .Document(id.ToString())
-               .DeleteAsync(cancellationToken: ct));
+        var docRef = _db.Collection("addresses")
+            .Document(id.ToString());
+        var batch = FirestoreWriteContext.Batch;
+        if (batch != null)
+        {
+            batch.Delete(docRef);
+            return;
+        }
+
+        await EnsureCompleted(docRef.DeleteAsync(cancellationToken: ct));
     }
 }

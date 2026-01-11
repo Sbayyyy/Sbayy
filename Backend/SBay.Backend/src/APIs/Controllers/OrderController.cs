@@ -21,6 +21,7 @@ public sealed class OrdersController : ControllerBase
     private readonly IAddressRepository _addresses;
     private readonly IShippingService _shipping;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
         ICurrentUserResolver resolver,
@@ -29,7 +30,8 @@ public sealed class OrdersController : ControllerBase
         IOrderRepository orders,
         IAddressRepository addresses,
         IShippingService shipping,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        ILogger<OrdersController> logger)
     {
         _resolver = resolver;
         _users = users;
@@ -38,6 +40,7 @@ public sealed class OrdersController : ControllerBase
         _addresses = addresses;
         _shipping = shipping;
         _uow = uow;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -140,7 +143,9 @@ public sealed class OrdersController : ControllerBase
         ShippingQuote? shippingQuote = null;
         if (address != null)
         {
+            // TODO: Replace DefaultItemWeightKg once listing/order item weights are modeled.
             const decimal DefaultItemWeightKg = 1.0m;
+            _logger.LogWarning("Using default item weight for shipping calculation.");
             var totalWeightKg = req.Items.Where(i => i.Quantity > 0).Sum(i => i.Quantity) * DefaultItemWeightKg;
             shippingQuote = await _shipping.CalculateShippingAsync(address.City, totalWeightKg, ct);
         }
@@ -199,8 +204,7 @@ public sealed class OrdersController : ControllerBase
 
         await _orders.AddAsync(order, ct);
         await _uow.SaveChangesAsync(ct);
-        if (tx is Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction dbTx)
-            await dbTx.CommitAsync(ct);
+        await tx.CommitAsync(ct);
 
         var dto = ToDto(order, address);
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, dto);

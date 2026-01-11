@@ -97,8 +97,8 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             var pattern = "%" + escaped + "%";
             query = query
                 .Where(l =>
-                    EF.Functions.Like(l.Title, pattern)
-                    || EF.Functions.Like(l.Description ?? string.Empty, pattern))
+                    EF.Functions.Like(l.Title, pattern, @"\")
+                    || EF.Functions.Like(l.Description ?? string.Empty, pattern, @"\"))
                 .OrderByDescending(l => l.CreatedAt);
         }
     }
@@ -113,9 +113,9 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
         private static string EscapeLike(string input)
         {
-            return input.Replace("[", "[[]")
-                .Replace("%", "[%]")
-                .Replace("_", "[_]");
+            return input.Replace(@"\", @"\\")
+                .Replace("%", @"\%")
+                .Replace("_", @"\_");
         }
         public async Task<IReadOnlyList<Listing>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
         {

@@ -26,7 +26,7 @@ interface ConfirmDialogProps {
 /**
  * Confirmation dialog with optional destructive styling.
  * @param {ConfirmDialogProps} props - Component props.
- * @returns {JSX.Element} Rendered dialog or null when closed.
+ * @returns {JSX.Element | null} Rendered dialog or null when closed.
  */
 export default function ConfirmDialog({
   isOpen,
@@ -122,7 +122,7 @@ export default function ConfirmDialog({
           onClick={onClose}
           ref={closeButtonRef}
           aria-label="Close dialog"
-          className="absolute top-4 left-4 rtl:left-auto rtl:right-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-4 right-4 rtl:right-auto rtl:left-4 text-gray-400 hover:text-gray-600"
         >
           <X size={20} />
         </button>
