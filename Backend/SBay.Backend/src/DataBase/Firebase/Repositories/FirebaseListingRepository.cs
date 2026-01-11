@@ -89,7 +89,7 @@ public class FirebaseListingRepository : IListingRepository
     {
         var snapshot = await EnsureCompleted(
             _db.Collection("listings")
-               .WhereEqualTo("SellerId", sellerId)
+               .WhereEqualTo("SellerId", sellerId.ToString())
                .GetSnapshotAsync(ct));
 
         if (snapshot == null || snapshot.Count == 0)
@@ -113,10 +113,10 @@ public class FirebaseListingRepository : IListingRepository
             query = query.WhereEqualTo("Region", listingQuery.Region);
 
         if (listingQuery.MinPrice.HasValue)
-            query = query.WhereGreaterThanOrEqualTo("PriceAmount", listingQuery.MinPrice.Value);
+            query = query.WhereGreaterThanOrEqualTo("PriceAmount", (double)listingQuery.MinPrice.Value);
 
         if (listingQuery.MaxPrice.HasValue)
-            query = query.WhereLessThanOrEqualTo("PriceAmount", listingQuery.MaxPrice.Value);
+            query = query.WhereLessThanOrEqualTo("PriceAmount", (double)listingQuery.MaxPrice.Value);
 
         var snapshot = await EnsureCompleted(query.GetSnapshotAsync(ct));
         if (snapshot == null || snapshot.Count == 0)
@@ -166,7 +166,7 @@ public class FirebaseListingRepository : IListingRepository
     {
         var snapshot = await EnsureCompleted(
             _db.Collection("listings")
-               .WhereEqualTo("SellerId", sellerId)
+               .WhereEqualTo("SellerId", sellerId.ToString())
                .GetSnapshotAsync(ct));
         return snapshot?.Count ?? 0;
     }

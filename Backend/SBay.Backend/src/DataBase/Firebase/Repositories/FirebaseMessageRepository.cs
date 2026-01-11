@@ -37,7 +37,7 @@ public class FirebaseMessageRepository : IMessageRepository
     {
         var snapshot = await EnsureCompleted(
             _db.Collection("messages")
-               .WhereEqualTo("SenderId", senderId)
+               .WhereEqualTo("SenderId", senderId.ToString())
                .WhereGreaterThanOrEqualTo("CreatedAt", from)
                .GetSnapshotAsync(ct));
         return snapshot?.Count ?? 0;
@@ -46,7 +46,7 @@ public class FirebaseMessageRepository : IMessageRepository
     public async Task<IReadOnlyList<Message>> GetMessagesAsync(Guid chatId, int take, DateTime? before, CancellationToken ct)
     {
         var query = _db.Collection("messages")
-            .WhereEqualTo("ChatId", chatId)
+            .WhereEqualTo("ChatId", chatId.ToString())
             .OrderByDescending("CreatedAt")
             .Limit(take);
 
@@ -66,8 +66,8 @@ public class FirebaseMessageRepository : IMessageRepository
     {
         var snapshot = await EnsureCompleted(
             _db.Collection("messages")
-               .WhereEqualTo("ChatId", chatId)
-               .WhereEqualTo("ReceiverId", readerId)
+               .WhereEqualTo("ChatId", chatId.ToString())
+               .WhereEqualTo("ReceiverId", readerId.ToString())
                .WhereLessThanOrEqualTo("CreatedAt", upTo)
                .WhereEqualTo("IsRead", false)
                .GetSnapshotAsync(ct));

@@ -40,7 +40,7 @@ public sealed class FirebaseUserAnalyticsService : IUserAnalyticsService
     {
         var listingsSnapshot = await EnsureCompleted(
             _db.Collection("listings")
-               .WhereEqualTo("SellerId", userId)
+               .WhereEqualTo("SellerId", userId.ToString())
                .GetSnapshotAsync(ct));
 
         var listings = listingsSnapshot.Documents
@@ -57,7 +57,7 @@ public sealed class FirebaseUserAnalyticsService : IUserAnalyticsService
 
         var ordersSnapshot = await EnsureCompleted(
             _db.Collection("orders")
-               .WhereEqualTo("SellerId", userId)
+               .WhereEqualTo("SellerId", userId.ToString())
                .WhereIn("Status", ok.Cast<object>().ToList())
                .GetSnapshotAsync(ct));
 
@@ -92,7 +92,7 @@ public sealed class FirebaseUserAnalyticsService : IUserAnalyticsService
         var ok = new[] { OrderStatus.Paid, OrderStatus.Shipped, OrderStatus.Completed };
 
         var ordersQuery = _db.Collection("orders")
-            .WhereEqualTo("SellerId", userId)
+            .WhereEqualTo("SellerId", userId.ToString())
             .WhereIn("Status", ok.Cast<object>().ToList())
             .WhereGreaterThanOrEqualTo("CreatedAt", from)
             .WhereLessThan("CreatedAt", to);
@@ -159,7 +159,7 @@ public sealed class FirebaseUserAnalyticsService : IUserAnalyticsService
         var items = new List<OrderItem>();
         for (int i = 0; i < orderIds.Length; i += chunkSize)
         {
-            var chunk = orderIds.Skip(i).Take(chunkSize).Cast<object>().ToList();
+            var chunk = orderIds.Skip(i).Take(chunkSize).Select(id => (object)id.ToString()).ToList();
             if (chunk.Count == 0) continue;
             var snapshot = await EnsureCompleted(
                 _db.Collection("order_items")

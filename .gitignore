@@ -72,3 +72,4 @@ Backend/SBay.Backend/src/DataBase/ConnectionStrings.json
 Backend/Folder.DotSettings.user
 Backend/SBay.Backend/src/appsettings.json
 Dashboard/
+firebase-service-account.json

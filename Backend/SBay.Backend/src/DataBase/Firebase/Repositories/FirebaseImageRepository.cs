@@ -68,7 +68,7 @@ public class FirebaseImageRepository : IImageRepository
         SyncEntityId(entity, doc);
         await EnsureCompleted(
             _db.Collection("listing_images")
-               .Document(doc.Id.ToString())
+               .Document(doc.Id)
                .SetAsync(doc, cancellationToken: ct));
     }
 
@@ -78,7 +78,7 @@ public class FirebaseImageRepository : IImageRepository
         SyncEntityId(entity, doc);
         await EnsureCompleted(
             _db.Collection("listing_images")
-               .Document(doc.Id.ToString())
+               .Document(doc.Id)
                .SetAsync(doc, cancellationToken: ct));
     }
 
@@ -94,7 +94,7 @@ public class FirebaseImageRepository : IImageRepository
     {
         var snapshot = await EnsureCompleted(
             _db.Collection("listing_images")
-               .WhereEqualTo("ListingId", listingID)
+               .WhereEqualTo("ListingId", listingID.ToString())
                .GetSnapshotAsync(ct));
 
         if (snapshot == null || snapshot.Count == 0)
@@ -112,7 +112,7 @@ public class FirebaseImageRepository : IImageRepository
         var collection = _db.Collection("listing_images");
         Query query = collection;
         if (listingQuery.ListingId.HasValue)
-            query = query.WhereEqualTo("ListingId", listingQuery.ListingId.Value);
+            query = query.WhereEqualTo("ListingId", listingQuery.ListingId.Value.ToString());
 
         var snapshot = await EnsureCompleted(query.GetSnapshotAsync(ct));
         if (snapshot == null || snapshot.Count == 0)
@@ -130,6 +130,6 @@ public class FirebaseImageRepository : IImageRepository
         if (entity.Id != Guid.Empty) return;
         typeof(ListingImage)
             .GetProperty(nameof(ListingImage.Id), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?
-            .SetValue(entity, doc.Id);
+            .SetValue(entity, FirestoreId.ParseRequired(doc.Id));
     }
 }

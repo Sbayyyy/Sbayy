@@ -7,13 +7,13 @@ namespace SBay.Backend.DataBase.Firebase.Models;
 [FirestoreData]
 internal sealed class ListingDocument
 {
-    [FirestoreProperty] public Guid Id { get; set; }
-    [FirestoreProperty] public Guid SellerId { get; set; }
+    [FirestoreProperty] public string Id { get; set; } = string.Empty;
+    [FirestoreProperty] public string SellerId { get; set; } = string.Empty;
     [FirestoreProperty] public string Title { get; set; } = string.Empty;
     [FirestoreProperty] public string Description { get; set; } = string.Empty;
-    [FirestoreProperty] public decimal PriceAmount { get; set; }
+    [FirestoreProperty] public double PriceAmount { get; set; }
     [FirestoreProperty] public string PriceCurrency { get; set; } = "EUR";
-    [FirestoreProperty] public decimal? OriginalPriceAmount { get; set; }
+    [FirestoreProperty] public double? OriginalPriceAmount { get; set; }
     [FirestoreProperty] public string? OriginalPriceCurrency { get; set; }
     [FirestoreProperty] public int StockQuantity { get; set; } = 1;
     [FirestoreProperty] public string? ThumbnailUrl { get; set; }
@@ -27,13 +27,13 @@ internal sealed class ListingDocument
 
     public static ListingDocument FromDomain(Listing entity) => new()
     {
-        Id = entity.Id,
-        SellerId = entity.SellerId,
+        Id = FirestoreId.ToString(entity.Id),
+        SellerId = FirestoreId.ToString(entity.SellerId),
         Title = entity.Title,
         Description = entity.Description,
-        PriceAmount = entity.Price.Amount,
+        PriceAmount = (double)entity.Price.Amount,
         PriceCurrency = entity.Price.Currency,
-        OriginalPriceAmount = entity.OriginalPrice?.Amount,
+        OriginalPriceAmount = entity.OriginalPrice is null ? null : (double)entity.OriginalPrice.Amount,
         OriginalPriceCurrency = entity.OriginalPrice?.Currency,
         StockQuantity = entity.StockQuantity,
         ThumbnailUrl = entity.ThumbnailUrl,
@@ -48,14 +48,14 @@ internal sealed class ListingDocument
 
     public Listing ToDomain()
     {
-        var price = new Money(PriceAmount, string.IsNullOrWhiteSpace(PriceCurrency) ? "EUR" : PriceCurrency);
+        var price = new Money((decimal)PriceAmount, string.IsNullOrWhiteSpace(PriceCurrency) ? "EUR" : PriceCurrency);
         Money? original = OriginalPriceAmount.HasValue && !string.IsNullOrWhiteSpace(OriginalPriceCurrency)
-            ? new Money(OriginalPriceAmount.Value, OriginalPriceCurrency)
+            ? new Money((decimal)OriginalPriceAmount.Value, OriginalPriceCurrency)
             : null;
 
         var listing = DomainObjectFactory.Create<Listing>();
-        DomainObjectFactory.SetProperty(listing, nameof(Listing.Id), Id);
-        DomainObjectFactory.SetProperty(listing, nameof(Listing.SellerId), SellerId);
+        DomainObjectFactory.SetProperty(listing, nameof(Listing.Id), FirestoreId.ParseRequired(Id));
+        DomainObjectFactory.SetProperty(listing, nameof(Listing.SellerId), FirestoreId.ParseRequired(SellerId));
         DomainObjectFactory.SetProperty(listing, nameof(Listing.Title), Title);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.Description), Description);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.Price), price);

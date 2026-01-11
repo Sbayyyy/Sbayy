@@ -6,7 +6,7 @@ namespace SBay.Backend.DataBase.Firebase.Models;
 [FirestoreData]
 internal sealed class UserDocument
 {
-    [FirestoreProperty] public Guid Id { get; set; }
+    [FirestoreProperty] public string Id { get; set; } = string.Empty;
     [FirestoreProperty] public string Email { get; set; } = string.Empty;
     [FirestoreProperty] public string? ExternalId { get; set; }
     [FirestoreProperty] public string? DisplayName { get; set; }
@@ -23,7 +23,7 @@ internal sealed class UserDocument
 
     public static UserDocument FromDomain(User user) => new()
     {
-        Id = user.Id,
+        Id = FirestoreId.ToString(user.Id),
         Email = user.Email,
         ExternalId = user.ExternalId,
         DisplayName = user.DisplayName,
@@ -41,7 +41,7 @@ internal sealed class UserDocument
     {
         var user = new User
         {
-            Id = Id,
+            Id = FirestoreId.ParseRequired(Id),
             Email = Email,
             ExternalId = ExternalId ?? string.Empty,
             DisplayName = DisplayName,

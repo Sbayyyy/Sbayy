@@ -36,9 +36,9 @@ public class FirebaseChatRepository : IChatRepository
     public async Task<Chat?> FindByParticipantsAsync(Guid buyerId, Guid sellerId, Guid? listingId, CancellationToken ct)
     {
         var query = _db.Collection("chats")
-            .WhereEqualTo("BuyerId", buyerId)
-            .WhereEqualTo("SellerId", sellerId)
-            .WhereEqualTo("ListingId", listingId);
+            .WhereEqualTo("BuyerId", buyerId.ToString())
+            .WhereEqualTo("SellerId", sellerId.ToString())
+            .WhereEqualTo("ListingId", listingId?.ToString());
 
         var snapshot = await EnsureCompleted(query.Limit(1).GetSnapshotAsync(ct));
         var doc = snapshot.Documents.FirstOrDefault();
@@ -50,14 +50,14 @@ public class FirebaseChatRepository : IChatRepository
     {
         var buyerTask = EnsureCompleted(
             _db.Collection("chats")
-               .WhereEqualTo("BuyerId", userId)
+               .WhereEqualTo("BuyerId", userId.ToString())
                .OrderByDescending("LastMessageAt")
                .Limit(take + skip)
                .GetSnapshotAsync(ct));
 
         var sellerTask = EnsureCompleted(
             _db.Collection("chats")
-               .WhereEqualTo("SellerId", userId)
+               .WhereEqualTo("SellerId", userId.ToString())
                .OrderByDescending("LastMessageAt")
                .Limit(take + skip)
                .GetSnapshotAsync(ct));
