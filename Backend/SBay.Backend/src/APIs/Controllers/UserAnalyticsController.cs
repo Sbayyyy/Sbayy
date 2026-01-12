@@ -7,6 +7,7 @@ using SBay.Domain.Entities;
 
 [ApiController]
 [Route("api/users")]
+[Authorize]
 public sealed class UserAnalyticsController : ControllerBase
 {
     private readonly IUserAnalyticsService _svc;

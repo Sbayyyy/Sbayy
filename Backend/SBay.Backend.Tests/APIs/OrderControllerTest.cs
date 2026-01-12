@@ -53,7 +53,10 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
 
         var orderReq = new CreateOrderReq(
             SellerId: Guid.Empty,
-            Items: new[] { new CreateOrderItemReq(listing.Id, 1, 999m, "USD") }
+            Items: new[] { new CreateOrderItemReq(listing.Id, 1, 999m, "USD") },
+            SavedAddressId: null,
+            NewAddress: null,
+            PaymentMethod: "cod"
         );
 
         var orderRes = await client.PostAsJsonAsync("/api/orders", orderReq);
@@ -87,7 +90,10 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
             {
                 new CreateOrderItemReq(l1Dto.Id, 1, 0m, "EUR"),
                 new CreateOrderItemReq(l2.Id, 1, 0m, "EUR")
-            }
+            },
+            SavedAddressId: null,
+            NewAddress: null,
+            PaymentMethod: "cod"
         );
 
         var orderRes = await buyer.PostAsJsonAsync("/api/orders", orderReq);
@@ -119,7 +125,10 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
             {
                 new CreateOrderItemReq(l1.Id, 1, 0m, "EUR"),
                 new CreateOrderItemReq(l2.Id, 1, 0m, "USD")
-            }
+            },
+            SavedAddressId: null,
+            NewAddress: null,
+            PaymentMethod: "cod"
         );
 
         var orderRes = await buyer.PostAsJsonAsync("/api/orders", orderReq);
@@ -136,12 +145,40 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
 
         var orderReq = new CreateOrderReq(
             SellerId: Guid.Empty,
-            Items: new[] { new CreateOrderItemReq(Guid.NewGuid(), 1, 1m, "EUR") }
+            Items: new[] { new CreateOrderItemReq(Guid.NewGuid(), 1, 1m, "EUR") },
+            SavedAddressId: null,
+            NewAddress: null,
+            PaymentMethod: "cod"
         );
 
         var res = await client.PostAsJsonAsync("/api/orders", orderReq);
         res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await res.Content.ReadAsStringAsync();
         body.Should().Contain("One or more listings not found");
+    }
+
+    [Fact]
+    public async Task CreateOrder_Fails_WhenNewAddressMissingFields()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+
+        var orderReq = new CreateOrderReq(
+            SellerId: Guid.Empty,
+            Items: new[] { new CreateOrderItemReq(Guid.NewGuid(), 1, 1m, "EUR") },
+            SavedAddressId: null,
+            NewAddress: new SaveAddressRequest(
+                Name: "",
+                Phone: " ",
+                Street: "",
+                City: "",
+                Region: null),
+            PaymentMethod: "cod"
+        );
+
+        var res = await client.PostAsJsonAsync("/api/orders", orderReq);
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var msg = await res.Content.ReadAsStringAsync();
+        msg.Should().Contain("Name, phone, street, and city are required");
     }
 }

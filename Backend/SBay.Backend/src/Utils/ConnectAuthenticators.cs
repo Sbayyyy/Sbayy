@@ -104,9 +104,9 @@ public static class ConnectAuthenticators
 
         builder.Services.AddAuthorization(options =>
         {
-            options.FallbackPolicy = new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .Build();
+            // Note: FallbackPolicy applies to all endpoints without [Authorize] or [AllowAnonymous]
+            // We don't set a FallbackPolicy to allow [AllowAnonymous] to work properly
+            // Endpoints that need auth must explicitly use [Authorize]
 
             options.AddPolicy("CanDeleteOwnMessage", p =>
                 p.RequireAuthenticatedUser()

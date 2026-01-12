@@ -11,7 +11,13 @@ const nextConfig = {
   },
   transpilePackages: ['@sbay/shared'],
   async rewrites() {
-    return [{ source: "/api/:path*", destination: "http://api:8080/:path*" }];
+    // Proxy /api requests to backend API container
+    return [
+      { 
+        source: "/api/:path*", 
+        destination: "http://api:8080/api/:path*" 
+      }
+    ];
   }
 };
 

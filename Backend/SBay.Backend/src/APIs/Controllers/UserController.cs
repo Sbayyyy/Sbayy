@@ -8,6 +8,7 @@ namespace SBay.Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
+[Authorize]
 public class UserController : ControllerBase
 {
     private readonly IUserRepository _users;

@@ -71,15 +71,58 @@ export interface Category {
   slug: string;
 }
 
-// Message types
+// Message & Chat types (Backend compatible)
 export interface Message {
   id: string;
+  chatId: string;
   senderId: string;
   receiverId: string;
-  productId?: string;
+  listingId?: string;
   content: string;
-  read: boolean;
+  isRead: boolean;
   createdAt: string;
+}
+
+export interface Chat {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  listingId?: string;
+  createdAt: string;
+  lastMessageAt?: string;
+  buyerArchived: boolean;
+  sellerArchived: boolean;
+  messages: Message[];
+}
+
+export interface OpenChatRequest {
+  otherUserId: string;
+  listingId?: string;
+}
+
+export interface OpenChatResponse {
+  id: string;
+}
+
+// Legacy types (keeping for compatibility)
+export interface Conversation {
+  id: string;
+  participant: User;
+  product?: Product;
+  lastMessage: Message;
+  unreadCount: number;
+  updatedAt: string;
+}
+
+export interface ConversationCreate {
+  receiverId: string;
+  productId?: string;
+  initialMessage: string;
+}
+
+export interface MessageSend {
+  conversationId: string;
+  content: string;
 }
 
 // API Response types
@@ -188,4 +231,139 @@ export interface SearchResponse {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+// ===== CHECKOUT & ORDER TYPES =====
+
+/**
+ * Shipping Address für Orders
+ * Wird vom User während Checkout eingegeben
+ */
+export interface Address {
+  name: string;           // Vollständiger Name
+  phone: string;          // Telefon (Syrian format: 09xx... oder +963...)
+  street: string;         // Detaillierte Adresse (Straße, Hausnummer)
+  city: string;           // Syrische Stadt/Governorate
+  region?: string;        // Optional: Stadtviertel/Bezirk
+}
+
+/**
+ * Gespeicherte Adresse (mit ID vom Backend)
+ */
+export interface SavedAddress extends Address {
+  id: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/**
+ * Versand-Information (von DHL/Carrier)
+ * Wird nach Stadt berechnet
+ */
+export interface ShippingInfo {
+  cost: number;                          // Versandkosten in SYP
+  carrier: 'dhl' | 'other';              // Versandunternehmen
+  estimatedDays: number;                 // Geschätzte Liefertage
+  trackingNumber?: string;               // Tracking-Nummer (optional)
+}
+
+/**
+ * Ein Artikel im Order
+ */
+export interface OrderItem {
+  productId: string;
+  quantity: number;
+  price: number;          // Preis pro Stück zum Zeitpunkt des Orders
+}
+
+/**
+ * Order-Erstellung vom Frontend
+ * Wird vom Checkout-Form gesendet
+ */
+export interface OrderCreate {
+  items: OrderItem[];                           // Bestellte Produkte
+  savedAddressId?: string;                      // Option 1: Gespeicherte Adresse verwenden
+  newAddress?: Address;                         // Option 2: Neue Adresse (Backend speichert sie)
+  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';       // COD = Cash on Delivery
+}
+
+/**
+ * Order-Update (Status-Änderung, nur Backend)
+ */
+export interface OrderUpdate {
+  status?: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  trackingNumber?: string;
+}
+
+/**
+ * Kompletter Order (Response von Backend)
+ */
+export interface OrderResponse {
+  id: string;
+  items: OrderItem[];
+  shippingAddress?: SavedAddress;                       // Optional: kann null sein bei pickup
+  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';
+  shippingInfo: ShippingInfo;
+  total: number;                                        // Total mit Shipping
+  subtotal: number;                                     // Total ohne Shipping
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Adresse speichern Request
+ */
+export interface SaveAddressRequest extends Address {
+  // Erbt alle Felder von Address
+}
+
+/**
+ * Versand-Kosten berechnen Request
+ */
+export interface CalculateShippingRequest {
+  city: string;           // Zielstadt
+  weight?: number;        // Optional: Gesamtgewicht
+}
+
+// Review & Rating types
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  productId?: string;
+  sellerId?: string;
+  orderId?: string;
+  rating: number;         // 1-5
+  comment: string;
+  helpful: number;        // Count of helpful marks
+  isHelpful?: boolean;    // Current user marked as helpful
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ReviewCreate {
+  productId?: string;
+  sellerId?: string;
+  orderId?: string;
+  rating: number;
+  comment: string;
+}
+
+export interface ReviewUpdate {
+  rating?: number;
+  comment?: string;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
 }

@@ -188,3 +188,114 @@ export const getListingLocationValidationMessage = (location: string): string | 
   if (location.length < 2) return 'الموقع يجب أن يكون حرفين على الأقل';
   return null;
 };
+
+// ==================== CHECKOUT VALIDATIONS ====================
+
+/**
+ * Validate full name and return error message in Arabic
+ */
+export const getNameValidationMessage = (name: string): string | null => {
+  if (!name) return 'الاسم الكامل مطلوب';
+  if (name.trim().length < 3) return 'الاسم يجب أن يكون 3 أحرف على الأقل';
+  if (name.length > 100) return 'الاسم طويل جداً';
+  if (!/^[\u0600-\u06FFa-zA-Z\s'-\.]+$/.test(name)) return 'الاسم يجب أن يحتوي على حروف فقط';
+  return null;
+};
+
+/**
+ * Validate Syrian phone number and return error message in Arabic
+ */
+export const getSyrianPhoneValidationMessage = (phone: string): string | null => {
+  if (!phone) return 'رقم الهاتف مطلوب';
+  const cleanPhone = phone.replace(/\s/g, '');
+  
+  // Syrian phone: starts with 09 or +963
+  if (!/^(\+963|0)9\d{8}$/.test(cleanPhone)) {
+    return 'رقم الهاتف غير صحيح (مثال: 0912345678 أو +963912345678)';
+  }
+  return null;
+};
+
+/**
+ * Validate city and return error message in Arabic
+ */
+export const getCityValidationMessage = (city: string): string | null => {
+  if (!city) return 'المحافظة مطلوبة';
+  if (city.length < 2) return 'اسم المحافظة غير صحيح';
+  return null;
+};
+
+/**
+ * Validate street address and return error message in Arabic
+ */
+export const getStreetValidationMessage = (street: string): string | null => {
+  if (!street) return 'العنوان التفصيلي مطلوب';
+  if (street.trim().length < 5) return 'العنوان يجب أن يكون 5 أحرف على الأقل';
+  if (street.length > 200) return 'العنوان طويل جداً';
+  return null;
+};
+
+/**
+ * Validate complete address and return all errors
+ */
+export const validateAddress = (address: {
+  name: string;
+  phone: string;
+  city: string;
+  street: string;
+  region?: string;
+}): Record<string, string> => {
+  const errors: Record<string, string> = {};
+  
+  const nameError = getNameValidationMessage(address.name);
+  if (nameError) errors.name = nameError;
+  
+  const phoneError = getSyrianPhoneValidationMessage(address.phone);
+  if (phoneError) errors.phone = phoneError;
+  
+  const cityError = getCityValidationMessage(address.city);
+  if (cityError) errors.city = cityError;
+  
+  const streetError = getStreetValidationMessage(address.street);
+  if (streetError) errors.street = streetError;
+  
+  return errors;
+};
+
+/**
+ * Check if address is valid (no errors)
+ */
+export const isAddressValid = (address: {
+  name: string;
+  phone: string;
+  city: string;
+  street: string;
+  region?: string;
+}): boolean => {
+  const errors = validateAddress(address);
+  return Object.keys(errors).length === 0;
+};
+
+/**
+ * Format Syrian phone number for display
+ */
+export const formatSyrianPhone = (phone: string): string => {
+  const cleanPhone = phone.replace(/\s/g, '');
+  
+  // If starts with +963
+  if (cleanPhone.startsWith('+963')) {
+    const number = cleanPhone.substring(4);
+    return `+963 ${number.substring(0, 3)} ${number.substring(3, 6)} ${number.substring(6)}`;
+  }
+  
+  // If starts with 09
+  if (cleanPhone.startsWith('09')) {
+    return `${cleanPhone.substring(0, 4)} ${cleanPhone.substring(4, 7)} ${cleanPhone.substring(7)}`;
+  }
+  // If starts with just 9
+  if (cleanPhone.startsWith('9') && cleanPhone.length === 9) {
+    return `0${cleanPhone.substring(0, 3)} ${cleanPhone.substring(3, 6)} ${cleanPhone.substring(6)}`;
+  }
+
+  return phone;
+};
