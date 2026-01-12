@@ -88,7 +88,7 @@ public class FirebaseCartRepository : ICartRepository
     {
         var snapshot = await EnsureCompleted(
             _db.Collection("carts")
-               .WhereEqualTo("UserId", userId)
+               .WhereEqualTo("UserId", userId.ToString())
                .Limit(1)
                .GetSnapshotAsync(ct));
 

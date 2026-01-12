@@ -6,11 +6,11 @@ namespace SBay.Backend.DataBase.Firebase.Models;
 [FirestoreData]
 internal sealed class OrderDocument
 {
-    [FirestoreProperty] public Guid Id { get; set; }
-    [FirestoreProperty] public Guid BuyerId { get; set; }
-    [FirestoreProperty] public Guid SellerId { get; set; }
+    [FirestoreProperty] public string Id { get; set; } = string.Empty;
+    [FirestoreProperty] public string BuyerId { get; set; } = string.Empty;
+    [FirestoreProperty] public string SellerId { get; set; } = string.Empty;
     [FirestoreProperty] public string Status { get; set; } = OrderStatus.Pending.ToString();
-    [FirestoreProperty] public decimal TotalAmount { get; set; }
+    [FirestoreProperty(Converter = typeof(DecimalCentsConverter))] public decimal TotalAmount { get; set; }
     [FirestoreProperty] public string TotalCurrency { get; set; } = "EUR";
     [FirestoreProperty] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     [FirestoreProperty] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -18,9 +18,9 @@ internal sealed class OrderDocument
 
     public static OrderDocument FromDomain(Order order) => new()
     {
-        Id = order.Id,
-        BuyerId = order.BuyerId,
-        SellerId = order.SellerId,
+        Id = FirestoreId.ToString(order.Id),
+        BuyerId = FirestoreId.ToString(order.BuyerId),
+        SellerId = FirestoreId.ToString(order.SellerId),
         Status = order.Status.ToString(),
         TotalAmount = order.TotalAmount,
         TotalCurrency = order.TotalCurrency,
@@ -33,9 +33,9 @@ internal sealed class OrderDocument
     {
         var order = new Order
         {
-            Id = Id,
-            BuyerId = BuyerId,
-            SellerId = SellerId,
+            Id = FirestoreId.ParseRequired(Id),
+            BuyerId = FirestoreId.ParseRequired(BuyerId),
+            SellerId = FirestoreId.ParseRequired(SellerId),
             Status = Enum.TryParse<OrderStatus>(Status, true, out var status) ? status : OrderStatus.Pending,
             TotalAmount = TotalAmount,
             TotalCurrency = TotalCurrency ?? "EUR",
