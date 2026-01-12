@@ -108,7 +108,22 @@ public sealed class UploadsController : ControllerBase
     {
         var credentialsPath = _config["Firebase:CredentialsPath"];
         if (string.IsNullOrWhiteSpace(credentialsPath))
-            return StorageClient.Create();
+        {
+            try
+            {
+                return StorageClient.Create();
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Firebase storage client creation failed using default credentials.");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Firebase storage client creation failed.");
+                return null;
+            }
+        }
 
         var fullPath = Path.IsPathRooted(credentialsPath)
             ? credentialsPath
@@ -118,6 +133,19 @@ public sealed class UploadsController : ControllerBase
             return null;
 
         var credential = GoogleCredential.FromFile(fullPath);
-        return StorageClient.Create(credential);
+        try
+        {
+            return StorageClient.Create(credential);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Firebase storage client creation failed for credentials at {Path}.", fullPath);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Firebase storage client creation failed for credentials at {Path}.", fullPath);
+            return null;
+        }
     }
 }

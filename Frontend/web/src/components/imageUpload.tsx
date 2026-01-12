@@ -25,9 +25,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
     try {
       const formData = new FormData();
       fileArray.forEach(file => formData.append("files", file));
-      const { data } = await api.post<{ urls: string[] }>("/uploads/images", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await api.post<{ urls: string[] }>("/uploads/images", formData);
       onChange([...images, ...data.urls]);
     } catch (error) {
       console.error('Error uploading images:', error);

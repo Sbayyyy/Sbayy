@@ -3,11 +3,11 @@ import { User } from '@sbay/shared';
 
 /**
  * Profile update payload for the current user.
- * @property {string} [name] - Updated display name for the user.
+ * @property {string} [displayName] - Updated display name for the user.
  * @property {string} [phone] - Updated phone number for the user.
  */
 export interface UpdateProfileRequest {
-  name?: string;
+  displayName?: string;
   phone?: string;
 }
 

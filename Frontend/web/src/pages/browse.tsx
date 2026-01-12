@@ -425,16 +425,29 @@ export default function BrowsePage() {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onFavorite={handleFavorite}
-                      isFavorite={favorites.includes(product.id)}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {products.map(product => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onFavorite={handleFavorite}
+                        isFavorite={favorites.includes(product.id)}
+                      />
+                    ))}
+                  </div>
+                  {hasMore && (
+                    <div className="flex justify-center mt-8">
+                      <button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        className="btn btn-primary"
+                      >
+                        {loadingMore ? 'جارٍ التحميل...' : 'تحميل المزيد'}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

@@ -38,7 +38,7 @@
             {
                 var parsed = ItemConditionExtensions.FromString(Condition);
                 if (parsed == ItemCondition.Unknown && !string.Equals(Condition.Trim(), "unknown", StringComparison.OrdinalIgnoreCase))
-                    throw new ArgumentException("Condition must be one of: New, Used, LikeNew, Refurbished, ForParts, Damaged.", nameof(Condition));
+                    throw new ArgumentException("Condition must be one of: New, Used, LikeNew, Refurbished, ForParts, Damaged, Unknown.", nameof(Condition));
             }
         }
     }
