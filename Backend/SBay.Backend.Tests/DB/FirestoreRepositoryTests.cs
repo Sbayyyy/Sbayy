@@ -124,7 +124,7 @@ public sealed class FirestoreRepositoryTests
 
         var emulatorProjectId = Environment.GetEnvironmentVariable("FIRESTORE_PROJECT_ID") ?? "test-project";
         var emulatorDatabaseId = Environment.GetEnvironmentVariable("FIRESTORE_DATABASE_ID");
-        var client = new FirestoreClientBuilder
+        new FirestoreClientBuilder
         {
             Endpoint = host,
             ChannelCredentials = Grpc.Core.ChannelCredentials.Insecure

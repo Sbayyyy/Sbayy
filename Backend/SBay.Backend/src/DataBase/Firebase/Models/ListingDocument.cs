@@ -11,9 +11,9 @@ internal sealed class ListingDocument
     [FirestoreProperty] public string SellerId { get; set; } = string.Empty;
     [FirestoreProperty] public string Title { get; set; } = string.Empty;
     [FirestoreProperty] public string Description { get; set; } = string.Empty;
-    [FirestoreProperty] public double PriceAmount { get; set; }
+    [FirestoreProperty(Converter = typeof(DecimalCentsConverter))] public decimal PriceAmount { get; set; }
     [FirestoreProperty] public string PriceCurrency { get; set; } = "EUR";
-    [FirestoreProperty] public double? OriginalPriceAmount { get; set; }
+    [FirestoreProperty(Converter = typeof(NullableDecimalCentsConverter))] public decimal? OriginalPriceAmount { get; set; }
     [FirestoreProperty] public string? OriginalPriceCurrency { get; set; }
     [FirestoreProperty] public int StockQuantity { get; set; } = 1;
     [FirestoreProperty] public string? ThumbnailUrl { get; set; }
@@ -31,9 +31,9 @@ internal sealed class ListingDocument
         SellerId = FirestoreId.ToString(entity.SellerId),
         Title = entity.Title,
         Description = entity.Description,
-        PriceAmount = (double)entity.Price.Amount,
+        PriceAmount = entity.Price.Amount,
         PriceCurrency = entity.Price.Currency,
-        OriginalPriceAmount = entity.OriginalPrice is null ? null : (double)entity.OriginalPrice.Amount,
+        OriginalPriceAmount = entity.OriginalPrice?.Amount,
         OriginalPriceCurrency = entity.OriginalPrice?.Currency,
         StockQuantity = entity.StockQuantity,
         ThumbnailUrl = entity.ThumbnailUrl,
@@ -48,9 +48,9 @@ internal sealed class ListingDocument
 
     public Listing ToDomain()
     {
-        var price = new Money((decimal)PriceAmount, string.IsNullOrWhiteSpace(PriceCurrency) ? "EUR" : PriceCurrency);
+        var price = new Money(PriceAmount, string.IsNullOrWhiteSpace(PriceCurrency) ? "EUR" : PriceCurrency);
         Money? original = OriginalPriceAmount.HasValue && !string.IsNullOrWhiteSpace(OriginalPriceCurrency)
-            ? new Money((decimal)OriginalPriceAmount.Value, OriginalPriceCurrency)
+            ? new Money(OriginalPriceAmount.Value, OriginalPriceCurrency)
             : null;
 
         var listing = DomainObjectFactory.Create<Listing>();

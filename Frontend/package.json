@@ -5,7 +5,6 @@
   "description": "eBay-like marketplace platform for Syria",
   "workspaces": [
     "web",
-    "mobile",
     "packages/*"
   ],
   "scripts": {
@@ -29,7 +28,5 @@
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
   },
-  "dependencies": {
-    "nativewind": "^4.2.1"
-  }
+  "dependencies": {}
 }
