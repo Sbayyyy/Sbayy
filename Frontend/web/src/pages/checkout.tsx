@@ -115,10 +115,12 @@ export default function CheckoutPage() {
       setState(prev => ({ ...prev, orderError: null }));
 
       const orderData: OrderCreate = {
+        sellerId: items[0]?.product.seller?.id || '', // TODO: Handle multiple sellers
         items: items.map(item => ({
-          productId: item.product.id,
+          listingId: item.product.id,
           quantity: item.quantity,
-          price: item.product.priceAmount
+          priceAmount: item.product.priceAmount,
+          priceCurrency: item.product.priceCurrency || 'SYP'
         })),
         paymentMethod: state.paymentMethod,
         // Either use saved address OR new address

@@ -1,19 +1,22 @@
-// User types
+// User types (matches Backend UserDto)
 export interface User {
   id: string;
   email: string;
-  name: string;
+  displayName?: string;
   phone?: string;
-  avatar?: string;
-  rating?: number;
-  verified: boolean;
+  role: string;
+  isSeller: boolean;
   createdAt: string;
+  lastSeen?: string;
+  avatarUrl?: string;
+  region?: string;
+  rating?: number;
 }
 
 export interface UserRegistration {
   email: string;
   password: string;
-  name: string;
+  displayName?: string;  // Backend: DisplayName (optional)
   phone?: string;
 }
 
@@ -71,27 +74,36 @@ export interface Category {
   slug: string;
 }
 
-// Message & Chat types (Backend compatible)
+// Message & Chat types (matches Backend MessageDto)
 export interface Message {
   id: string;
   chatId: string;
   senderId: string;
   receiverId: string;
-  listingId?: string;
   content: string;
   isRead: boolean;
   createdAt: string;
 }
 
+// Chat Summary (matches Backend ChatSummaryDto)
+export interface ChatSummary {
+  chatId: string;
+  buyerId: string;
+  sellerId: string;
+  listingId?: string;
+  lastMessageAt: string;
+  unreadCount: number;
+  lastMessage?: Message;
+}
+
+// Full Chat (for frontend use with all messages)
 export interface Chat {
   id: string;
   buyerId: string;
   sellerId: string;
   listingId?: string;
-  createdAt: string;
+  createdAt?: string;
   lastMessageAt?: string;
-  buyerArchived: boolean;
-  sellerArchived: boolean;
   messages: Message[];
 }
 
@@ -152,10 +164,10 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
+// Auth Response (matches Backend AuthResponse)
 export interface AuthResponse {
   user: User;
   token: string;
-  refreshToken: string;
 }
 
 // Am Ende der Datei hinzufügen:
@@ -257,34 +269,46 @@ export interface SavedAddress extends Address {
 }
 
 /**
- * Versand-Information (von DHL/Carrier)
- * Wird nach Stadt berechnet
+ * Shipping Info (matches Backend ShippingInfoDto)
  */
 export interface ShippingInfo {
-  cost: number;                          // Versandkosten in SYP
-  carrier: 'dhl' | 'other';              // Versandunternehmen
-  estimatedDays: number;                 // Geschätzte Liefertage
-  trackingNumber?: string;               // Tracking-Nummer (optional)
+  cost: number;             // Backend: Cost
+  carrier: string;          // Backend: Carrier (string, not enum)
+  estimatedDays: number;    // Backend: EstimatedDays
+  trackingNumber?: string;  // Backend: TrackingNumber (optional)
 }
 
 /**
- * Ein Artikel im Order
+ * Ein Artikel im Order (matches Backend OrderItemDto)
  */
 export interface OrderItem {
-  productId: string;
+  id?: string;            // Backend returns id
+  listingId: string;      // Backend: ListingId (not productId)
   quantity: number;
-  price: number;          // Preis pro Stück zum Zeitpunkt des Orders
+  priceAmount: number;    // Backend: PriceAmount
+  priceCurrency: string;  // Backend: PriceCurrency
 }
 
 /**
- * Order-Erstellung vom Frontend
- * Wird vom Checkout-Form gesendet
+ * Create Order Item Request (matches Backend CreateOrderItemReq)
+ */
+export interface CreateOrderItemReq {
+  listingId: string;
+  quantity: number;
+  priceAmount: number;
+  priceCurrency: string;  // 3-letter ISO code, e.g. 'SYP'
+  weightKg?: number;      // Optional weight
+}
+
+/**
+ * Order-Erstellung (matches Backend CreateOrderReq)
  */
 export interface OrderCreate {
-  items: OrderItem[];                           // Bestellte Produkte
-  savedAddressId?: string;                      // Option 1: Gespeicherte Adresse verwenden
-  newAddress?: Address;                         // Option 2: Neue Adresse (Backend speichert sie)
-  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';       // COD = Cash on Delivery
+  sellerId: string;                             // Backend requires sellerId
+  items: CreateOrderItemReq[];                  // Backend: CreateOrderItemReq[]
+  savedAddressId?: string;                      // Option 1: Use saved address
+  newAddress?: Address;                         // Option 2: New address (Backend saves it)
+  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';
 }
 
 /**
@@ -296,19 +320,21 @@ export interface OrderUpdate {
 }
 
 /**
- * Kompletter Order (Response von Backend)
+ * Order Response (matches Backend OrderDto)
  */
 export interface OrderResponse {
   id: string;
-  items: OrderItem[];
-  shippingAddress?: SavedAddress;                       // Optional: kann null sein bei pickup
-  paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';
-  shippingInfo: ShippingInfo;
-  total: number;                                        // Total mit Shipping
-  subtotal: number;                                     // Total ohne Shipping
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  buyerId: string;                              // Backend: BuyerId
+  sellerId: string;                             // Backend: SellerId
+  status: string;                               // Backend: Status
+  totalAmount: number;                          // Backend: TotalAmount
+  totalCurrency: string;                        // Backend: TotalCurrency
   createdAt: string;
   updatedAt: string;
+  items: OrderItem[];
+  shippingAddress?: SavedAddress;               // Backend: AddressDto?
+  paymentMethod: string;                        // Backend: PaymentMethod
+  shippingInfo: ShippingInfo;                   // Backend: ShippingInfoDto
 }
 
 /**

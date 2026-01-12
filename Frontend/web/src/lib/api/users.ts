@@ -7,7 +7,7 @@ import { User } from '@sbay/shared';
  * @property {string} [phone] - Updated phone number for the user.
  */
 export interface UpdateProfileRequest {
-  name?: string;
+  displayName?: string;
   phone?: string;
 }
 

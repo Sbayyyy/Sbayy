@@ -4,17 +4,18 @@ import Head from 'next/head';
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { getCurrentUser, updateProfile, UpdateProfileRequest } from '@/lib/api/users';
-import { User, Mail, Phone, MapPin, Calendar, Edit2, Save, X } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, Edit2, Save, X, User as UserIcon } from 'lucide-react';
+import { User } from '@sbay/shared';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    displayName: user?.displayName || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    location: '',
+    region: user?.region || '',
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,10 +29,10 @@ export default function ProfilePage() {
         const userData = await getCurrentUser();
         setUser(userData);
         setFormData({
-          name: userData.name || '',
+          displayName: userData.displayName || '',
           email: userData.email || '',
           phone: userData.phone || '',
-          location: '',
+          region: userData.region || '',
         });
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -45,12 +46,12 @@ export default function ProfilePage() {
   }, [isAuthenticated, setUser]);
 
   // Redirect if not authenticated
-  if (!isAuthenticated) {
-    if (typeof window !== 'undefined') {
-      router.push('/auth/login?redirect=/profile');
-    }
-    return null;
-  }
+   if (!isAuthenticated) {
+     if (typeof window !== 'undefined') {
+       router.push('/auth/login?redirect=/profile');
+     }
+     return null;
+   }
 
   // Show loading state
   if (isLoading) {
@@ -68,7 +69,7 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       const updateData: UpdateProfileRequest = {
-        displayName: formData.name,
+        displayName: formData.displayName,
         phone: formData.phone,
       };
       
@@ -89,10 +90,10 @@ export default function ProfilePage() {
 
   const handleCancel = () => {
     setFormData({
-      name: user?.name || '',
+      displayName: user?.displayName || '',
       email: user?.email || '',
       phone: user?.phone || '',
-      location: '',
+      region: user?.region || '',
     });
     setIsEditing(false);
   };
@@ -111,11 +112,11 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center">
                   <span className="text-primary-600 font-bold text-3xl">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                    {user?.displayName?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{user?.name || 'مستخدم'}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">{user?.displayName || 'مستخدم'}</h1>
                   <p className="text-gray-500 flex items-center gap-2 mt-1">
                     <Mail size={16} />
                     {user?.email || ''}
@@ -162,18 +163,18 @@ export default function ProfilePage() {
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <User size={16} className="inline ml-2" />
+                  <UserIcon size={16} className="inline ml-2" />
                   الاسم
                 </label>
                 {isEditing ? (
                   <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    value={formData.displayName}
+                    onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">{user?.name}</p>
+                  <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">{user?.displayName}</p>
                 )}
               </div>
 
@@ -217,6 +218,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Location */}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <MapPin size={16} className="inline ml-2" />
@@ -225,18 +227,18 @@ export default function ProfilePage() {
                 {isEditing ? (
                   <input
                     type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    value={formData.region}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="مثال: دمشق"
                   />
                 ) : (
                   <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
-                    {formData.location || 'لم يتم تحديد المدينة'}
+                    {user?.region || 'لم يتم تحديد المدينة'}
                   </p>
                 )}
               </div>
-
+              
               {/* Member Since */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
