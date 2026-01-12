@@ -87,7 +87,7 @@ public sealed class UploadsController : ControllerBase
             }
 
             _logger.LogWarning(ex, "Image upload failed; cleaned up {Count} files.", savedPaths.Count);
-            return BadRequest(ex.Message);
+            return BadRequest("An error occurred while uploading the image.");
         }
 
         return Ok(new UploadImagesResponse(urls));
@@ -103,7 +103,7 @@ public sealed class UploadsController : ControllerBase
         if (string.IsNullOrWhiteSpace(bucket))
             return;
 
-        var client = TryCreateStorageClient();
+        using var client = TryCreateStorageClient();
         if (client == null)
         {
             _logger.LogWarning("Firebase storage bucket configured but credentials are missing.");
