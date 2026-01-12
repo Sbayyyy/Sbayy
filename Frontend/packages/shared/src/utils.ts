@@ -299,3 +299,10 @@ export const formatSyrianPhone = (phone: string): string => {
 
   return phone;
 };
+
+/**
+ * Concatenate class names, skipping falsy values.
+ */
+export const cn = (...classes: Array<string | false | null | undefined>): string => {
+  return classes.filter(Boolean).join(' ');
+};

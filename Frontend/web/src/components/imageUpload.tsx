@@ -1,6 +1,7 @@
 // File: Frontend/web/src/components/imageUpload.tsx
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Upload, X } from 'lucide-react';
+import { api } from '../lib/api';
 
 interface ImageUploadProps {
   images: string[];
@@ -14,7 +15,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
 
   const handleFiles = async (files: FileList) => {
     const fileArray = Array.from(files);
-    
+
     if (images.length + fileArray.length > maxImages) {
       alert(`يمكنك رفع ${maxImages} صور كحد أقصى`);
       return;
@@ -22,8 +23,12 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
 
     setUploading(true);
     try {
-      const newImages = fileArray.map(file => URL.createObjectURL(file));
-      onChange([...images, ...newImages]);
+      const formData = new FormData();
+      fileArray.forEach(file => formData.append("files", file));
+      const { data } = await api.post<{ urls: string[] }>("/uploads/images", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      onChange([...images, ...data.urls]);
     } catch (error) {
       console.error('Error uploading images:', error);
       alert('حدث خطأ أثناء رفع الصور');
@@ -59,16 +64,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
     }
   };
 
-  // Cleanup object URLs when images change or component unmounts
-  useEffect(() => {
-    return () => {
-      images.forEach(url => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
-      });
-    };
-  }, [images]);
+  // No object URL cleanup needed; images are remote URLs.
 
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);

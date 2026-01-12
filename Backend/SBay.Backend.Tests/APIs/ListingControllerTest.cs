@@ -3,15 +3,21 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using SBay.Domain.Database;
+using SBay.Domain.Entities;
+using SBay.Domain.ValueObjects;
 using Xunit;
 using SBay.Backend.APIs.Records.Responses;
 
 public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
 {
+    private readonly TestWebAppFactory _factory;
     private readonly HttpClient _client;
 
     public ListingsControllerTests(TestWebAppFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
@@ -20,6 +26,16 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+    }
+
+    private async Task SeedListingsAsync(params Listing[] listings)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+        await db.Database.EnsureDeletedAsync();
+        await db.Database.EnsureCreatedAsync();
+        db.Listings.AddRange(listings);
+        await db.SaveChangesAsync();
     }
 
     [Fact]
@@ -93,5 +109,63 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("PageSize must be");
+    }
+
+    [Fact]
+    public async Task Search_Should_Filter_By_Category()
+    {
+        await SeedListingsAsync(
+            new Listing(Guid.NewGuid(), "Phone", "desc", new Money(100m, "EUR"), categoryPath: "electronics", region: "Damascus", condition: ItemCondition.New),
+            new Listing(Guid.NewGuid(), "Shirt", "desc", new Money(50m, "EUR"), categoryPath: "fashion", region: "Damascus", condition: ItemCondition.Used));
+
+        var results = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/listings?category=electronics");
+
+        results.Should().NotBeNull();
+        results!.Should().HaveCount(1);
+        results.All(r => r.CategoryPath == "electronics").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Search_Should_Filter_By_Region()
+    {
+        await SeedListingsAsync(
+            new Listing(Guid.NewGuid(), "Phone", "desc", new Money(100m, "EUR"), categoryPath: "electronics", region: "Damascus", condition: ItemCondition.New),
+            new Listing(Guid.NewGuid(), "Shirt", "desc", new Money(50m, "EUR"), categoryPath: "fashion", region: "Aleppo", condition: ItemCondition.Used));
+
+        var results = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/listings?region=Damascus");
+
+        results.Should().NotBeNull();
+        results!.Should().HaveCount(1);
+        results.All(r => r.Region == "Damascus").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Search_Should_Filter_By_Price_Range()
+    {
+        await SeedListingsAsync(
+            new Listing(Guid.NewGuid(), "Phone", "desc", new Money(100m, "EUR"), categoryPath: "electronics", region: "Damascus", condition: ItemCondition.New),
+            new Listing(Guid.NewGuid(), "Shirt", "desc", new Money(50m, "EUR"), categoryPath: "fashion", region: "Damascus", condition: ItemCondition.Used),
+            new Listing(Guid.NewGuid(), "Tablet", "desc", new Money(180m, "EUR"), categoryPath: "electronics", region: "Damascus", condition: ItemCondition.Used));
+
+        var results = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/listings?minPrice=80&maxPrice=150");
+
+        results.Should().NotBeNull();
+        results!.Should().HaveCount(1);
+        results.All(r => r.PriceAmount >= 80m && r.PriceAmount <= 150m).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Search_Should_Filter_By_Condition()
+    {
+        await SeedListingsAsync(
+            new Listing(Guid.NewGuid(), "Phone", "desc", new Money(100m, "EUR"), categoryPath: "electronics", region: "Damascus", condition: ItemCondition.New),
+            new Listing(Guid.NewGuid(), "Shirt", "desc", new Money(50m, "EUR"), categoryPath: "fashion", region: "Damascus", condition: ItemCondition.Used),
+            new Listing(Guid.NewGuid(), "Tablet", "desc", new Money(180m, "EUR"), categoryPath: "electronics", region: "Damascus", condition: ItemCondition.Used));
+
+        var results = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/listings?condition=Used");
+
+        results.Should().NotBeNull();
+        results!.Should().HaveCount(2);
+        results.All(r => r.Condition == ItemCondition.Used).Should().BeTrue();
     }
 }

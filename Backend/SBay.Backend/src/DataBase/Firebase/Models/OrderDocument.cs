@@ -10,7 +10,7 @@ internal sealed class OrderDocument
     [FirestoreProperty] public string BuyerId { get; set; } = string.Empty;
     [FirestoreProperty] public string SellerId { get; set; } = string.Empty;
     [FirestoreProperty] public string Status { get; set; } = OrderStatus.Pending.ToString();
-    [FirestoreProperty(Converter = typeof(DecimalCentsConverter))] public decimal TotalAmount { get; set; }
+    [FirestoreProperty] public object TotalAmount { get; set; } = 0L;
     [FirestoreProperty] public string TotalCurrency { get; set; } = "EUR";
     [FirestoreProperty] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     [FirestoreProperty] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -22,7 +22,7 @@ internal sealed class OrderDocument
         BuyerId = FirestoreId.ToString(order.BuyerId),
         SellerId = FirestoreId.ToString(order.SellerId),
         Status = order.Status.ToString(),
-        TotalAmount = order.TotalAmount,
+        TotalAmount = DecimalCentsConverter.ToFirestoreCents(order.TotalAmount),
         TotalCurrency = order.TotalCurrency,
         CreatedAt = order.CreatedAt,
         UpdatedAt = order.UpdatedAt,
@@ -37,7 +37,7 @@ internal sealed class OrderDocument
             BuyerId = FirestoreId.ParseRequired(BuyerId),
             SellerId = FirestoreId.ParseRequired(SellerId),
             Status = Enum.TryParse<OrderStatus>(Status, true, out var status) ? status : OrderStatus.Pending,
-            TotalAmount = TotalAmount,
+            TotalAmount = DecimalCentsConverter.FromFirestoreCents(TotalAmount),
             TotalCurrency = TotalCurrency ?? "EUR",
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,

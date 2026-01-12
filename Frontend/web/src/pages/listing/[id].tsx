@@ -170,7 +170,7 @@ export default function ListingDetail() {
                       <img
                         src={listing.imageUrls[selectedImageIndex]}
                         alt={listing.title}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                       />
                       {listing.imageUrls.length > 1 && (
                         <>

@@ -64,7 +64,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
     'Poor': 'سيئ'
   };
 
-  const imageUrl = product.imageUrls?.[0] || null;
+  const imageUrl = product.thumbnailUrl || product.imageUrls?.[0] || null;
   const formattedPrice = product.priceAmount.toLocaleString('ar-SY');
   const isAvailable = product.status === 'active' && 
     (product.stock === undefined || product.stock > 0);

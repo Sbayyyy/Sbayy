@@ -68,7 +68,7 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       const updateData: UpdateProfileRequest = {
-        displayName: formData.name,
+        name: formData.name,
         phone: formData.phone,
       };
       

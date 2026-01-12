@@ -11,9 +11,9 @@ internal sealed class ListingDocument
     [FirestoreProperty] public string SellerId { get; set; } = string.Empty;
     [FirestoreProperty] public string Title { get; set; } = string.Empty;
     [FirestoreProperty] public string Description { get; set; } = string.Empty;
-    [FirestoreProperty(Converter = typeof(DecimalCentsConverter))] public decimal PriceAmount { get; set; }
+    [FirestoreProperty] public object PriceAmount { get; set; } = 0L;
     [FirestoreProperty] public string PriceCurrency { get; set; } = "EUR";
-    [FirestoreProperty(Converter = typeof(NullableDecimalCentsConverter))] public decimal? OriginalPriceAmount { get; set; }
+    [FirestoreProperty] public object? OriginalPriceAmount { get; set; }
     [FirestoreProperty] public string? OriginalPriceCurrency { get; set; }
     [FirestoreProperty] public int StockQuantity { get; set; } = 1;
     [FirestoreProperty] public string? ThumbnailUrl { get; set; }
@@ -31,9 +31,9 @@ internal sealed class ListingDocument
         SellerId = FirestoreId.ToString(entity.SellerId),
         Title = entity.Title,
         Description = entity.Description,
-        PriceAmount = entity.Price.Amount,
+        PriceAmount = DecimalCentsConverter.ToFirestoreCents(entity.Price.Amount),
         PriceCurrency = entity.Price.Currency,
-        OriginalPriceAmount = entity.OriginalPrice?.Amount,
+        OriginalPriceAmount = DecimalCentsConverter.ToFirestoreCents(entity.OriginalPrice?.Amount),
         OriginalPriceCurrency = entity.OriginalPrice?.Currency,
         StockQuantity = entity.StockQuantity,
         ThumbnailUrl = entity.ThumbnailUrl,
@@ -48,9 +48,11 @@ internal sealed class ListingDocument
 
     public Listing ToDomain()
     {
-        var price = new Money(PriceAmount, string.IsNullOrWhiteSpace(PriceCurrency) ? "EUR" : PriceCurrency);
-        Money? original = OriginalPriceAmount.HasValue && !string.IsNullOrWhiteSpace(OriginalPriceCurrency)
-            ? new Money(OriginalPriceAmount.Value, OriginalPriceCurrency)
+        var priceAmount = DecimalCentsConverter.FromFirestoreCents(PriceAmount);
+        var originalAmount = DecimalCentsConverter.FromFirestoreCentsNullable(OriginalPriceAmount);
+        var price = new Money(priceAmount, string.IsNullOrWhiteSpace(PriceCurrency) ? "EUR" : PriceCurrency);
+        Money? original = originalAmount.HasValue && !string.IsNullOrWhiteSpace(OriginalPriceCurrency)
+            ? new Money(originalAmount.Value, OriginalPriceCurrency)
             : null;
 
         var listing = DomainObjectFactory.Create<Listing>();

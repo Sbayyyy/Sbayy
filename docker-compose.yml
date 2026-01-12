@@ -50,6 +50,7 @@ services:
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
       Redis__Host: redis
       Redis__Port: 6379
+      App__PublicBaseUrl: ${App__PublicBaseUrl}
     ports:
       - "${API_HOST_PORT}:8080"
     networks:

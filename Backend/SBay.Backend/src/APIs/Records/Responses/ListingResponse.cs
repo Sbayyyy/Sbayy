@@ -21,7 +21,6 @@
 
         public string? ThumbnailUrl { get; init; }
         public IReadOnlyList<ListingImageDto> Images { get; init; } = Array.Empty<ListingImageDto>();
-
-        public List<string> ImageUrls => Images.Select(i => i.Url).ToList();
+        public IReadOnlyList<string> ImageUrls { get; init; } = Array.Empty<string>();
     }
 }

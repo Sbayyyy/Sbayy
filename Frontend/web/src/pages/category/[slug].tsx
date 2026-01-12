@@ -45,7 +45,7 @@ export default function CategoryPage() {
   });
 
   // Load products with useCallback to prevent infinite loops
-  const loadProducts = useCallback(async (reset = false) => {
+  const loadProducts = useCallback(async (reset = false, pageOverride?: number) => {
     try {
       if (reset) {
         setLoading(true);
@@ -54,14 +54,14 @@ export default function CategoryPage() {
         setLoadingMore(true);
       }
 
-      const currentPage = reset ? 1 : page;
+      const currentPage = reset ? 1 : (pageOverride ?? page);
       const data = await getAllListings(currentPage, 20, filters);
       
       if (data.items) {
-        setProducts(reset ? data.items : [...products, ...data.items]);
+        setProducts(prev => (reset ? data.items : [...prev, ...data.items]));
         setHasMore(data.total > currentPage * 20);
       } else if (Array.isArray(data)) {
-        setProducts(reset ? data : [...products, ...data]);
+        setProducts(prev => (reset ? data : [...prev, ...data]));
         setHasMore(false);
       }
 
@@ -73,7 +73,7 @@ export default function CategoryPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filters, page, products]); // Include all dependencies
+  }, [filters, page]);
 
   // Effect for slug change
   useEffect(() => {
@@ -93,8 +93,9 @@ export default function CategoryPage() {
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {
-      setPage(prev => prev + 1);
-      loadProducts(false);
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadProducts(false, nextPage);
     }
   };
 

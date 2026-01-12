@@ -112,11 +112,19 @@ public class FirebaseListingRepository : IListingRepository
         if (!string.IsNullOrWhiteSpace(listingQuery.Region))
             query = query.WhereEqualTo("Region", listingQuery.Region);
 
+        if (!string.IsNullOrWhiteSpace(listingQuery.Condition))
+        {
+            var parsedCondition = ItemConditionExtensions.FromString(listingQuery.Condition);
+            if (parsedCondition == ItemCondition.Unknown && !string.Equals(listingQuery.Condition.Trim(), "unknown", StringComparison.OrdinalIgnoreCase))
+                return Array.Empty<Listing>();
+            query = query.WhereEqualTo("Condition", parsedCondition.ToString());
+        }
+
         if (listingQuery.MinPrice.HasValue)
-            query = query.WhereGreaterThanOrEqualTo("PriceAmount", (double)listingQuery.MinPrice.Value);
+            query = query.WhereGreaterThanOrEqualTo("PriceAmount", DecimalCentsConverter.ToFirestoreCents(listingQuery.MinPrice.Value));
 
         if (listingQuery.MaxPrice.HasValue)
-            query = query.WhereLessThanOrEqualTo("PriceAmount", (double)listingQuery.MaxPrice.Value);
+            query = query.WhereLessThanOrEqualTo("PriceAmount", DecimalCentsConverter.ToFirestoreCents(listingQuery.MaxPrice.Value));
 
         var snapshot = await EnsureCompleted(query.GetSnapshotAsync(ct));
         if (snapshot == null || snapshot.Count == 0)
