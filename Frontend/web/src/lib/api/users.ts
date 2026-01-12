@@ -1,6 +1,18 @@
 import { api } from './index';
 import { User } from '@sbay/shared';
 
+type BackendUserDto = Omit<User, 'name'> & {
+  displayName?: string;
+  name?: string;
+};
+
+function toUser(dto: BackendUserDto): User {
+  return {
+    ...dto,
+    name: dto.displayName ?? dto.name ?? '',
+  };
+}
+
 /**
  * Profile update payload for the current user.
  * @property {string} [displayName] - Updated display name for the user.
@@ -17,8 +29,8 @@ export interface UpdateProfileRequest {
  * @throws {Error} When the API request fails.
  */
 export async function getCurrentUser(): Promise<User> {
-  const response = await api.get<User>('/users/me');
-  return response.data;
+  const response = await api.get<BackendUserDto>('/users/me');
+  return toUser(response.data);
 }
 
 /**
@@ -28,6 +40,6 @@ export async function getCurrentUser(): Promise<User> {
  * @throws {Error} When the API request fails.
  */
 export async function updateProfile(data: UpdateProfileRequest): Promise<User> {
-  const response = await api.put<User>('/users/me', data);
-  return response.data;
+  const response = await api.put<BackendUserDto>('/users/me', data);
+  return toUser(response.data);
 }

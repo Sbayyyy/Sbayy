@@ -41,30 +41,53 @@ public sealed class UploadsController : ControllerBase
         Directory.CreateDirectory(uploadsRoot);
 
         var urls = new List<string>();
-        foreach (var file in files)
+        var savedPaths = new List<string>();
+        try
         {
-            if (file.Length <= 0)
-                continue;
-
-            var ext = Path.GetExtension(file.FileName);
-            if (string.IsNullOrWhiteSpace(ext) || !AllowedExtensions.Contains(ext))
-                return BadRequest("Unsupported image type.");
-
-            var fileName = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
-            var localPath = Path.Combine(uploadsRoot, fileName);
-
-            await using (var stream = System.IO.File.Create(localPath))
+            foreach (var file in files)
             {
-                await file.CopyToAsync(stream, ct);
+                if (file.Length <= 0)
+                    continue;
+
+                var ext = Path.GetExtension(file.FileName);
+                if (string.IsNullOrWhiteSpace(ext) || !AllowedExtensions.Contains(ext))
+                    throw new InvalidOperationException("Unsupported image type.");
+
+                var fileName = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+                var localPath = Path.Combine(uploadsRoot, fileName);
+
+                await using (var stream = System.IO.File.Create(localPath))
+                {
+                    await file.CopyToAsync(stream, ct);
+                }
+
+                savedPaths.Add(localPath);
+
+                var baseUrl = _config["App:PublicBaseUrl"];
+                if (string.IsNullOrWhiteSpace(baseUrl))
+                    baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var localUrl = $"{baseUrl.TrimEnd('/')}/uploads/{fileName}";
+                urls.Add(localUrl);
+
+                await TryUploadToFirebaseAsync(localPath, fileName, file.ContentType, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            foreach (var path in savedPaths)
+            {
+                try
+                {
+                    System.IO.File.Delete(path);
+                }
+                catch (Exception deleteEx)
+                {
+                    _logger.LogWarning(deleteEx, "Failed to delete orphaned upload file {Path}.", path);
+                }
             }
 
-            var baseUrl = _config["App:PublicBaseUrl"];
-            if (string.IsNullOrWhiteSpace(baseUrl))
-                baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var localUrl = $"{baseUrl.TrimEnd('/')}/uploads/{fileName}";
-            urls.Add(localUrl);
-
-            await TryUploadToFirebaseAsync(localPath, fileName, file.ContentType, ct);
+            _logger.LogWarning(ex, "Image upload failed; cleaned up {Count} files.", savedPaths.Count);
+            return BadRequest(ex.Message);
         }
 
         return Ok(new UploadImagesResponse(urls));
