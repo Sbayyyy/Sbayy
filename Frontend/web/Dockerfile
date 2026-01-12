@@ -2,6 +2,10 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+# Build argument for Next.js public env var
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 # Bring manifests needed for a web-only install (shared is a file: dep)
 COPY packages/shared/package.json packages/shared/package.json
 COPY web/package.json web/package.json

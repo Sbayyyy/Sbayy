@@ -248,6 +248,15 @@ export interface Address {
 }
 
 /**
+ * Gespeicherte Adresse (mit ID vom Backend)
+ */
+export interface SavedAddress extends Address {
+  id: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/**
  * Versand-Information (von DHL/Carrier)
  * Wird nach Stadt berechnet
  */
@@ -273,9 +282,9 @@ export interface OrderItem {
  */
 export interface OrderCreate {
   items: OrderItem[];                           // Bestellte Produkte
-  shippingAddress: Address;                     // Versand-Adresse
+  savedAddressId?: string;                      // Option 1: Gespeicherte Adresse verwenden
+  newAddress?: Address;                         // Option 2: Neue Adresse (Backend speichert sie)
   paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';       // COD = Cash on Delivery
-  saveAddress?: boolean;                        // Adresse speichern für später?
 }
 
 /**
@@ -292,7 +301,7 @@ export interface OrderUpdate {
 export interface OrderResponse {
   id: string;
   items: OrderItem[];
-  shippingAddress: Address;
+  shippingAddress?: SavedAddress;                       // Optional: kann null sein bei pickup
   paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';
   shippingInfo: ShippingInfo;
   total: number;                                        // Total mit Shipping

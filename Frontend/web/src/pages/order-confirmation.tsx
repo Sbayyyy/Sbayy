@@ -123,7 +123,7 @@ export default function OrderConfirmationPage() {
               <div className="flex justify-between items-center py-3 border-b border-gray-200">
                 <span className="text-gray-600">عنوان التوصيل</span>
                 <span className="font-semibold text-gray-900">
-                  {order.shippingAddress.city}
+                  {order.shippingAddress?.city || 'غير محدد'}
                 </span>
               </div>
               <div className="flex justify-between items-center py-3">

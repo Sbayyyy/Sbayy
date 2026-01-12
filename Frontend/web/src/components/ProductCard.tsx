@@ -71,9 +71,9 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
 
   return (
     <Link href={`/listing/${product.id}`}>
-      <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all overflow-hidden cursor-pointer">
+      <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all overflow-hidden cursor-pointer h-full flex flex-col">
         {/* Image */}
-        <div className="relative aspect-square bg-gray-100">
+        <div className="relative aspect-square bg-gray-100 flex-shrink-0">
           {imageUrl ? (
             <img 
               src={imageUrl} 
@@ -116,19 +116,21 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
         </div>
 
         {/* Content */}
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+        <div className="p-4 flex-1 flex flex-col">
+          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12">
             {product.title}
           </h3>
 
-          {product.region && (
-            <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
-              <MapPin size={14} />
-              <span>{product.region}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1 text-sm text-gray-500 mb-3 h-5">
+            {product.region && (
+              <>
+                <MapPin size={14} />
+                <span>{product.region}</span>
+              </>
+            )}
+          </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-auto">
             <span className="text-2xl font-bold text-primary-600">
               {formattedPrice} ل.س
             </span>

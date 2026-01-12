@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { getOrder, updateOrderStatus, cancelOrder } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
@@ -308,26 +309,30 @@ export default function OrderDetailsPage() {
                   <h2 className="text-xl font-bold">عنوان الشحن</h2>
                 </div>
                 <div className="p-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <User className="w-5 h-5 text-gray-400" />
-                      <p className="text-gray-900">{order.shippingAddress.name}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-5 h-5 text-gray-400" />
-                      <p className="text-gray-900" dir="ltr">{order.shippingAddress.phone}</p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-gray-900">{order.shippingAddress.street}</p>
-                        <p className="text-gray-600">{order.shippingAddress.city}</p>
-                        {order.shippingAddress.region && (
-                          <p className="text-gray-600">{order.shippingAddress.region}</p>
-                        )}
+                  {order.shippingAddress ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <User className="w-5 h-5 text-gray-400" />
+                        <p className="text-gray-900">{order.shippingAddress.name}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-5 h-5 text-gray-400" />
+                        <p className="text-gray-900" dir="ltr">{order.shippingAddress.phone}</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-gray-900">{order.shippingAddress.street}</p>
+                          <p className="text-gray-600">{order.shippingAddress.city}</p>
+                          {order.shippingAddress.region && (
+                            <p className="text-gray-600">{order.shippingAddress.region}</p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <p className="text-gray-500">لا توجد معلومات عنوان التوصيل</p>
+                  )}
                 </div>
               </div>
 

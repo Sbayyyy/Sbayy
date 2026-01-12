@@ -2,31 +2,37 @@
 {
     public class ListingQuery
     {
-        public string? Text { get; init; }
-        public string? Category { get; init; }
-        public int Page { get; init; } = 1;
-        public int PageSize { get; init; } = 24;
-        public decimal? MinPrice { get; init; }
-        public decimal? MaxPrice { get; init; }
-        public string? Region { get; init; }
+        public const int MaxPageSize = 100;
+        public const int MaxTextLength = 200;
+        public const int MaxCategoryLength = 200;
+        public const int MaxRegionLength = 100;
 
-        public ListingQuery(
-            string? text = null,
-            string? category = null,
-            int page = 1,
-            int pageSize = 24,
-            decimal? minPrice = null,
-            decimal? maxPrice = null,
-            string? region = null
-        )
+        public string? Text { get; set; }
+        public string? Category { get; set; }
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 24;
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
+        public string? Region { get; set; }
+
+        public void Validate()
         {
-            Text = text;
-            Category = category;
-            Page = page <= 0 ? 1 : page;
-            PageSize = pageSize is < 1 or > 100 ? 24 : pageSize;
-            MinPrice = minPrice;
-            MaxPrice = maxPrice;
-            Region = region;
+            if (Page < 1)
+                throw new ArgumentOutOfRangeException(nameof(Page), "Page must be >= 1.");
+            if (PageSize < 1 || PageSize > MaxPageSize)
+                throw new ArgumentOutOfRangeException(nameof(PageSize), $"PageSize must be between 1 and {MaxPageSize}.");
+            if (MinPrice.HasValue && MinPrice.Value < 0)
+                throw new ArgumentOutOfRangeException(nameof(MinPrice), "MinPrice must be >= 0.");
+            if (MaxPrice.HasValue && MaxPrice.Value < 0)
+                throw new ArgumentOutOfRangeException(nameof(MaxPrice), "MaxPrice must be >= 0.");
+            if (MinPrice.HasValue && MaxPrice.HasValue && MinPrice.Value > MaxPrice.Value)
+                throw new ArgumentException("MinPrice must be <= MaxPrice.", nameof(MinPrice));
+            if (Text != null && Text.Length > MaxTextLength)
+                throw new ArgumentException($"Text length must be <= {MaxTextLength}.", nameof(Text));
+            if (Category != null && Category.Length > MaxCategoryLength)
+                throw new ArgumentException($"Category length must be <= {MaxCategoryLength}.", nameof(Category));
+            if (Region != null && Region.Length > MaxRegionLength)
+                throw new ArgumentException($"Region length must be <= {MaxRegionLength}.", nameof(Region));
         }
     }
 }

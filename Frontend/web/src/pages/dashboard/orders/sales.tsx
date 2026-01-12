@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Layout from '@/components/Layout';
-import { getSales, updateOrderStatus } from '@/lib/api/orders';
+import Layout from '@/components/Layout';import { toast } from '@/lib/toast';import { getSales, updateOrderStatus } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
 import { 
@@ -332,12 +331,18 @@ export default function SalesPage() {
                       <p className="text-sm font-medium text-gray-700 mb-1">
                         معلومات العميل:
                       </p>
-                      <p className="text-sm text-gray-600">
-                        {order.shippingAddress.name} • {order.shippingAddress.phone}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {order.shippingAddress.street}, {order.shippingAddress.city}
-                      </p>
+                      {order.shippingAddress ? (
+                        <>
+                          <p className="text-sm text-gray-600">
+                            {order.shippingAddress.name} • {order.shippingAddress.phone}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {order.shippingAddress.street}, {order.shippingAddress.city}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-500">لا توجد معلومات عنوان</p>
+                      )}
                     </div>
 
                     {/* Totals */}

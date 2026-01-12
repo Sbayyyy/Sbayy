@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SBay.Backend.APIs.Records;
+using SBay.Backend.DataBase.Interfaces;
+using SBay.Backend.Services;
 using SBay.Domain.Authentication;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -9,26 +11,36 @@ namespace SBay.Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/orders")]
+[Authorize]
 public sealed class OrdersController : ControllerBase
 {
     private readonly ICurrentUserResolver _resolver;
     private readonly IUserRepository _users;
     private readonly IListingRepository _listings;
     private readonly IOrderRepository _orders;
+    private readonly IAddressRepository _addresses;
+    private readonly IShippingService _shipping;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
         ICurrentUserResolver resolver,
         IUserRepository users,
         IListingRepository listings,
         IOrderRepository orders,
-        IUnitOfWork uow)
+        IAddressRepository addresses,
+        IShippingService shipping,
+        IUnitOfWork uow,
+        ILogger<OrdersController> logger)
     {
         _resolver = resolver;
         _users = users;
         _listings = listings;
         _orders = orders;
+        _addresses = addresses;
+        _shipping = shipping;
         _uow = uow;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -38,6 +50,74 @@ public sealed class OrdersController : ControllerBase
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
         if (req.Items == null || req.Items.Count == 0) return ValidationProblem("At least one item is required.");
+
+        // ===== NEW: Validate Payment Method =====
+        var paymentMethodValue = req.PaymentMethod?.Trim().ToLowerInvariant();
+        var paymentMethod = paymentMethodValue switch
+        {
+            "cod" => PaymentMethod.CashOnDelivery,
+            "bank_transfer" => PaymentMethod.BankTransfer,
+            "meet_in_person" => PaymentMethod.MeetInPerson,
+            _ => (PaymentMethod?)null
+        };
+        if (!paymentMethod.HasValue)
+            return BadRequest("Invalid payment method. Use: 'cod', 'bank_transfer', or 'meet_in_person'");
+
+        // ===== NEW: Handle Address (saved OR new) =====
+        Guid? addressId = req.SavedAddressId == Guid.Empty ? null : req.SavedAddressId;
+        Address? newAddress = null;
+        
+        if (addressId == null && req.NewAddress != null)
+        {
+            // Create and save new address
+            if (string.IsNullOrWhiteSpace(req.NewAddress.Name) ||
+                string.IsNullOrWhiteSpace(req.NewAddress.Phone) ||
+                string.IsNullOrWhiteSpace(req.NewAddress.Street) ||
+                string.IsNullOrWhiteSpace(req.NewAddress.City))
+            {
+                return BadRequest("Name, phone, street, and city are required.");
+            }
+
+            var name = req.NewAddress.Name.Trim();
+            var phone = req.NewAddress.Phone.Trim();
+            var street = req.NewAddress.Street.Trim();
+            var city = req.NewAddress.City.Trim();
+            var region = req.NewAddress.Region?.Trim();
+
+            if (name.Length > 100)
+                return BadRequest("Name must be 100 characters or less.");
+            if (phone.Length > 20)
+                return BadRequest("Phone must be 20 characters or less.");
+            if (street.Length > 200)
+                return BadRequest("Street must be 200 characters or less.");
+            if (city.Length > 100)
+                return BadRequest("City must be 100 characters or less.");
+            if (region != null && region.Length > 100)
+                return BadRequest("Region must be 100 characters or less.");
+
+            newAddress = new Address
+            {
+                UserId = me.Value,
+                Name = name,
+                Phone = phone,
+                Street = street,
+                City = city,
+                Region = region
+            };
+        }
+        
+        // Validate address
+        Address? address = null;
+        if (addressId.HasValue)
+        {
+            address = await _addresses.GetByIdAsync(addressId.Value, ct);
+            if (address == null) return BadRequest("Address not found");
+            if (address.UserId != me.Value) return Forbid();
+        }
+        else if (newAddress != null)
+        {
+            address = newAddress;
+        }
 
         if (req.SellerId != Guid.Empty)
         {
@@ -76,6 +156,30 @@ public sealed class OrdersController : ControllerBase
             return ValidationProblem("All items in an order must have the same currency.");
         var currency = currencies[0];
 
+        // ===== NEW: Calculate Shipping =====
+        ShippingQuote? shippingQuote = null;
+        if (address != null)
+        {
+            const decimal DefaultItemWeightKg = 1.0m;
+            if (req.Items.Any(i => i.WeightKg is null))
+                _logger.LogWarning("Some items are missing weight; using default weight for shipping calculation.");
+            var totalWeightKg = req.Items
+                .Where(i => i.Quantity > 0)
+                .Sum(i => i.Quantity * (i.WeightKg ?? DefaultItemWeightKg));
+            shippingQuote = await _shipping.CalculateShippingAsync(address.City, totalWeightKg, ct);
+        }
+
+        await using var tx = await _uow.BeginTransactionAsync(ct);
+
+        if (newAddress != null)
+        {
+            await _addresses.AddAsync(newAddress, ct);
+            await _uow.SaveChangesAsync(ct);
+            if (newAddress.Id == Guid.Empty)
+                throw new InvalidOperationException("Failed to persist shipping address.");
+            addressId = newAddress.Id;
+        }
+
         var listingById = listings.ToDictionary(l => l.Id);
         var order = new Order
         {
@@ -85,7 +189,15 @@ public sealed class OrdersController : ControllerBase
             Status = OrderStatus.Pending,
             TotalCurrency = currency,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            
+            // ===== NEW: E-Commerce Fields =====
+            ShippingAddressId = addressId,
+            ShippingAddress = newAddress ?? address,
+            PaymentMethod = paymentMethod.Value,
+            ShippingCost = shippingQuote?.Cost ?? 0,
+            ShippingCarrier = shippingQuote?.Carrier,
+            EstimatedDeliveryDays = shippingQuote?.EstimatedDays
         };
 
         foreach (var it in req.Items)
@@ -105,12 +217,15 @@ public sealed class OrdersController : ControllerBase
             });
         }
 
-        order.TotalAmount = order.Items.Sum(i => i.PriceAmount * i.Quantity);
+        // Calculate total (subtotal + shipping)
+        var subtotal = order.Items.Sum(i => i.PriceAmount * i.Quantity);
+        order.TotalAmount = subtotal + order.ShippingCost;
 
         await _orders.AddAsync(order, ct);
         await _uow.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
-        var dto = ToDto(order);
+        var dto = ToDto(order, address);
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, dto);
     }
 
@@ -126,10 +241,18 @@ public sealed class OrdersController : ControllerBase
         if (order.BuyerId != me.Value && order.SellerId != me.Value && !User.IsInRole("admin"))
             return Forbid();
 
-        return Ok(ToDto(order));
+        // ===== NEW: Populate Address =====
+        Address? address = null;
+        if (order.ShippingAddressId.HasValue)
+        {
+            address = await _addresses.GetByIdAsync(order.ShippingAddressId.Value, ct);
+        }
+
+        return Ok(ToDto(order, address));
     }
 
-    private static OrderDto ToDto(Order order)
+    // ===== UPDATED: ToDto with Address and ShippingInfo =====
+    private static OrderDto ToDto(Order order, Address? address)
     {
         return new OrderDto(
             order.Id,
@@ -145,6 +268,35 @@ public sealed class OrdersController : ControllerBase
                 i.ListingId ?? Guid.Empty,
                 i.Quantity,
                 i.PriceAmount,
-                i.PriceCurrency)).ToList());
+                i.PriceCurrency)).ToList(),
+            
+            // NEW: Populated Address
+            ShippingAddress: address != null ? new AddressDto(
+                address.Id,
+                address.Name,
+                address.Phone,
+                address.Street,
+                address.City,
+                address.Region,
+                address.CreatedAt
+            ) : null,
+            
+            // NEW: Payment Method
+            PaymentMethod: order.PaymentMethod switch
+            {
+                PaymentMethod.CashOnDelivery => "cod",
+                PaymentMethod.BankTransfer => "bank_transfer",
+                PaymentMethod.MeetInPerson => "meet_in_person",
+                _ => "cod"
+            },
+            
+            // NEW: Shipping Info
+            ShippingInfo: new ShippingInfoDto(
+                order.ShippingCost,
+                order.ShippingCarrier ?? "other",
+                order.EstimatedDeliveryDays ?? 3,
+                order.TrackingNumber
+            )
+        );
     }
 }

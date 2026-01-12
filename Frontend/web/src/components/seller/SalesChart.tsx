@@ -34,7 +34,10 @@ export default function SalesChart({ data }: SalesChartProps) {
               borderRadius: '8px',
               fontSize: '14px'
             }}
-            formatter={(value: number) => [`${value.toLocaleString()} ل.س`, 'المبيعات']}
+            formatter={(value) => {
+              const num = typeof value === 'number' ? value : 0;
+              return [`${num.toLocaleString()} ل.س`, 'المبيعات'];
+            }}
           />
           <Bar 
             dataKey="sales" 

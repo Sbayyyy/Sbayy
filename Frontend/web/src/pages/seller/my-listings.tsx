@@ -10,9 +10,9 @@ export default function MyListingsPage() {
   const router = useRouter();
   const [listings, setListings] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'sold'>('all');
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {

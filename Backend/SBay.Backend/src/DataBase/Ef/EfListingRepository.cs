@@ -9,7 +9,14 @@ namespace SBay.Domain.Database
     public sealed class EfListingRepository : IListingRepository, IReadStore<Listing>, IWriteStore<Listing>
     {
         private readonly EfDbContext _db;
-        public EfListingRepository(EfDbContext db) => _db = db;
+        private readonly bool _isPostgres;
+
+        public EfListingRepository(EfDbContext db)
+        {
+            _db = db;
+            var provider = _db.Model.FindAnnotation("Relational:ProviderName")?.Value?.ToString();
+            _isPostgres = string.Equals(provider, DatabaseProviders.PostgresProviderName, StringComparison.Ordinal);
+        }
 
         public async Task<Listing?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
@@ -43,6 +50,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
     var skip = (page - 1) * size;
 
     IQueryable<Listing> query = _db.Listings.AsNoTracking();
+    var isPostgres = _isPostgres;
 
     if (!string.IsNullOrEmpty(q.Category))
         query = query.Where(l => l.CategoryPath == q.Category);
@@ -58,28 +66,36 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
     if (!string.IsNullOrWhiteSpace(text))
     {
-        var escaped = text.Replace(@"\", @"\\")
-            .Replace("%",  @"\%")
-            .Replace("_",  @"\_");
-        var patternContains = "%" + escaped + "%";
-        var patternStarts   = escaped + "%";
+        if (isPostgres)
+        {
+            var escaped = EscapeLike(text);
+            var patternContains = "%" + escaped + "%";
+            var patternStarts   = escaped + "%";
 
-        query = query
-            .Where(l =>
-                EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
-                    .Matches(EF.Functions.PlainToTsQuery("simple", text))
-                || EF.Functions.ILike(l.Title, patternContains)
-                || EF.Functions.ILike(l.Description, patternContains))
-            .OrderByDescending(l =>
-                EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
-                    .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
-            
-            .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts))
-            
-            .ThenBy(l => l.Title.ToLower().IndexOf(text.ToLower()))
-            
-            .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains))
-            .ThenByDescending(l => l.CreatedAt);
+            query = query
+                .Where(l =>
+                    EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
+                        .Matches(EF.Functions.PlainToTsQuery("simple", text))
+                    || EF.Functions.ILike(l.Title, patternContains, @"\")
+                    || EF.Functions.ILike(l.Description, patternContains, @"\"))
+                .OrderByDescending(l =>
+                    EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
+                        .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
+                
+                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts, @"\"))
+                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, @"\"))
+                .ThenByDescending(l => l.CreatedAt);
+        }
+        else
+        {
+            var escaped = EscapeLike(text);
+            var pattern = "%" + escaped.ToLowerInvariant() + "%";
+            query = query
+                .Where(l =>
+                    EF.Functions.Like(l.Title.ToLower(), pattern, @"\")
+                    || EF.Functions.Like((l.Description ?? string.Empty).ToLower(), pattern, @"\"))
+                .OrderByDescending(l => l.CreatedAt);
+        }
     }
     else
     {
@@ -89,6 +105,13 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
     return await query.Skip(skip).Take(size).ToListAsync(ct);
 }
+
+        private static string EscapeLike(string input)
+        {
+            return input.Replace(@"\", @"\\")
+                .Replace("%", @"\%")
+                .Replace("_", @"\_");
+        }
         public async Task<IReadOnlyList<Listing>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
         {
             var idsArray = ids?.Where(id => id != Guid.Empty).Distinct().ToArray() ?? Array.Empty<Guid>();

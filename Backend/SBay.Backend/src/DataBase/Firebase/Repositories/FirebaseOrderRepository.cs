@@ -64,25 +64,43 @@ public class FirebaseOrderRepository : IOrderRepository
 
     public async Task AddAsync(Order entity, CancellationToken ct)
     {
-        await EnsureCompleted(
-            _db.Collection("orders")
-               .Document(entity.Id.ToString())
-               .SetAsync(OrderDocument.FromDomain(entity), cancellationToken: ct));
+        var docRef = _db.Collection("orders")
+            .Document(entity.Id.ToString());
+        var batch = FirestoreWriteContext.Batch;
+        if (batch != null)
+        {
+            batch.Set(docRef, OrderDocument.FromDomain(entity));
+            return;
+        }
+
+        await EnsureCompleted(docRef.SetAsync(OrderDocument.FromDomain(entity), cancellationToken: ct));
     }
 
     public async Task UpdateAsync(Order entity, CancellationToken ct)
     {
-        await EnsureCompleted(
-            _db.Collection("orders")
-               .Document(entity.Id.ToString())
-               .SetAsync(OrderDocument.FromDomain(entity), cancellationToken: ct));
+        var docRef = _db.Collection("orders")
+            .Document(entity.Id.ToString());
+        var batch = FirestoreWriteContext.Batch;
+        if (batch != null)
+        {
+            batch.Set(docRef, OrderDocument.FromDomain(entity));
+            return;
+        }
+
+        await EnsureCompleted(docRef.SetAsync(OrderDocument.FromDomain(entity), cancellationToken: ct));
     }
 
     public async Task RemoveAsync(Order entity, CancellationToken ct)
     {
-        await EnsureCompleted(
-            _db.Collection("orders")
-               .Document(entity.Id.ToString())
-               .DeleteAsync(cancellationToken: ct));
+        var docRef = _db.Collection("orders")
+            .Document(entity.Id.ToString());
+        var batch = FirestoreWriteContext.Batch;
+        if (batch != null)
+        {
+            batch.Delete(docRef);
+            return;
+        }
+
+        await EnsureCompleted(docRef.DeleteAsync(cancellationToken: ct));
     }
 }

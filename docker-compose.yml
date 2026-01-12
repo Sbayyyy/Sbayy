@@ -59,11 +59,12 @@ services:
     build:
       context: ./Frontend
       dockerfile: web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: ${WEB_PORT}
-      NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL}
     ports:
       - "${WEB_HOST_PORT}:${WEB_PORT}"
     depends_on:

@@ -1,22 +1,37 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { getAllListings } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ProductCardSkeleton from '@/components/ProductCardSkeleton';
+import { Search, MapPin, Package } from 'lucide-react';
 
+const categories = [
+  { id: 'cars', slug: 'cars', name: 'مركبات', icon: '🚗' },
+  { id: 'electronics', slug: 'electronics', name: 'إلكترونيات', icon: '📱' },
+  { id: 'furniture', slug: 'furniture', name: 'أثاث', icon: '🛋️' },
+  { id: 'home', slug: 'home', name: 'منزل وحديقة', icon: '🏡' },
+  { id: 'fashion', slug: 'fashion', name: 'ملابس', icon: '👕' },
+  { id: 'books', slug: 'books', name: 'كتب', icon: '📚' },
+  { id: 'sports', slug: 'sports', name: 'رياضة', icon: '⚽' },
+  { id: 'other', slug: 'other', name: 'أخرى', icon: '📦' }
+];
 
 export default function Home() {
+  const router = useRouter();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  
   useEffect(() => {
     loadFeaturedProducts();
   }, []);
 
   const loadFeaturedProducts = async () => {
     try {
-      const data = await getAllListings(1, 8); // Nur erste 8 Produkte
+      const data = await getAllListings(1, 8);
       if (data && data.items) {
         setFeaturedProducts(data.items);
       } else if (Array.isArray(data)) {
@@ -29,90 +44,90 @@ export default function Home() {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
   return (
     <Layout title="الرئيسية - سباي">
-      
-      <div className="min-h-screen">
+      <div className="min-h-screen space-y-6 py-6">
         
-
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-20">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">مرحباً بك في سباي</h2>
-            <p className="text-xl md:text-2xl mb-8">
-              سوق سوريا الإلكتروني - اشترِ وبع بسهولة وأمان
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Link href="/browse" className="btn bg-white text-primary-600 hover:bg-gray-100">
-                تصفح المنتجات
-              </Link>
-              <Link href="/listing/sell" className="btn bg-primary-700 hover:bg-primary-800">
-                ابدأ البيع
-              </Link>
+        {/* Search Section */}
+        <div className="container mx-auto px-4">
+          <div className="bg-white rounded-lg border shadow-sm p-6">
+            <div className="max-w-4xl mx-auto space-y-4">
+              <form onSubmit={handleSearch} className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ابحث عن منتجات..."
+                  className="w-full pr-10 pl-4 h-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </form>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4" />
+                <span>دمشق والمناطق المحيطة</span>
+              </div>
             </div>
           </div>
-        </section>
+        </div>
 
         {/* Categories */}
-        <section className="py-16 bg-gray-50">
-          <div className="container mx-auto px-4">
-            <h3 className="text-3xl font-bold mb-8 text-center">تصفح حسب الفئة</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {categories.map(cat => (
+        <div className="container mx-auto px-4">
+          <div className="bg-white rounded-lg border shadow-sm p-6">
+            <h3 className="text-xl font-bold mb-4">تصفح الفئات</h3>
+            <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+              {categories.map((category) => (
                 <Link
-                  key={cat.id}
-                  href={`/category/${cat.slug}`}
-                  className="card hover:shadow-lg transition-shadow text-center"
+                  key={category.id}
+                  href={`/category/${category.slug}`}
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <div className="text-4xl mb-3">{cat.icon}</div>
-                  <h4 className="font-semibold">{cat.name}</h4>
+                  <span className="text-2xl">{category.icon}</span>
+                  <span className="text-xs text-center">{category.name}</span>
                 </Link>
               ))}
             </div>
           </div>
-        </section>
+        </div>
 
         {/* Featured Products */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-3xl font-bold">منتجات مميزة</h3>
-              <Link href="/browse" className="text-primary-600 hover:underline">
-                عرض الكل ←
-              </Link>
-            </div>
-
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <ProductCardSkeleton key={i} />
-                ))}
-              </div>
-            ) : featuredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featuredProducts.map(product => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500">
-                لا توجد منتجات متوفرة حالياً
-              </div>
-            )}
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">الإعلانات المميزة</h2>
+            <Link href="/browse" className="text-primary-600 hover:underline">
+              عرض الكل
+            </Link>
           </div>
-        </section>
 
-        
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {featuredProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg border shadow-sm p-12 text-center">
+              <Package size={64} className="mx-auto mb-4 text-gray-300" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">لا توجد منتجات</h3>
+              <p className="text-gray-600">لا توجد منتجات متوفرة حالياً</p>
+            </div>
+          )}
+        </div>
+
       </div>
     </Layout>
   );
 }
 
-const categories = [
-  { id: 'electronics', slug: 'electronics', name: 'إلكترونيات', icon: '📱' },
-  { id: 'fashion', slug: 'fashion', name: 'أزياء', icon: '👔' },
-  { id: 'home', slug: 'home', name: 'منزل وحديقة', icon: '🏠' },
-  { id: 'cars', slug: 'cars', name: 'سيارات', icon: '🚗' },
-  { id: 'real-estate', slug: 'real-estate', name: 'عقارات', icon: '🏢' },
-  { id: 'other', slug: 'other', name: 'أخرى', icon: '📦' }
-];
