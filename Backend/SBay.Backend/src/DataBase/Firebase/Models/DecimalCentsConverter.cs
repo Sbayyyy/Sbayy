@@ -20,9 +20,9 @@ internal sealed class DecimalCentsConverter : FirestoreConverter<decimal>
         {
             long l => l / 100m,
             int i => i / 100m,
-            double d => (decimal)d,
-            decimal m => m,
-            string s when decimal.TryParse(s, out var parsed) => parsed,
+            double d => (decimal)d / 100m,
+            decimal m => m / 100m,
+            string s when decimal.TryParse(s, out var parsed) => parsed / 100m,
             _ => throw new ArgumentException($"Unsupported Firestore numeric value type: {value?.GetType().FullName}")
         };
     }
