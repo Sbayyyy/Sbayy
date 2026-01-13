@@ -21,31 +21,37 @@ public sealed class ListingsController : ControllerBase
         _uow = uow;
     }
 
-    private static ListingResponse ToResponse(Listing l) => new()
+    private static ListingResponse ToResponse(Listing l)
     {
-        Id            = l.Id,
-        Title         = l.Title,
-        Description   = l.Description,
-        PriceAmount   = l.Price.Amount,
-        PriceCurrency = l.Price.Currency,
-        Stock         = l.StockQuantity,
-        Condition     = l.Condition,
-        CategoryPath  = l.CategoryPath,
-        Region        = l.Region,
-        CreatedAt     = new DateTimeOffset(l.CreatedAt),
-        ThumbnailUrl  = l.ThumbnailUrl,
-        Images        = l.Images
+        var images = l.Images
             .OrderBy(i => i.Position)
             .Select(i => new ListingImageDto
             {
-                Url      = i.Url,
+                Url = i.Url,
                 Position = i.Position,
                 MimeType = i.MimeType,
-                Width    = i.Width,
-                Height   = i.Height
+                Width = i.Width,
+                Height = i.Height
             })
-            .ToList()
-    };
+            .ToList();
+
+        return new ListingResponse
+        {
+            Id = l.Id,
+            Title = l.Title,
+            Description = l.Description,
+            PriceAmount = l.Price.Amount,
+            PriceCurrency = l.Price.Currency,
+            Stock = l.StockQuantity,
+            Condition = l.Condition,
+            CategoryPath = l.CategoryPath,
+            Region = l.Region,
+            CreatedAt = new DateTimeOffset(l.CreatedAt),
+            ThumbnailUrl = l.ThumbnailUrl,
+            Images = images,
+            ImageUrls = images.Select(i => i.Url).ToList()
+        };
+    }
 
     [HttpPost]
     [Authorize]

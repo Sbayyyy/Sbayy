@@ -21,6 +21,7 @@ namespace SBay.Domain.Database
         public async Task<Listing?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
             return await _db.Set<Listing>()
+                .Include(l => l.Images)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(l => l.Id == id, ct);
         }
@@ -63,6 +64,13 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
     if (!string.IsNullOrEmpty(q.Region))
         query = query.Where(l => l.Region == q.Region);
+
+    if (!string.IsNullOrWhiteSpace(q.Condition))
+    {
+        var parsedCondition = ItemConditionExtensions.FromString(q.Condition);
+        if (parsedCondition != ItemCondition.Unknown)
+            query = query.Where(l => l.Condition == parsedCondition);
+    }
 
     if (!string.IsNullOrWhiteSpace(text))
     {

@@ -52,7 +52,6 @@ export const getAllListings = async (
     params: { 
       page, 
       pageSize: limit, // Backend uses 'pageSize' not 'limit'
-      text: filters?.category, // Backend uses 'text' for search, 'category' for category filter
       category: filters?.category,
       minPrice: filters?.minPrice,
       maxPrice: filters?.maxPrice,

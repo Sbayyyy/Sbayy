@@ -10,7 +10,7 @@ internal sealed class OrderItemDocument
     [FirestoreProperty] public string OrderId { get; set; } = string.Empty;
     [FirestoreProperty] public string? ListingId { get; set; }
     [FirestoreProperty] public int Quantity { get; set; }
-    [FirestoreProperty(Converter = typeof(DecimalCentsConverter))] public decimal PriceAmount { get; set; }
+    [FirestoreProperty] public object PriceAmount { get; set; } = 0L;
     [FirestoreProperty] public string PriceCurrency { get; set; } = "EUR";
 
     public static OrderItemDocument FromDomain(OrderItem item) => new()
@@ -19,7 +19,7 @@ internal sealed class OrderItemDocument
         OrderId = FirestoreId.ToString(item.OrderId),
         ListingId = FirestoreId.ToString(item.ListingId),
         Quantity = item.Quantity,
-        PriceAmount = item.PriceAmount,
+        PriceAmount = DecimalCentsConverter.ToFirestoreCents(item.PriceAmount),
         PriceCurrency = item.PriceCurrency
     };
 
@@ -29,7 +29,7 @@ internal sealed class OrderItemDocument
         OrderId = FirestoreId.ParseRequired(OrderId),
         ListingId = FirestoreId.ParseNullable(ListingId),
         Quantity = Quantity,
-        PriceAmount = PriceAmount,
+        PriceAmount = DecimalCentsConverter.FromFirestoreCents(PriceAmount),
         PriceCurrency = PriceCurrency
     };
 }

@@ -1,20 +1,32 @@
-using Google.Cloud.Firestore;
-
 namespace SBay.Backend.DataBase.Firebase.Models;
 
-internal sealed class DecimalCentsConverter : FirestoreConverter<decimal>
+internal static class DecimalCentsConverter
 {
-    public override object ToFirestore(decimal value)
+    public static long ToFirestoreCents(decimal value)
     {
         return (long)Math.Round(value * 100m, 0, MidpointRounding.AwayFromZero);
     }
 
-    public override decimal FromFirestore(object value)
+    public static long? ToFirestoreCents(decimal? value)
+    {
+        if (!value.HasValue)
+            return null;
+        return (long)Math.Round(value.Value * 100m, 0, MidpointRounding.AwayFromZero);
+    }
+
+    public static decimal FromFirestoreCents(object value)
     {
         return ConvertValue(value);
     }
 
-    internal static decimal ConvertValue(object value)
+    public static decimal? FromFirestoreCentsNullable(object? value)
+    {
+        if (value is null)
+            return null;
+        return ConvertValue(value);
+    }
+
+    private static decimal ConvertValue(object value)
     {
         return value switch
         {
@@ -25,22 +37,5 @@ internal sealed class DecimalCentsConverter : FirestoreConverter<decimal>
             string s when decimal.TryParse(s, out var parsed) => parsed / 100m,
             _ => throw new ArgumentException($"Unsupported Firestore numeric value type: {value?.GetType().FullName}")
         };
-    }
-}
-
-internal sealed class NullableDecimalCentsConverter : FirestoreConverter<decimal?>
-{
-    public override object? ToFirestore(decimal? value)
-    {
-        if (!value.HasValue)
-            return null;
-        return (long)Math.Round(value.Value * 100m, 0, MidpointRounding.AwayFromZero);
-    }
-
-    public override decimal? FromFirestore(object value)
-    {
-        if (value is null)
-            return null;
-        return DecimalCentsConverter.ConvertValue(value);
     }
 }

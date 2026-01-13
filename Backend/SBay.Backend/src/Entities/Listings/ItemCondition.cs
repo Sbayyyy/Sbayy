@@ -18,6 +18,9 @@ public static class ItemConditionExtensions
             "likenew" or "like new" => ItemCondition.LikeNew,
             "used" => ItemCondition.Used,
             "forparts" or "for parts" => ItemCondition.ForParts,
+            "refurbished" => ItemCondition.Refurbished,
+            "damaged" => ItemCondition.Damaged,
+            "unknown" => ItemCondition.Unknown,
             _ => ItemCondition.Unknown,
         };
     }

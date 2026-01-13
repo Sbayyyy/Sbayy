@@ -14,6 +14,7 @@
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
         public string? Region { get; set; }
+        public string? Condition { get; set; }
 
         public void Validate()
         {
@@ -33,6 +34,12 @@
                 throw new ArgumentException($"Category length must be <= {MaxCategoryLength}.", nameof(Category));
             if (Region != null && Region.Length > MaxRegionLength)
                 throw new ArgumentException($"Region length must be <= {MaxRegionLength}.", nameof(Region));
+            if (!string.IsNullOrWhiteSpace(Condition))
+            {
+                var parsed = ItemConditionExtensions.FromString(Condition);
+                if (parsed == ItemCondition.Unknown && !string.Equals(Condition.Trim(), "unknown", StringComparison.OrdinalIgnoreCase))
+                    throw new ArgumentException("Condition must be one of: New, Used, LikeNew, Refurbished, ForParts, Damaged, Unknown.", nameof(Condition));
+            }
         }
     }
 }

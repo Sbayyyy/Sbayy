@@ -1,12 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  phone?: string;
-}
+import type { User } from '@sbay/shared';
 
 interface AuthState {
   user: User | null;
