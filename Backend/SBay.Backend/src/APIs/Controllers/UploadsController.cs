@@ -3,6 +3,7 @@ using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SBay.Backend.APIs.Records.Responses;
+using SBay.Domain.Authentication;
 
 namespace SBay.Backend.APIs.Controllers;
 
@@ -28,6 +29,7 @@ public sealed class UploadsController : ControllerBase
 
     [HttpPost("images")]
     [Authorize]
+    [Authorize(Policy = ScopePolicies.ListingsWrite)]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<UploadImagesResponse>> UploadImages(
         [FromForm] List<IFormFile> files,

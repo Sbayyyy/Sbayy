@@ -36,6 +36,7 @@ namespace SBay.Domain.Database
         public async Task<IReadOnlyList<Listing>> GetBySellerAsync(Guid sellerId, CancellationToken ct = default)
         {
             return await _db.Set<Listing>()
+                .Include(l => l.Images)
                 .AsNoTracking()
                 .Where(l => l.SellerId == sellerId)
                 .OrderByDescending(l => l.CreatedAt)
@@ -54,7 +55,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
     var isPostgres = _isPostgres;
 
     if (!string.IsNullOrEmpty(q.Category))
-        query = query.Where(l => l.CategoryPath == q.Category);
+        query = query.Where(l => l.CategoryPath != null && l.CategoryPath.StartsWith(q.Category));
 
     if (q.MinPrice.HasValue)
         query = query.Where(l => l.Price.Amount >= q.MinPrice.Value);
@@ -144,7 +145,20 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
         {
             if (entity is null) throw new ArgumentNullException(nameof(entity));
             _db.Set<Listing>().Update(entity);
-            return Task.CompletedTask;
+            return ReplaceImagesAsync(entity, ct);
+        }
+
+        private async Task ReplaceImagesAsync(Listing entity, CancellationToken ct)
+        {
+            if (entity.Images == null) return;
+
+            await _db.Set<ListingImage>()
+                .Where(i => i.ListingId == entity.Id)
+                .ExecuteDeleteAsync(ct);
+
+            if (entity.Images.Count == 0) return;
+
+            await _db.Set<ListingImage>().AddRangeAsync(entity.Images, ct);
         }
 
         public Task RemoveAsync(Listing entity, CancellationToken ct = default)

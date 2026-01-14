@@ -8,6 +8,15 @@ export interface User {
   rating?: number;
   verified: boolean;
   createdAt: string;
+  totalRevenue?: number;
+  totalOrders?: number;
+  pendingOrders?: number;
+  reviewCount?: number;
+  listingBanned?: boolean;
+  listingBanUntil?: string;
+  listingLimit?: number;
+  listingLimitCount?: number;
+  listingLimitResetAt?: string;
 }
 
 export interface UserRegistration {
@@ -25,6 +34,7 @@ export interface UserLogin {
 // Product types (matched to Backend ListingResponse)
 export interface Product {
   id: string;
+  sellerId?: string;
   title: string;
   description: string;
   priceAmount: number;        // Backend field name

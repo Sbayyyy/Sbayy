@@ -61,4 +61,57 @@ public class Listing :
         ThumbnailUrl = string.IsNullOrWhiteSpace(url) ? null : url.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdateDetails(string? title, string? description, Money? price, int? stock, ItemCondition? condition, string? categoryPath, string? region)
+    {
+        if (title != null)
+        {
+            var trimmedTitle = title.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedTitle))
+                throw new ArgumentException(nameof(title));
+            Title = trimmedTitle;
+        }
+        if (description != null)
+            Description = description.Trim();
+        if (price != null)
+            Price = price;
+        if (stock.HasValue)
+        {
+            if (stock.Value < 0)
+                throw new ArgumentOutOfRangeException(nameof(stock));
+            StockQuantity = stock.Value;
+        }
+        if (condition.HasValue)
+            Condition = condition.Value;
+        if (categoryPath != null)
+            CategoryPath = categoryPath;
+        if (region != null)
+            Region = region;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ReplaceImages(IEnumerable<string> urls)
+    {
+        Images.Clear();
+        var list = urls?.Where(u => !string.IsNullOrWhiteSpace(u)).ToList() ?? new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var distinct = new List<string>(list.Count);
+        foreach (var url in list)
+        {
+            var trimmed = url.Trim();
+            if (trimmed.Length == 0 || !seen.Add(trimmed)) continue;
+            distinct.Add(trimmed);
+        }
+        for (int i = 0; i < distinct.Count; i++)
+        {
+            Images.Add(new ListingImage(
+                listingId: Id,
+                url: distinct[i],
+                position: i
+            ));
+        }
+
+        ThumbnailUrl = distinct.Count > 0 ? distinct[0] : null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

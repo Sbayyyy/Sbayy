@@ -4,12 +4,13 @@
     public sealed record ListingResponse
     {
         public Guid Id { get; init; }
+        public Guid SellerId { get; init; }
 
         public decimal PriceAmount { get; init; }
         public required string PriceCurrency { get; init; }
 
         public int Stock { get; init; }
-        public ItemCondition Condition { get; init; }
+        public required string Condition { get; init; }
 
         public string? CategoryPath { get; init; }
         public string? Region { get; init; }

@@ -13,6 +13,17 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  const mergeUniqueImages = (current: string[], next: string[]) => {
+    const seen = new Set<string>();
+    const merged: string[] = [];
+    for (const url of [...current, ...next]) {
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      merged.push(url);
+    }
+    return merged;
+  };
+
   const handleFiles = async (files: FileList) => {
     const fileArray = Array.from(files);
 
@@ -26,7 +37,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
       const formData = new FormData();
       fileArray.forEach(file => formData.append("files", file));
       const { data } = await api.post<{ urls: string[] }>("/uploads/images", formData);
-      onChange([...images, ...data.urls]);
+      onChange(mergeUniqueImages(images, data.urls));
     } catch (error) {
       console.error('Error uploading images:', error);
       alert('حدث خطأ أثناء رفع الصور');

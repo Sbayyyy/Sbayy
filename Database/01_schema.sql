@@ -29,10 +29,29 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT,
   phone TEXT,
   role TEXT NOT NULL DEFAULT 'user',
-  is_seller BOOLEAN NOT NULL DEFAULT FALSE,
+  is_seller BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  last_seen TIMESTAMPTZ
+  last_seen TIMESTAMPTZ,
+  total_revenue NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total_orders INT NOT NULL DEFAULT 0,
+  pending_orders INT NOT NULL DEFAULT 0,
+  review_count INT NOT NULL DEFAULT 0,
+  listing_banned BOOLEAN NOT NULL DEFAULT FALSE,
+  listing_ban_until TIMESTAMPTZ,
+  listing_limit INT,
+  listing_limit_count INT NOT NULL DEFAULT 0,
+  listing_limit_reset_at TIMESTAMPTZ
 );
+
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS total_revenue NUMERIC(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS total_orders INT NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS pending_orders INT NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS review_count INT NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_banned BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_ban_until TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit INT;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_count INT NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_reset_at TIMESTAMPTZ;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Categories

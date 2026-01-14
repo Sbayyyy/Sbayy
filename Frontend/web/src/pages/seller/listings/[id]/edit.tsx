@@ -287,16 +287,22 @@ export default function EditListingPage() {
                   <label htmlFor="categoryPath" className="block text-sm font-medium mb-2">
                     الفئة
                   </label>
-                  <input
-                    type="text"
+                  <select
                     id="categoryPath"
                     name="categoryPath"
                     value={formData.categoryPath}
                     onChange={handleChange}
                     disabled={submitting}
                     className="w-full input"
-                    placeholder="مثال: إلكترونيات"
-                  />
+                  >
+                    <option value="">اختر الفئة</option>
+                    <option value="electronics">إلكترونيات</option>
+                    <option value="fashion">أزياء</option>
+                    <option value="home">منزل وحديقة</option>
+                    <option value="cars">سيارات</option>
+                    <option value="real-estate">عقارات</option>
+                    <option value="other">أخرى</option>
+                  </select>
                 </div>
 
                 <div>

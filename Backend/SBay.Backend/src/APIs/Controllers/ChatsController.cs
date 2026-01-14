@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SBay.Backend.APIs.Records;
 using SBay.Backend.APIs.Records.Responses;
 using SBay.Backend.Messaging;
+using SBay.Domain.Authentication;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
@@ -18,6 +19,8 @@ public class ChatsController:ControllerBase
         _svc = svc;
     }
     [HttpPost("open")]
+    [Authorize(Policy = "CanStartChat")]
+    [Authorize(Policy = ScopePolicies.MessagesWrite)]
     public async Task<ActionResult<OpenChatResponse>> Open([FromBody] OpenChatRequest req, CancellationToken ct)
     {
         var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -26,6 +29,7 @@ public class ChatsController:ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = ScopePolicies.MessagesRead)]
     public async Task<ActionResult<IReadOnlyList<Chat>>> Inbox([FromQuery] int take = 20, [FromQuery] int skip = 0, CancellationToken ct = default)
     {
         var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -34,6 +38,7 @@ public class ChatsController:ControllerBase
     }
 
     [Authorize(Policy = "CanReadThread")]
+    [Authorize(Policy = ScopePolicies.MessagesRead)]
     [HttpGet("{chatId:guid}/messages")]
     public async Task<ActionResult<IReadOnlyList<Message>>> History(Guid chatId, [FromQuery] DateTime? before, [FromQuery] int take = 50, CancellationToken ct = default)
     {
@@ -44,6 +49,7 @@ public class ChatsController:ControllerBase
     }
 
     [HttpPost("{chatId:guid}/messages")]
+    [Authorize(Policy = ScopePolicies.MessagesWrite)]
     public async Task<ActionResult<Message>> Send(Guid chatId, [FromBody] SendMessageRequest req, CancellationToken ct)
     {
         var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -52,6 +58,7 @@ public class ChatsController:ControllerBase
     }
 
     [HttpPost("{chatId:guid}/read")]
+    [Authorize(Policy = ScopePolicies.MessagesWrite)]
     public async Task<ActionResult<int>> Read(Guid chatId, [FromQuery] Guid? upToMessageId, CancellationToken ct)
     {
         var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);

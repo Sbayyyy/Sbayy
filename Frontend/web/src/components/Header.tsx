@@ -119,7 +119,7 @@ export default function Header() {
                         لوحة التحكم
                       </Link>
                       <Link
-                        href="/dashboard/listings"
+                        href="/seller/my-listings"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >

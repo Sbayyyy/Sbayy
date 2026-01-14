@@ -87,5 +87,30 @@ namespace SBay.Domain.Database
                 throw new Exception("Error updating User", ex);
             }
         }
+
+        public async Task<bool> TryConsumeListingSlotAsync(Guid userId, int limit, DateTimeOffset now, int periodHours, CancellationToken ct)
+        {
+            if (limit <= 0) return false;
+
+            var resetAt = now.AddHours(periodHours);
+            var rows = await _db.Database.ExecuteSqlInterpolatedAsync($@"
+UPDATE users
+SET listing_limit_count = CASE
+        WHEN listing_limit_reset_at IS NULL OR listing_limit_reset_at <= {now} THEN 1
+        ELSE listing_limit_count + 1
+    END,
+    listing_limit_reset_at = CASE
+        WHEN listing_limit_reset_at IS NULL OR listing_limit_reset_at <= {now} THEN {resetAt}
+        ELSE listing_limit_reset_at
+    END
+WHERE id = {userId}
+  AND listing_limit = {limit}
+  AND (
+        ((listing_limit_reset_at IS NULL OR listing_limit_reset_at <= {now}) AND {limit} > 0)
+        OR (listing_limit_reset_at > {now} AND listing_limit_count < {limit})
+      );", ct);
+
+            return rows == 1;
+        }
     }
 }

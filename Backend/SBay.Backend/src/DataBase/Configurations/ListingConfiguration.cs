@@ -22,7 +22,7 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
          .IsRequired();
 
         e.HasOne<User>()
-         .WithMany()
+         .WithMany(u => u.Listings)
          .HasForeignKey(x => x.SellerId)
          .OnDelete(DeleteBehavior.Cascade);
 

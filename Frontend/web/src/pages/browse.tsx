@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
@@ -14,6 +14,8 @@ export default function BrowsePage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [priceError, setPriceError] = useState('');
   
   // Favorites State (später aus Store)
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -22,7 +24,7 @@ export default function BrowsePage() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     category: '',
-    minPrice: undefined,
+    minPrice: 0,
     maxPrice: undefined,
     condition: undefined,
     sortBy: 'date',
@@ -40,13 +42,27 @@ export default function BrowsePage() {
   }, [router.isReady, router.query.category]);
 
   useEffect(() => {
+    if (filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice) {
+      setPriceError('Minimum price must be less than or equal to maximum price.');
+      setError('');
+    } else if (priceError) {
+      setPriceError('');
+    }
     loadProducts();
   }, [filters]); // Reload wenn Filter sich ändern
 
   const loadProducts = async () => {
     try {
-      setLoading(true);
-      const data = await getAllListings(1, 20, filters);
+      setError('');
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+      const normalizedFilters = {
+        ...filters,
+        minPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : filters.minPrice,
+        maxPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : (filters.maxPrice === 0 ? undefined : filters.maxPrice)
+      };
+      const data = await getAllListings(1, 20, normalizedFilters);
       
       setProducts(data.items || []);
       setHasMore(data.items.length >= 20);
@@ -56,6 +72,7 @@ export default function BrowsePage() {
       setError('فشل تحميل المنتجات. يرجى المحاولة مرة أخرى.');
     } finally {
       setLoading(false);
+      setIsInitialLoad(false);
     }
   };
 
@@ -65,7 +82,12 @@ export default function BrowsePage() {
     try {
       setLoadingMore(true);
       const nextPage = page + 1;
-      const data = await getAllListings(nextPage, 20, filters);
+      const normalizedFilters = {
+        ...filters,
+        minPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : filters.minPrice,
+        maxPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : (filters.maxPrice === 0 ? undefined : filters.maxPrice)
+      };
+      const data = await getAllListings(nextPage, 20, normalizedFilters);
       
       setProducts(prev => [...prev, ...(data.items || [])]);
       setPage(nextPage);
@@ -86,8 +108,35 @@ export default function BrowsePage() {
     // TODO: Sync with backend
   };
 
+  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'];
+    if (allowedKeys.includes(e.key)) return;
+    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return;
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      const cleaned = raw.replace(/[^0-9]/g, '');
+      let value = cleaned === '' ? undefined : Number(cleaned);
+
+      if (key === 'minPrice') {
+        value = value !== undefined ? value : 0;
+      } else if (value === 0) {
+        value = undefined;
+      }
+
+      setFilters(prev => ({
+        ...prev,
+        [key]: Number.isFinite(value) ? value : undefined
+      }));
+    };
+
   // Loading State
-  if (loading) {
+  if (loading && products.length === 0) {
     return (
       <Layout title="تصفح المنتجات - سباي">
         <div className="min-h-screen flex items-center justify-center">
@@ -215,23 +264,22 @@ export default function BrowsePage() {
                     <input
                       type="number"
                       placeholder="من"
-                      value={filters.minPrice || ''}
-                      onChange={(e) => setFilters(prev => ({ 
-                        ...prev, 
-                        minPrice: e.target.value ? parseFloat(e.target.value) : undefined 
-                      }))}
+                      value={filters.minPrice ?? ''}
+                      onKeyDown={handlePriceKeyDown}
+                      onChange={handlePriceChange('minPrice')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     <input
                       type="number"
                       placeholder="إلى"
                       value={filters.maxPrice || ''}
-                      onChange={(e) => setFilters(prev => ({ 
-                        ...prev, 
-                        maxPrice: e.target.value ? parseFloat(e.target.value) : undefined 
-                      }))}
+                      onKeyDown={handlePriceKeyDown}
+                      onChange={handlePriceChange('maxPrice')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
+                    {priceError && (
+                      <p className="text-xs text-red-600">{priceError}</p>
+                    )}
                   </div>
                 </div>
 
@@ -264,7 +312,7 @@ export default function BrowsePage() {
                 <button
                   onClick={() => setFilters({
                     category: '',
-                    minPrice: undefined,
+                    minPrice: 0,
                     maxPrice: undefined,
                     condition: undefined,
                     sortBy: 'date',
@@ -338,22 +386,21 @@ export default function BrowsePage() {
                           type="number"
                           placeholder="من"
                           value={filters.minPrice || ''}
-                          onChange={(e) => setFilters(prev => ({ 
-                            ...prev, 
-                            minPrice: e.target.value ? parseFloat(e.target.value) : undefined 
-                          }))}
+                          onKeyDown={handlePriceKeyDown}
+                      onChange={handlePriceChange('minPrice')}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         />
                         <input
                           type="number"
                           placeholder="إلى"
                           value={filters.maxPrice || ''}
-                          onChange={(e) => setFilters(prev => ({ 
-                            ...prev, 
-                            maxPrice: e.target.value ? parseFloat(e.target.value) : undefined 
-                          }))}
+                          onKeyDown={handlePriceKeyDown}
+                      onChange={handlePriceChange('maxPrice')}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         />
+                        {priceError && (
+                          <p className="text-xs text-red-600">{priceError}</p>
+                        )}
                       </div>
                     </div>
 

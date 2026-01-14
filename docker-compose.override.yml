@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: ./Backend/SBay.Backend
+      dockerfile: Dockerfile
+      target: build
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+    volumes:
+      - ./Backend/SBay.Backend:/app
+      - api-nuget:/root/.nuget/packages
+    working_dir: /app
+    command: ["dotnet", "watch", "run", "--urls", "http://+:8080"]
+
+  web:
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_API_PROXY_TARGET: http://backend:8080
+    volumes:
+      - ./Frontend:/app
+      - web-node-modules:/app/web/node_modules
+    working_dir: /app/web
+    command: ["npm", "run", "dev", "--", "-p", "3000", "-H", "0.0.0.0"]
+
+volumes:
+  api-nuget:
+  web-node-modules:

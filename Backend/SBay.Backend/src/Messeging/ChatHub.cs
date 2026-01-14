@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using SBay.Domain.Authentication;
 
 namespace SBay.Backend.Messaging;
-[Authorize]
+[Authorize(Policy = ScopePolicies.MessagesRead)]
 public sealed class ChatHub : Hub
 {
     public Task Join(Guid chatId)

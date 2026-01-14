@@ -36,7 +36,7 @@ export const getListingById = async (id: string): Promise<Product> => {
  * Meine Listings abrufen
  */
 export const getMyListings = async (): Promise<Product[]> => {
-  const response = await api.get<Product[]>('/listings/my-listings');
+  const response = await api.get<Product[]>('/listings/me');
   return response.data;
 };
 

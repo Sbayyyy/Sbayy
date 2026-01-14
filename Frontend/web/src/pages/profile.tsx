@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import Layout from '@/components/Layout';
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { getCurrentUser, updateProfile, UpdateProfileRequest } from '@/lib/api/users';
@@ -97,12 +97,18 @@ export default function ProfilePage() {
     setIsEditing(false);
   };
 
-  return (
-    <>
-      <Head>
-        <title>الملف الشخصي - سباي</title>
-      </Head>
+  const totalRevenue = user?.totalRevenue ?? 0;
+  const totalOrders = user?.totalOrders ?? 0;
+  const pendingOrders = user?.pendingOrders ?? 0;
+  const reviewCount = user?.reviewCount ?? 0;
+  const listingLimit = user?.listingLimit;
+  const listingLimitCount = user?.listingLimitCount ?? 0;
+  const listingLimitResetAt = user?.listingLimitResetAt ? new Date(user.listingLimitResetAt) : null;
+  const listingBanUntil = user?.listingBanUntil ? new Date(user.listingBanUntil) : null;
+  const isListingBanned = Boolean(user?.listingBanned || (listingBanUntil && listingBanUntil > new Date()));
 
+  return (
+    <Layout title="الملف الشخصي - سباي">
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Header */}
@@ -258,25 +264,69 @@ export default function ProfilePage() {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">0</p>
-                <p className="text-sm text-gray-600 mt-1">إعلانات نشطة</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {totalRevenue.toLocaleString('en-US')}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">إجمالي الإيرادات (ل.س)</p>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-lg">
-                <p className="text-2xl font-bold text-green-600">0</p>
-                <p className="text-sm text-gray-600 mt-1">مبيعات</p>
+                <p className="text-2xl font-bold text-green-600">{totalOrders}</p>
+                <p className="text-sm text-gray-600 mt-1">إجمالي الطلبات</p>
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <p className="text-2xl font-bold text-purple-600">0</p>
-                <p className="text-sm text-gray-600 mt-1">مشتريات</p>
+                <p className="text-2xl font-bold text-purple-600">{pendingOrders}</p>
+                <p className="text-sm text-gray-600 mt-1">الطلبات المعلقة</p>
               </div>
               <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <p className="text-2xl font-bold text-yellow-600">5.0</p>
-                <p className="text-sm text-gray-600 mt-1">التقييم</p>
+                <p className="text-2xl font-bold text-yellow-600">{reviewCount}</p>
+                <p className="text-sm text-gray-600 mt-1">المراجعات</p>
               </div>
+            </div>
+          </div>
+          {/* Listing Limits */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">حدود الإعلانات</h2>
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>
+                الحالة:{' '}
+                <span className={isListingBanned ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                  {isListingBanned ? 'محظور' : 'نشط'}
+                </span>
+              </p>
+              {listingBanUntil && listingBanUntil > new Date() && (
+                <p>
+                  ينتهي الحظر:{' '}
+                  <span className="text-gray-900">
+                    {listingBanUntil.toLocaleString('ar-SY')}
+                  </span>
+                </p>
+              )}
+              <p>
+                الحد اليومي:{' '}
+                <span className="text-gray-900">
+                  {listingLimit ?? 'غير محدود'}
+                </span>
+              </p>
+              {listingLimit != null && (
+                <p>
+                  المستخدم اليوم:{' '}
+                  <span className="text-gray-900">
+                    {listingLimitCount} / {listingLimit}
+                  </span>
+                </p>
+              )}
+              {listingLimitResetAt && (
+                <p>
+                  يتم إعادة الضبط:{' '}
+                  <span className="text-gray-900">
+                    {listingLimitResetAt.toLocaleString('ar-SY')}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </>
+    </Layout>
   );
 }

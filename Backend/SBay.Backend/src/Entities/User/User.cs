@@ -29,16 +29,28 @@ namespace SBay.Domain.Entities
 
         public double Rating { get; set; } = 0.0;
         public string? Phone { get; set; }
-        public bool IsSeller { get; set; } = false;
+        public bool IsSeller { get; set; } = true;
         public string Role { get; set; } = "user";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public string? AvatarUrl { get; set; }
         public DateTimeOffset? LastSeen { get; set; }
 
+        public decimal TotalRevenue { get; set; }
+        public int TotalOrders { get; set; }
+        public int PendingOrders { get; set; }
+        public int ReviewCount { get; set; }
+
+        public bool ListingBanned { get; set; }
+        public DateTimeOffset? ListingBanUntil { get; set; }
+        public int? ListingLimit { get; set; }
+        public int ListingLimitCount { get; set; }
+        public DateTimeOffset? ListingLimitResetAt { get; set; }
 
         public ICollection<ShoppingList<Listing>> ShoppingLists
             = new List<ShoppingList<Listing>>();
+
+        public ICollection<Listing> Listings { get; private set; } = new List<Listing>();
 
         public ShoppingCart Cart { get; private set; } = new();
 

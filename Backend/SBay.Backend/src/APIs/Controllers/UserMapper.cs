@@ -6,5 +6,22 @@ namespace SBay.Backend.Api.Controllers;
 public static class UserMapper
 {
     public static UserDto ToDto(this User u) => 
-        new(u.Id, u.Email, u.DisplayName, u.Phone, u.Role,u.IsSeller, u.CreatedAt,u.LastSeen);
+        new(
+            u.Id,
+            u.Email,
+            u.DisplayName,
+            u.Phone,
+            u.Role,
+            u.IsSeller,
+            u.CreatedAt,
+            u.LastSeen,
+            u.TotalRevenue,
+            u.TotalOrders,
+            u.PendingOrders,
+            u.ReviewCount,
+            u.ListingBanned,
+            u.ListingBanUntil,
+            u.ListingLimit,
+            u.ListingLimitCount,
+            u.ListingLimitResetAt);
 }
