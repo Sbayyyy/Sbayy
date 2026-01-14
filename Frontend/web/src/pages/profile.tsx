@@ -297,7 +297,7 @@ export default function ProfilePage() {
                 <p>
                   ينتهي الحظر:{' '}
                   <span className="text-gray-900">
-                    {listingBanUntil.toLocaleString('en-US')}
+                    {listingBanUntil.toLocaleString('ar-SY')}
                   </span>
                 </p>
               )}
@@ -319,7 +319,7 @@ export default function ProfilePage() {
                 <p>
                   يتم إعادة الضبط:{' '}
                   <span className="text-gray-900">
-                    {listingLimitResetAt.toLocaleString('en-US')}
+                    {listingLimitResetAt.toLocaleString('ar-SY')}
                   </span>
                 </p>
               )}

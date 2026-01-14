@@ -264,7 +264,7 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
                     <input
                       type="number"
                       placeholder="من"
-                      value={filters.minPrice || ''}
+                      value={filters.minPrice ?? ''}
                       onKeyDown={handlePriceKeyDown}
                       onChange={handlePriceChange('minPrice')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"

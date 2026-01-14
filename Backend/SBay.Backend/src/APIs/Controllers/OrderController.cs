@@ -273,7 +273,7 @@ public sealed class OrdersController : ControllerBase
         var sellerUser = await _users.GetByIdAsync(order.SellerId, ct);
         if (sellerUser != null)
         {
-            if (previousStatus == OrderStatus.Pending && (newStatus == OrderStatus.Completed || newStatus == OrderStatus.Cancelled))
+            if (previousStatus == OrderStatus.Pending && newStatus != OrderStatus.Pending)
                 sellerUser.PendingOrders = Math.Max(0, sellerUser.PendingOrders - 1);
 
             if (newStatus == OrderStatus.Completed && previousStatus != OrderStatus.Completed)
@@ -285,8 +285,18 @@ public sealed class OrdersController : ControllerBase
             await _users.UpdateAsync(sellerUser, ct);
         }
 
-        await _orders.UpdateAsync(order, ct);
-        await _uow.SaveChangesAsync(ct);
+        await using var tx = await _uow.BeginTransactionAsync(ct);
+        try
+        {
+            await _orders.UpdateAsync(order, ct);
+            await _uow.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
 
         Address? address = null;
         if (order.ShippingAddressId.HasValue)
