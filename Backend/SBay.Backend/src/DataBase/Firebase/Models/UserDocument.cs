@@ -27,7 +27,7 @@ internal sealed class UserDocument
     [FirestoreProperty] public bool ListingBanned { get; set; }
     [FirestoreProperty] public DateTimeOffset? ListingBanUntil { get; set; }
     [FirestoreProperty] public int? ListingLimit { get; set; }
-    [FirestoreProperty] public int ListingLimitCount { get; set; }
+    [FirestoreProperty] public int? ListingLimitCount { get; set; }
     [FirestoreProperty] public DateTimeOffset? ListingLimitResetAt { get; set; }
 
     public static UserDocument FromDomain(User user) => new()
@@ -78,7 +78,7 @@ internal sealed class UserDocument
             ListingBanned = ListingBanned,
             ListingBanUntil = ListingBanUntil,
             ListingLimit = ListingLimit,
-            ListingLimitCount = ListingLimitCount,
+            ListingLimitCount = ListingLimitCount ?? 0,
             ListingLimitResetAt = ListingLimitResetAt
         };
         return user;
