@@ -224,9 +224,7 @@ public sealed class OrdersController : ControllerBase
         var sellerUser = await _users.GetByIdAsync(sellerId, ct);
         if (sellerUser != null)
         {
-            sellerUser.TotalOrders += 1;
             sellerUser.PendingOrders += 1;
-            sellerUser.TotalRevenue += order.TotalAmount;
             await _users.UpdateAsync(sellerUser, ct);
         }
 
@@ -236,6 +234,65 @@ public sealed class OrdersController : ControllerBase
 
         var dto = ToDto(order, address);
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, dto);
+    }
+
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Policy = ScopePolicies.OrdersWrite)]
+    public async Task<ActionResult<OrderDto>> UpdateStatus(Guid id, [FromBody] UpdateOrderStatusRequest req, CancellationToken ct)
+    {
+        var me = await _resolver.GetUserIdAsync(User, ct);
+        if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(req?.Status)) return BadRequest("Status is required.");
+
+        var order = await _orders.GetWithItemsAsync(id, ct);
+        if (order == null) return NotFound();
+        if (order.SellerId != me.Value && !User.IsInRole("admin")) return Forbid();
+
+        var statusValue = req.Status.Trim().ToLowerInvariant();
+        var newStatus = statusValue switch
+        {
+            "pending" => OrderStatus.Pending,
+            "processing" => OrderStatus.Paid,
+            "paid" => OrderStatus.Paid,
+            "shipped" => OrderStatus.Shipped,
+            "delivered" => OrderStatus.Completed,
+            "completed" => OrderStatus.Completed,
+            "cancelled" => OrderStatus.Cancelled,
+            "canceled" => OrderStatus.Cancelled,
+            _ => (OrderStatus?)null
+        };
+        if (!newStatus.HasValue) return BadRequest("Invalid status.");
+
+        var previousStatus = order.Status;
+        if (previousStatus == newStatus.Value)
+            return Ok(ToDto(order, order.ShippingAddress));
+
+        order.Status = newStatus.Value;
+        order.UpdatedAt = DateTime.UtcNow;
+
+        var sellerUser = await _users.GetByIdAsync(order.SellerId, ct);
+        if (sellerUser != null)
+        {
+            if (previousStatus == OrderStatus.Pending && (newStatus == OrderStatus.Completed || newStatus == OrderStatus.Cancelled))
+                sellerUser.PendingOrders = Math.Max(0, sellerUser.PendingOrders - 1);
+
+            if (newStatus == OrderStatus.Completed && previousStatus != OrderStatus.Completed)
+            {
+                sellerUser.TotalOrders += 1;
+                sellerUser.TotalRevenue += order.TotalAmount;
+            }
+
+            await _users.UpdateAsync(sellerUser, ct);
+        }
+
+        await _orders.UpdateAsync(order, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        Address? address = null;
+        if (order.ShippingAddressId.HasValue)
+            address = await _addresses.GetByIdAsync(order.ShippingAddressId.Value, ct);
+
+        return Ok(ToDto(order, address));
     }
 
     [HttpGet("{id:guid}")]

@@ -127,4 +127,40 @@ public class FirebaseUserRepository : IUserRepository
         var doc = snapshot.Documents.FirstOrDefault();
         return doc is { Exists: true };
     }
+
+    public async Task<bool> TryConsumeListingSlotAsync(Guid userId, int limit, DateTimeOffset now, int periodHours, CancellationToken ct)
+    {
+        if (limit <= 0) return false;
+
+        var resetAt = now.AddHours(periodHours);
+        var docRef = _db.Collection("users").Document(userId.ToString());
+
+        return await _db.RunTransactionAsync(async transaction =>
+        {
+            var snapshot = await transaction.GetSnapshotAsync(docRef, ct);
+            if (!snapshot.Exists) return false;
+
+            var userDoc = snapshot.ConvertTo<UserDocument>();
+            if (userDoc == null) return false;
+
+            if (!userDoc.ListingLimit.HasValue || userDoc.ListingLimit.Value != limit)
+                return false;
+
+            var reset = userDoc.ListingLimitResetAt;
+            if (!reset.HasValue || reset.Value <= now)
+            {
+                userDoc.ListingLimitCount = 1;
+                userDoc.ListingLimitResetAt = resetAt;
+            }
+            else
+            {
+                if (userDoc.ListingLimitCount >= limit)
+                    return false;
+                userDoc.ListingLimitCount = userDoc.ListingLimitCount + 1;
+            }
+
+            transaction.Set(docRef, userDoc, SetOptions.MergeAll);
+            return true;
+        }, cancellationToken: ct);
+    }
 }

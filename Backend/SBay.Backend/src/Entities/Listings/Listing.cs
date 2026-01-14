@@ -65,13 +65,22 @@ public class Listing :
     public void UpdateDetails(string? title, string? description, Money? price, int? stock, ItemCondition? condition, string? categoryPath, string? region)
     {
         if (title != null)
-            Title = title.Trim();
+        {
+            var trimmedTitle = title.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedTitle))
+                throw new ArgumentException(nameof(title));
+            Title = trimmedTitle;
+        }
         if (description != null)
             Description = description.Trim();
         if (price != null)
             Price = price;
         if (stock.HasValue)
+        {
+            if (stock.Value < 0)
+                throw new ArgumentOutOfRangeException(nameof(stock));
             StockQuantity = stock.Value;
+        }
         if (condition.HasValue)
             Condition = condition.Value;
         if (categoryPath != null)

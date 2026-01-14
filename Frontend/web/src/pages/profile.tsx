@@ -267,49 +267,49 @@ export default function ProfilePage() {
                 <p className="text-2xl font-bold text-blue-600">
                   {totalRevenue.toLocaleString('en-US')}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">Total Revenue (SYP)</p>
+                <p className="text-sm text-gray-600 mt-1">إجمالي الإيرادات (ل.س)</p>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <p className="text-2xl font-bold text-green-600">{totalOrders}</p>
-                <p className="text-sm text-gray-600 mt-1">Total Orders</p>
+                <p className="text-sm text-gray-600 mt-1">إجمالي الطلبات</p>
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <p className="text-2xl font-bold text-purple-600">{pendingOrders}</p>
-                <p className="text-sm text-gray-600 mt-1">Pending Orders</p>
+                <p className="text-sm text-gray-600 mt-1">الطلبات المعلقة</p>
               </div>
               <div className="text-center p-4 bg-yellow-50 rounded-lg">
                 <p className="text-2xl font-bold text-yellow-600">{reviewCount}</p>
-                <p className="text-sm text-gray-600 mt-1">Reviews</p>
+                <p className="text-sm text-gray-600 mt-1">المراجعات</p>
               </div>
             </div>
           </div>
           {/* Listing Limits */}
           <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Listing Limits</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">حدود الإعلانات</h2>
             <div className="space-y-3 text-sm text-gray-700">
               <p>
-                Status:{' '}
+                الحالة:{' '}
                 <span className={isListingBanned ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
-                  {isListingBanned ? 'Banned' : 'Active'}
+                  {isListingBanned ? 'محظور' : 'نشط'}
                 </span>
               </p>
               {listingBanUntil && listingBanUntil > new Date() && (
                 <p>
-                  Ban ends:{' '}
+                  ينتهي الحظر:{' '}
                   <span className="text-gray-900">
                     {listingBanUntil.toLocaleString('en-US')}
                   </span>
                 </p>
               )}
               <p>
-                Daily limit:{' '}
+                الحد اليومي:{' '}
                 <span className="text-gray-900">
-                  {listingLimit ?? 'Unlimited'}
+                  {listingLimit ?? 'غير محدود'}
                 </span>
               </p>
               {listingLimit != null && (
                 <p>
-                  Used today:{' '}
+                  المستخدم اليوم:{' '}
                   <span className="text-gray-900">
                     {listingLimitCount} / {listingLimit}
                   </span>
@@ -317,7 +317,7 @@ export default function ProfilePage() {
               )}
               {listingLimitResetAt && (
                 <p>
-                  Resets:{' '}
+                  يتم إعادة الضبط:{' '}
                   <span className="text-gray-900">
                     {listingLimitResetAt.toLocaleString('en-US')}
                   </span>

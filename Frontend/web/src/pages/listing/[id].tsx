@@ -396,13 +396,13 @@ export default function ListingDetail() {
                   {isOwnListing && (
                     <div className="flex flex-col gap-3">
                       <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-center">
-                        This is your listing
+                        هذا إعلانك
                       </div>
                       <button
                         onClick={() => router.push(`/seller/listings/${listing.id}/edit`)}
                         className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-medium transition-colors"
                       >
-                        Edit listing
+                        تعديل الإعلان
                       </button>
                     </div>
                   )}

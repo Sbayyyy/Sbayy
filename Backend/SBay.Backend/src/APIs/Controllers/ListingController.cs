@@ -9,8 +9,6 @@ using SBay.Backend.APIs.Records;
 using SBay.Backend.DataBase.Queries;
 using SBay.Backend.APIs.Records.Responses;
 using SBay.Domain.Authentication;
-using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -21,16 +19,14 @@ public sealed class ListingsController : ControllerBase
     private readonly ICurrentUserResolver _resolver;
     private readonly IUserRepository _users;
     private readonly IConfiguration _config;
-    private readonly ILogger<ListingsController> _logger;
 
-    public ListingsController(IListingRepository repo, IUnitOfWork uow, ICurrentUserResolver resolver, IUserRepository users, IConfiguration config, ILogger<ListingsController> logger)
+    public ListingsController(IListingRepository repo, IUnitOfWork uow, ICurrentUserResolver resolver, IUserRepository users, IConfiguration config)
     {
         _repo = repo;
         _uow = uow;
         _resolver = resolver;
         _users = users;
         _config = config;
-        _logger = logger;
     }
 
     private static ListingResponse ToResponse(Listing l)
@@ -91,15 +87,10 @@ public sealed class ListingsController : ControllerBase
 
             if (seller.ListingLimit.HasValue)
             {
+                var periodHours = _config.GetValue<int?>("ListingLimits:PeriodHours") ?? 24;
                 var now = DateTimeOffset.UtcNow;
-                if (!seller.ListingLimitResetAt.HasValue || seller.ListingLimitResetAt.Value <= now)
-                {
-                    var periodHours = _config.GetValue<int?>("ListingLimits:PeriodHours") ?? 24;
-                    seller.ListingLimitCount = 0;
-                    seller.ListingLimitResetAt = now.AddHours(periodHours);
-                }
-
-                if (seller.ListingLimitCount >= seller.ListingLimit.Value)
+                var consumed = await _users.TryConsumeListingSlotAsync(seller.Id, seller.ListingLimit.Value, now, periodHours, ct);
+                if (!consumed)
                     return BadRequest("Listing limit reached. Please try again later.");
             }
         }
@@ -140,21 +131,6 @@ public sealed class ListingsController : ControllerBase
         await _repo.AddAsync(listing, ct);
         await _uow.SaveChangesAsync(ct);
 
-        if (!User.IsInRole("admin") && seller.ListingLimit.HasValue)
-        {
-            seller.ListingLimitCount += 1;
-            try
-            {
-                await _users.UpdateAsync(seller, ct);
-                await _uow.SaveChangesAsync(ct);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                _logger.LogWarning(ex, "Failed to update listing limit count for user {UserId}", seller.Id);
-            }
-        }
-
-        
         return CreatedAtAction(nameof(GetById), new { id = listing.Id }, ToResponse(listing));
     }
 

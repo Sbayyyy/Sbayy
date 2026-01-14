@@ -269,9 +269,6 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
                       onChange={handlePriceChange('minPrice')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
-                    {priceError && (
-                      <p className="text-xs text-red-600">{priceError}</p>
-                    )}
                     <input
                       type="number"
                       placeholder="إلى"
@@ -393,9 +390,6 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
                       onChange={handlePriceChange('minPrice')}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         />
-                        {priceError && (
-                          <p className="text-xs text-red-600">{priceError}</p>
-                        )}
                         <input
                           type="number"
                           placeholder="إلى"
@@ -404,6 +398,9 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
                       onChange={handlePriceChange('maxPrice')}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         />
+                        {priceError && (
+                          <p className="text-xs text-red-600">{priceError}</p>
+                        )}
                       </div>
                     </div>
 
