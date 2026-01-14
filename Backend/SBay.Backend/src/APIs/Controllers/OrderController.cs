@@ -271,23 +271,23 @@ public sealed class OrdersController : ControllerBase
         order.UpdatedAt = DateTime.UtcNow;
 
         var sellerUser = await _users.GetByIdAsync(order.SellerId, ct);
-        if (sellerUser != null)
-        {
-            if (previousStatus == OrderStatus.Pending && newStatus != OrderStatus.Pending)
-                sellerUser.PendingOrders = Math.Max(0, sellerUser.PendingOrders - 1);
-
-            if (newStatus == OrderStatus.Completed && previousStatus != OrderStatus.Completed)
-            {
-                sellerUser.TotalOrders += 1;
-                sellerUser.TotalRevenue += order.TotalAmount;
-            }
-
-            await _users.UpdateAsync(sellerUser, ct);
-        }
-
         await using var tx = await _uow.BeginTransactionAsync(ct);
         try
         {
+            if (sellerUser != null)
+            {
+                if (previousStatus == OrderStatus.Pending && newStatus != OrderStatus.Pending)
+                    sellerUser.PendingOrders = Math.Max(0, sellerUser.PendingOrders - 1);
+
+                if (newStatus == OrderStatus.Completed && previousStatus != OrderStatus.Completed)
+                {
+                    sellerUser.TotalOrders += 1;
+                    sellerUser.TotalRevenue += order.TotalAmount;
+                }
+
+                await _users.UpdateAsync(sellerUser, ct);
+            }
+
             await _orders.UpdateAsync(order, ct);
             await _uow.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
