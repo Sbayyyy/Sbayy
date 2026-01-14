@@ -7,6 +7,7 @@ import OrderSummary from '@/components/checkout/OrderSummary';
 import { useCartStore } from '@/lib/cartStore';
 import { createOrder, calculateShipping } from '../lib/api/orders';
 import { getMyAddresses } from '@/lib/api/addresses';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { validateAddress, isAddressValid } from '@sbay/shared';
 import type { Address, OrderCreate, SavedAddress } from '@sbay/shared';
 import Link from 'next/link';
@@ -40,6 +41,7 @@ interface CheckoutState {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, clearCart } = useCartStore();
+  const isAuthed = useRequireAuth();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -70,8 +72,9 @@ export default function CheckoutPage() {
         console.error('Failed to load addresses:', error);
       }
     };
+    if (!isAuthed) return;
     loadAddresses();
-  }, []);
+  }, [isAuthed]);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -160,6 +163,9 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return null; // Will redirect
+  }
+  if (!isAuthed) {
+    return null;
   }
 
   return (

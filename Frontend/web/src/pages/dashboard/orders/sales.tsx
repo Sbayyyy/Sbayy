@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Layout from '@/components/Layout';import { toast } from '@/lib/toast';import { getSales, updateOrderStatus } from '@/lib/api/orders';
+import Layout from '@/components/Layout';
+import { getSales, updateOrderStatus } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
-import { useAuthStore } from '@/lib/store';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { 
   Package, 
   Truck, 
@@ -21,8 +21,7 @@ import {
 import Head from 'next/head';
 
 export default function SalesPage() {
-  const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const isAuthed = useRequireAuth();
   
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,12 +41,9 @@ export default function SalesPage() {
   });
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login?redirect=/dashboard/orders/sales');
-      return;
-    }
+    if (!isAuthed) return;
     loadOrders();
-  }, [isAuthenticated, statusFilter]);
+  }, [isAuthed, statusFilter]);
 
   const loadOrders = async () => {
     try {
