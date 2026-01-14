@@ -248,7 +248,7 @@ const apiEndpoints: Record<ApiTest, ApiEndpoint> = {
   getMyListings: {
     id: 'getMyListings',
     method: 'GET',
-    path: '/api/listings/my-listings',
+    path: '/api/listings/me',
     label: 'Get My Listings',
     description: 'Meine eigenen Produkte abrufen',
     category: 'Listings',
@@ -542,7 +542,7 @@ function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown
     },
     getMyListings: {
       status: 200,
-      endpoint: 'GET /api/listings/my-listings',
+      endpoint: 'GET /api/listings/me',
       method: 'GET',
       request,
       response: {

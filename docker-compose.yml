@@ -35,7 +35,7 @@ services:
       - sbay
 
       
-  api:
+  backend:
     build:
       context: ./Backend/SBay.Backend
       dockerfile: Dockerfile
@@ -62,14 +62,17 @@ services:
       dockerfile: web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: ${WEB_PORT}
+      NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET}
     ports:
       - "${WEB_HOST_PORT}:${WEB_PORT}"
     depends_on:
-      api:
+      backend:
         condition: service_started
     networks:
       - sbay

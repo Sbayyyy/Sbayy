@@ -5,6 +5,8 @@ WORKDIR /app
 # Build argument for Next.js public env var
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_API_PROXY_TARGET
+ENV NEXT_PUBLIC_API_PROXY_TARGET=${NEXT_PUBLIC_API_PROXY_TARGET}
 
 # Bring manifests needed for a web-only install (shared is a file: dep)
 COPY packages/shared/package.json packages/shared/package.json

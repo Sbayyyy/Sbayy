@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ChangeEvent } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
@@ -21,6 +21,7 @@ const CATEGORIES = [
 export default function CategoryPage() {
   const router = useRouter();
   const { slug } = router.query;
+  const slugValue = Array.isArray(slug) ? slug[0] : slug;
   
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,15 +30,16 @@ export default function CategoryPage() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [priceError, setPriceError] = useState('');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   
   // Find current category
-  const currentCategory = CATEGORIES.find(cat => cat.slug === slug);
+  const currentCategory = CATEGORIES.find(cat => cat.slug === slugValue);
 
   // Filter State
   const [filters, setFilters] = useState<SearchFilters>({
-    category: slug as string,
-    minPrice: undefined,
+    category: slugValue || '',
+    minPrice: 0,
     maxPrice: undefined,
     condition: undefined,
     sortBy: 'date',
@@ -47,6 +49,7 @@ export default function CategoryPage() {
   // Load products with useCallback to prevent infinite loops
   const loadProducts = useCallback(async (reset = false, pageOverride?: number) => {
     try {
+      setError('');
       if (reset) {
         setLoading(true);
         setPage(1);
@@ -55,7 +58,12 @@ export default function CategoryPage() {
       }
 
       const currentPage = reset ? 1 : (pageOverride ?? page);
-      const data = await getAllListings(currentPage, 20, filters);
+      const normalizedFilters = {
+        ...filters,
+        minPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : filters.minPrice,
+        maxPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : (filters.maxPrice === 0 ? undefined : filters.maxPrice)
+      };
+      const data = await getAllListings(currentPage, 20, normalizedFilters);
       
       if (data.items) {
         setProducts(prev => (reset ? data.items : [...prev, ...data.items]));
@@ -77,15 +85,21 @@ export default function CategoryPage() {
 
   // Effect for slug change
   useEffect(() => {
-    if (slug && slug !== filters.category) {
-      setFilters(prev => ({ ...prev, category: slug as string }));
+    if (slugValue && slugValue !== filters.category) {
+      setFilters(prev => ({ ...prev, category: slugValue }));
       setProducts([]); // Clear products when category changes
       setPage(1);
     }
-  }, [slug, filters.category]);
+  }, [slugValue, filters.category]);
 
   // Effect for filters change
   useEffect(() => {
+    if (filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice) {
+      setPriceError('Minimum price must be less than or equal to maximum price.');
+      setError('');
+    } else if (priceError) {
+      setPriceError('');
+    }
     if (filters.category) {
       loadProducts(true);
     }
@@ -111,10 +125,34 @@ export default function CategoryPage() {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
+  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'];
+    if (allowedKeys.includes(e.key)) return;
+    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return;
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      const cleaned = raw.replace(/[^0-9]/g, '');
+      let value = cleaned === '' ? undefined : Number(cleaned);
+
+      if (key === 'minPrice') {
+        value = value !== undefined ? value : 0;
+      } else if (value === 0) {
+        value = undefined;
+      }
+
+      handleFilterChange({ [key]: Number.isFinite(value) ? value : undefined } as Partial<SearchFilters>);
+    };
+
   const clearFilters = () => {
     setFilters({
-      category: slug as string,
-      minPrice: undefined,
+      category: slugValue || '',
+      minPrice: 0,
       maxPrice: undefined,
       condition: undefined,
       sortBy: 'date',
@@ -213,16 +251,24 @@ export default function CategoryPage() {
                     type="number"
                     placeholder="من"
                     value={filters.minPrice || ''}
-                    onChange={(e) => handleFilterChange({ minPrice: e.target.value ? Number(e.target.value) : undefined })}
+                    onKeyDown={handlePriceKeyDown}
+                      onChange={handlePriceChange('minPrice')}
                     className="input w-full"
                   />
+                  {priceError && (
+                    <p className="text-xs text-red-600">{priceError}</p>
+                  )}
                   <input
                     type="number"
                     placeholder="إلى"
                     value={filters.maxPrice || ''}
-                    onChange={(e) => handleFilterChange({ maxPrice: e.target.value ? Number(e.target.value) : undefined })}
+                    onKeyDown={handlePriceKeyDown}
+                      onChange={handlePriceChange('maxPrice')}
                     className="input w-full"
                   />
+                  {priceError && (
+                    <p className="text-xs text-red-600">{priceError}</p>
+                  )}
                 </div>
               </div>
 
@@ -359,14 +405,16 @@ export default function CategoryPage() {
                     type="number"
                     placeholder="من"
                     value={filters.minPrice || ''}
-                    onChange={(e) => handleFilterChange({ minPrice: e.target.value ? Number(e.target.value) : undefined })}
+                    onKeyDown={handlePriceKeyDown}
+                      onChange={handlePriceChange('minPrice')}
                     className="input w-full"
                   />
                   <input
                     type="number"
                     placeholder="إلى"
                     value={filters.maxPrice || ''}
-                    onChange={(e) => handleFilterChange({ maxPrice: e.target.value ? Number(e.target.value) : undefined })}
+                    onKeyDown={handlePriceKeyDown}
+                      onChange={handlePriceChange('maxPrice')}
                     className="input w-full"
                   />
                 </div>

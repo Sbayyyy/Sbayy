@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SBay.Backend.APIs.Records;
 using SBay.Domain.Database;
+using SBay.Domain.Authentication;
 using SBay.Domain.Entities;
 
 namespace SBay.Backend.Api.Controllers;
@@ -29,7 +30,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("me")]
-    [Authorize]
+    [Authorize(Policy = ScopePolicies.UsersRead)]
     public async Task<ActionResult<UserDto>> GetMe(CancellationToken ct)
     {
         var uid = await _userResolver.GetUserIdAsync(User, ct);
@@ -48,14 +49,23 @@ public class UserController : ControllerBase
             user.Role,
             user.IsSeller,
             user.CreatedAt,
-            user.LastSeen
+            user.LastSeen,
+            user.TotalRevenue,
+            user.TotalOrders,
+            user.PendingOrders,
+            user.ReviewCount,
+            user.ListingBanned,
+            user.ListingBanUntil,
+            user.ListingLimit,
+            user.ListingLimitCount,
+            user.ListingLimitResetAt
         );
 
         return Ok(dto);
     }
 
     [HttpPut("me")]
-    [Authorize]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
     public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest req, CancellationToken ct)
     {
         var uid = await _userResolver.GetUserIdAsync(User, ct);

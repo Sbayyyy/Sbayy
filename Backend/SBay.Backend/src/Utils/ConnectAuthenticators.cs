@@ -143,12 +143,11 @@ public static class ConnectAuthenticators
             options.AddPolicy("SellerOnly", p => p.RequireRole( "seller", "admin"));
             options.AddPolicy("AdminOnly",  p => p.RequireRole("admin"));
 
-            options.AddPolicy("Scope:messages.read",
-                p => p.Requirements.Add(new ScopeRequirement("messages.read")));
-            options.AddPolicy("Scope:messages.write",
-                p => p.Requirements.Add(new ScopeRequirement("messages.write")));
-            options.AddPolicy("Scope:listings.write",
-                p => p.Requirements.Add(new ScopeRequirement("listings.write")));
+            foreach (var scope in Scopes.All)
+            {
+                options.AddPolicy($"Scope:{scope}", p =>
+                    p.Requirements.Add(new ScopeRequirement(scope)));
+            }
         });
 
         builder.Services.AddHttpContextAccessor();

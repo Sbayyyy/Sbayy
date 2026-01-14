@@ -34,6 +34,7 @@ public class AddressesController : ControllerBase
     /// GET /api/addresses - Get all saved addresses for current user
     /// </summary>
     [HttpGet]
+    [Authorize(Policy = ScopePolicies.UsersRead)]
     public async Task<ActionResult<List<AddressDto>>> GetMyAddresses(CancellationToken ct)
     {
         var userId = await _resolver.GetUserIdAsync(User, ct);
@@ -47,6 +48,7 @@ public class AddressesController : ControllerBase
     /// GET /api/addresses/{id} - Get address by ID
     /// </summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = ScopePolicies.UsersRead)]
     public async Task<ActionResult<AddressDto>> GetById(Guid id, CancellationToken ct)
     {
         var userId = await _resolver.GetUserIdAsync(User, ct);
@@ -63,6 +65,7 @@ public class AddressesController : ControllerBase
     /// POST /api/addresses - Create new address
     /// </summary>
     [HttpPost]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
     public async Task<ActionResult<AddressDto>> Create(
         [FromBody] SaveAddressRequest req, 
         CancellationToken ct)
@@ -104,6 +107,7 @@ public class AddressesController : ControllerBase
     /// PUT /api/addresses/{id} - Update existing address
     /// </summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
     public async Task<ActionResult<AddressDto>> Update(
         Guid id, 
         [FromBody] SaveAddressRequest req, 
@@ -143,6 +147,7 @@ public class AddressesController : ControllerBase
     /// DELETE /api/addresses/{id} - Delete address
     /// </summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var userId = await _resolver.GetUserIdAsync(User, ct);

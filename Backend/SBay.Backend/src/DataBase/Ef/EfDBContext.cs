@@ -40,7 +40,32 @@ namespace SBay.Domain.Database
                 e.Property(x => x.Role).HasColumnName("role");
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
                 e.Property(x => x.LastSeen).HasColumnName("last_seen");
-                e.Property(x => x.IsSeller).HasColumnName("is_seller").HasDefaultValue(false);
+                e.Property(x => x.IsSeller).HasColumnName("is_seller").HasDefaultValue(true);
+                e.Property(x => x.TotalRevenue)
+                    .HasColumnName("total_revenue")
+                    .HasColumnType("numeric(12,2)")
+                    .HasDefaultValue(0);
+                e.Property(x => x.TotalOrders)
+                    .HasColumnName("total_orders")
+                    .HasDefaultValue(0);
+                e.Property(x => x.PendingOrders)
+                    .HasColumnName("pending_orders")
+                    .HasDefaultValue(0);
+                e.Property(x => x.ReviewCount)
+                    .HasColumnName("review_count")
+                    .HasDefaultValue(0);
+                e.Property(x => x.ListingBanned)
+                    .HasColumnName("listing_banned")
+                    .HasDefaultValue(false);
+                e.Property(x => x.ListingBanUntil)
+                    .HasColumnName("listing_ban_until");
+                e.Property(x => x.ListingLimit)
+                    .HasColumnName("listing_limit");
+                e.Property(x => x.ListingLimitCount)
+                    .HasColumnName("listing_limit_count")
+                    .HasDefaultValue(0);
+                e.Property(x => x.ListingLimitResetAt)
+                    .HasColumnName("listing_limit_reset_at");
                 e.HasIndex(x => x.Email).IsUnique();
                 e.Ignore(x => x.AvatarUrl);
                 e.Ignore(x => x.ExternalId);

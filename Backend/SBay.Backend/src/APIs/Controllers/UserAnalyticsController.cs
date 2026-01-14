@@ -16,6 +16,7 @@ public sealed class UserAnalyticsController : ControllerBase
 
     [HttpGet("{id:guid}/stats")]
     [Authorize]
+    [Authorize(Policy = ScopePolicies.UsersRead)]
     public async Task<ActionResult<UserStatsDto>> GetStats(Guid id, CancellationToken ct)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
@@ -26,6 +27,7 @@ public sealed class UserAnalyticsController : ControllerBase
 
     [HttpGet("{id:guid}/analytics")]
     [Authorize]
+    [Authorize(Policy = ScopePolicies.UsersRead)]
     public async Task<ActionResult<UserAnalyticsDto>> GetAnalytics(Guid id, [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] string granularity = "day", CancellationToken ct = default)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);

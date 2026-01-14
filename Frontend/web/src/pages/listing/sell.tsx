@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
 import Layout from '@/components/Layout';
 import {
   getListingTitleValidationMessage,
@@ -12,6 +11,7 @@ import {
 } from '@sbay/shared';
 import type { ProductCreate } from '@sbay/shared';
 import { createListing } from '../../lib/api/listings';
+import { getCurrentUser } from '@/lib/api/users';
 import { useAuthStore } from '../../lib/store';
 import ImageUpload from '../../components/imageUpload';
 
@@ -30,7 +30,7 @@ interface ProductFormData {
 
 export default function SellPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, setUser } = useAuthStore();
   
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
@@ -144,6 +144,14 @@ export default function SellPage() {
       };
 
       const response = await createListing(submitData);
+      if (isAuthenticated) {
+        try {
+          const refreshedUser = await getCurrentUser();
+          setUser(refreshedUser);
+        } catch (refreshError) {
+          console.error('Error refreshing profile stats:', refreshError);
+        }
+      }
       // Redirect to the created listing
       router.push(`/listing/${response.id}`);
     } catch (error: any) {
@@ -154,11 +162,7 @@ export default function SellPage() {
   };
 
   return (
-    <>
-      <Head>
-        <title>بيع منتج - سباي</title>
-      </Head>
-
+    <Layout title="بيع منتج - سباي">
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="bg-white rounded-lg shadow-sm p-8">
@@ -352,6 +356,6 @@ export default function SellPage() {
           </div>
         </div>
       </div>
-    </>
+    </Layout>
   );
 }

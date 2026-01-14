@@ -44,7 +44,7 @@ public sealed class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
+    [Authorize(Policy = ScopePolicies.OrdersWrite)]
     public async Task<ActionResult<OrderDto>> Create([FromBody] CreateOrderReq req, CancellationToken ct)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
@@ -221,6 +221,15 @@ public sealed class OrdersController : ControllerBase
         var subtotal = order.Items.Sum(i => i.PriceAmount * i.Quantity);
         order.TotalAmount = subtotal + order.ShippingCost;
 
+        var sellerUser = await _users.GetByIdAsync(sellerId, ct);
+        if (sellerUser != null)
+        {
+            sellerUser.TotalOrders += 1;
+            sellerUser.PendingOrders += 1;
+            sellerUser.TotalRevenue += order.TotalAmount;
+            await _users.UpdateAsync(sellerUser, ct);
+        }
+
         await _orders.AddAsync(order, ct);
         await _uow.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
@@ -230,7 +239,7 @@ public sealed class OrdersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize]
+    [Authorize(Policy = ScopePolicies.OrdersRead)]
     public async Task<ActionResult<OrderDto>> GetById(Guid id, CancellationToken ct)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);

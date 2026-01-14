@@ -136,7 +136,7 @@ export default function ListingDetail() {
 
   const maxQuantity = listing.stock || 1;
   const isAvailable = listing.stock === undefined || listing.stock > 0;
-  const isOwnListing = user?.id === listing.seller?.id;
+  const isOwnListing = user?.id === (listing.sellerId || listing.seller?.id);
 
   return (
     <>
@@ -394,8 +394,16 @@ export default function ListingDetail() {
                   )}
 
                   {isOwnListing && (
-                    <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-center">
-                      هذا إعلانك الخاص
+                    <div className="flex flex-col gap-3">
+                      <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-center">
+                        This is your listing
+                      </div>
+                      <button
+                        onClick={() => router.push(`/seller/listings/${listing.id}/edit`)}
+                        className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-medium transition-colors"
+                      >
+                        Edit listing
+                      </button>
                     </div>
                   )}
 

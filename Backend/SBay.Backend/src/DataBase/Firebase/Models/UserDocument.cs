@@ -20,6 +20,15 @@ internal sealed class UserDocument
     [FirestoreProperty] public DateTimeOffset? LastSeen { get; set; }
     [FirestoreProperty] public string? AvatarUrl { get; set; }
     [FirestoreProperty] public string? Region { get; set; }
+    [FirestoreProperty] public object TotalRevenue { get; set; } = 0L;
+    [FirestoreProperty] public int TotalOrders { get; set; }
+    [FirestoreProperty] public int PendingOrders { get; set; }
+    [FirestoreProperty] public int ReviewCount { get; set; }
+    [FirestoreProperty] public bool ListingBanned { get; set; }
+    [FirestoreProperty] public DateTimeOffset? ListingBanUntil { get; set; }
+    [FirestoreProperty] public int? ListingLimit { get; set; }
+    [FirestoreProperty] public int ListingLimitCount { get; set; }
+    [FirestoreProperty] public DateTimeOffset? ListingLimitResetAt { get; set; }
 
     public static UserDocument FromDomain(User user) => new()
     {
@@ -34,7 +43,16 @@ internal sealed class UserDocument
         CreatedAt = user.CreatedAt,
         LastSeen = user.LastSeen,
         AvatarUrl = user.AvatarUrl,
-        Region = user.Region
+        Region = user.Region,
+        TotalRevenue = DecimalCentsConverter.ToFirestoreCents(user.TotalRevenue),
+        TotalOrders = user.TotalOrders,
+        PendingOrders = user.PendingOrders,
+        ReviewCount = user.ReviewCount,
+        ListingBanned = user.ListingBanned,
+        ListingBanUntil = user.ListingBanUntil,
+        ListingLimit = user.ListingLimit,
+        ListingLimitCount = user.ListingLimitCount,
+        ListingLimitResetAt = user.ListingLimitResetAt
     };
 
     public User ToDomain()
@@ -52,7 +70,16 @@ internal sealed class UserDocument
             CreatedAt = CreatedAt,
             LastSeen = LastSeen,
             AvatarUrl = AvatarUrl,
-            Region = Region
+            Region = Region,
+            TotalRevenue = DecimalCentsConverter.FromFirestoreCents(TotalRevenue),
+            TotalOrders = TotalOrders,
+            PendingOrders = PendingOrders,
+            ReviewCount = ReviewCount,
+            ListingBanned = ListingBanned,
+            ListingBanUntil = ListingBanUntil,
+            ListingLimit = ListingLimit,
+            ListingLimitCount = ListingLimitCount,
+            ListingLimitResetAt = ListingLimitResetAt
         };
         return user;
     }

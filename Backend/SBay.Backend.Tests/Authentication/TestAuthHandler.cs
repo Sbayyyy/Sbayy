@@ -1,8 +1,10 @@
-﻿using System.Security.Claims;
+using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SBay.Domain.Authentication;
 
 public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -17,12 +19,35 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var claims = new[]
+        if (!Request.Headers.TryGetValue("Authorization", out var header) ||
+            !AuthenticationHeaderValue.TryParse(header!, out var authHeader) ||
+            !string.Equals(authHeader.Scheme, SchemeName, StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        var role = Request.Headers.TryGetValue("X-Test-Role", out var roleHeader)
+            ? roleHeader.ToString()
+            : "seller";
+
+        var isSeller = Request.Headers.TryGetValue("X-Test-IsSeller", out var sellerHeader)
+            && bool.TryParse(sellerHeader.ToString(), out var parsedSeller)
+            && parsedSeller;
+
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, SellerId.ToString()),
             new Claim("sub", SellerId.ToString()),
-            new Claim(ClaimTypes.Role, "seller")
+            new Claim(ClaimTypes.Role, role),
+            new Claim("is_seller", isSeller.ToString().ToLowerInvariant())
         };
+
+        if (Request.Headers.TryGetValue("X-Test-Scopes", out var scopesHeader) &&
+            !string.IsNullOrWhiteSpace(scopesHeader))
+        {
+            claims.Add(new Claim(Scopes.ClaimType, scopesHeader.ToString()));
+        }
+
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, SchemeName);

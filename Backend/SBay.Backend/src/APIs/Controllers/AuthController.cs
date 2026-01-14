@@ -23,13 +23,15 @@ public class AuthController : ControllerBase
     private readonly IUnitOfWork _uow;
     private readonly IPasswordHasher<User> _hasher;
     private readonly JwtOptions _jwt;
+    private readonly IConfiguration _config;
 
-    public AuthController(IUserRepository users, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt)
+    public AuthController(IUserRepository users, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config)
     {
         _users = users;
         _uow = uow;
         _hasher = hasher;
         _jwt = jwt.Value;
+        _config = config;
     }
 
     
@@ -51,8 +53,18 @@ public class AuthController : ControllerBase
             DisplayName = req.DisplayName?.Trim(),
             Phone = req.Phone?.Trim(),
             Role = "user",
+            IsSeller = true,
             CreatedAt = DateTime.UtcNow
         };
+
+        var defaultLimit = _config.GetValue<int?>("ListingLimits:DefaultLimit") ?? 50;
+        var periodHours = _config.GetValue<int?>("ListingLimits:PeriodHours") ?? 24;
+        if (defaultLimit >= 0)
+        {
+            user.ListingLimit = defaultLimit;
+            user.ListingLimitCount = 0;
+            user.ListingLimitResetAt = DateTimeOffset.UtcNow.AddHours(periodHours);
+        }
         user.PasswordHash = _hasher.HashPassword(user, req.Password);
 
         await _users.AddAsync(user, ct);
@@ -117,9 +129,13 @@ public class AuthController : ControllerBase
         {
             new("sub", user.Id.ToString()),     
             new("role", user.Role),             
+            new("is_seller", user.IsSeller.ToString().ToLowerInvariant()),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
+        var scopes = Scopes.ForUser(user);
+        if (scopes.Count > 0)
+            claims.Add(new Claim(Scopes.ClaimType, Scopes.ToClaimValue(scopes)));
 
         var token = new JwtSecurityToken(
             issuer: _jwt.Issuer,

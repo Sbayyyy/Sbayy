@@ -94,6 +94,58 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
+    public async Task PostListing_ShouldReturnForbidden_WhenMissingListingWriteScope()
+    {
+        _client.DefaultRequestHeaders.Remove("X-Test-Role");
+        _client.DefaultRequestHeaders.Remove("X-Test-IsSeller");
+        _client.DefaultRequestHeaders.Add("X-Test-Role", "user");
+        _client.DefaultRequestHeaders.Add("X-Test-IsSeller", "false");
+
+        var request = new
+        {
+            title = "Test Phone 2",
+            description = "Brand new test listing",
+            priceAmount = 120.00m,
+            priceCurrency = "EUR",
+            stock = 2,
+            condition = "New",
+            categoryPath = "electronics/mobiles",
+            region = "BW",
+            imageUrls = new[] { "https://cdn.example.com/img/phone2.jpg" }
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/listings", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task PostListing_ShouldReturnUnauthorized_WhenAnonymous()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var request = new
+        {
+            title = "Test Phone 3",
+            description = "Brand new test listing",
+            priceAmount = 120.00m,
+            priceCurrency = "EUR",
+            stock = 2,
+            condition = "New",
+            categoryPath = "electronics/mobiles",
+            region = "BW",
+            imageUrls = new[] { "https://cdn.example.com/img/phone3.jpg" }
+        };
+
+        var response = await client.PostAsJsonAsync("/api/listings", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task Search_ShouldFail_WhenPageIsOutOfRange()
     {
         var response = await _client.GetAsync("/api/listings?page=0");
