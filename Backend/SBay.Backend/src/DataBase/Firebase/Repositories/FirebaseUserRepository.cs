@@ -154,7 +154,7 @@ public class FirebaseUserRepository : IUserRepository
             }
             else
             {
-                var currentCount = userDoc.ListingLimitCount ?? 0;
+                var currentCount = userDoc.ListingLimitCount;
                 if (currentCount >= limit)
                     return false;
                 userDoc.ListingLimitCount = currentCount + 1;

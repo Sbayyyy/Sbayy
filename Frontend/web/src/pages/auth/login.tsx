@@ -53,7 +53,9 @@ export default function Login() {
               : '';
             const rawRedirect = queryRedirect || storedRedirect || '/';
             const normalizeRedirect = (value: string) => {
-              if (!value || value.startsWith('http://') || value.startsWith('https://')) return value || '/';
+              if (!value || value.startsWith('http://') || value.startsWith('https://') || value.startsWith('//')) {
+                return '/';
+              }
               if (!value.startsWith('/')) return `/${value}`;
               const locales = router.locales || [];
               const hasLocalePrefix = locales.some(locale => value === `/${locale}` || value.startsWith(`/${locale}/`));

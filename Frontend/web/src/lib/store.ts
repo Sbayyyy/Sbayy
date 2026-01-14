@@ -6,9 +6,11 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  hasHydrated: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
   setUser: (user: User) => void;
+  setHasHydrated: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -17,6 +19,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
+      hasHydrated: false,
       login: (user, token) => {
         // Store in both localStorage (for API interceptor) and Zustand (for React state)
         if (typeof window !== 'undefined') {
@@ -34,6 +37,9 @@ export const useAuthStore = create<AuthState>()(
       },
       setUser: (user) => {
         set({ user });
+      },
+      setHasHydrated: () => {
+        set({ hasHydrated: true });
       },
     }),
     {
@@ -53,6 +59,7 @@ export const useAuthStore = create<AuthState>()(
           } else {
             state.isAuthenticated = false;
           }
+          state.setHasHydrated();
         }
       },
     }

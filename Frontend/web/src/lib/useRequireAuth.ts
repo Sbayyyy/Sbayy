@@ -4,17 +4,17 @@ import { useAuthStore } from '@/lib/store';
 
 export function useRequireAuth(): boolean {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hasHydrated } = useAuthStore();
 
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!router.isReady || !hasHydrated) return;
     if (isAuthenticated) return;
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem('authRedirect', router.asPath);
     }
     const redirectTo = encodeURIComponent(router.asPath);
     router.replace(`/auth/login?redirect=${redirectTo}`);
-  }, [isAuthenticated, router.asPath, router.isReady, router.replace]);
+  }, [hasHydrated, isAuthenticated, router.asPath, router.isReady, router.replace]);
 
   return isAuthenticated;
 }
