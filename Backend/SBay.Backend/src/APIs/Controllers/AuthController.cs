@@ -50,8 +50,9 @@ public class AuthController : ControllerBase
         {
             Id = Guid.NewGuid(),
             Email = email,
-            DisplayName = req.DisplayName?.Trim(),
+            DisplayName = (req.DisplayName ?? req.Name)?.Trim(),
             Phone = req.Phone?.Trim(),
+            City = req.City?.Trim(),
             Role = "user",
             IsSeller = true,
             CreatedAt = DateTime.UtcNow

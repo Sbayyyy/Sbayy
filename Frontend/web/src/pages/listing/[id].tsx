@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import Head from 'next/head';
 import { 
-  ShoppingCart, 
   Heart, 
   Share2, 
   MapPin, 
@@ -13,30 +13,50 @@ import {
   ChevronRight,
   Star
 } from 'lucide-react';
-import { getListingById } from '@/lib/api/listings';
+import { deleteListing, getListingById } from '@/lib/api/listings';
+import { addFavorite, getFavorites, removeFavorite } from '@/lib/api/favorites';
 import { Product } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
-import { useCartStore } from '@/lib/cartStore';
 import { toast } from '@/lib/toast';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function ListingDetail() {
   const router = useRouter();
   const { id } = router.query;
   const { user, isAuthenticated } = useAuthStore();
-  const { addItem } = useCartStore();
   
   const [listing, setListing] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (id && typeof id === 'string') {
       loadListing(id);
     }
   }, [id]);
+  
+  useEffect(() => {
+    const loadFavoriteState = async (listingId: string) => {
+      if (!isAuthenticated) {
+        setIsFavorite(false);
+        return;
+      }
+      try {
+        const favorites = await getFavorites();
+        setIsFavorite(favorites.some(item => item.id === listingId));
+      } catch (err) {
+        console.error('Error loading favorites:', err);
+      }
+    };
+
+    if (id && typeof id === 'string') {
+      void loadFavoriteState(id);
+    }
+  }, [id, isAuthenticated]);
 
   const loadListing = async (listingId: string) => {
     try {
@@ -56,19 +76,6 @@ export default function ListingDetail() {
     router.push(`/auth/login?redirect=${redirectTo}`);
     return false;
   };
-  const handleAddToCart = () => {
-    if (listing) {
-      addItem(listing, quantity);
-      // Cart opens automatically via store
-    }
-  };
-
-  const handleBuyNow = () => {
-    if (!requireAuth()) return;
-    // TODO: Implement direct checkout
-    router.push('/checkout');
-  };
-
   const handleContactSeller = () => {
     if (!requireAuth()) return;
     // TODO: Implement messaging
@@ -89,6 +96,49 @@ export default function ListingDetail() {
     } else {
       navigator.clipboard.writeText(window.location.href);
       alert('تم نسخ الرابط');
+    }
+  };
+
+  const handleDeleteListing = async () => {
+    if (!listing || deleteLoading) return;
+    if (!requireAuth()) return;
+    const confirmed = window.confirm('هل أنت متأكد من حذف هذا الإعلان؟');
+    if (!confirmed) return;
+
+    setDeleteLoading(true);
+    try {
+      await deleteListing(listing.id);
+      toast.success('تم حذف الإعلان');
+      router.push('/');
+    } catch (err) {
+      console.error('Error deleting listing:', err);
+      toast.error('حدث خطأ أثناء حذف الإعلان');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+  
+  const handleFavoriteToggle = async () => {
+    if (!requireAuth() || !listing) return;
+    if (favoriteLoading) return;
+
+    const nextIsFavorite = !isFavorite;
+    setIsFavorite(nextIsFavorite);
+    setFavoriteLoading(true);
+    try {
+      if (nextIsFavorite) {
+        await addFavorite(listing.id);
+        toast.success('تمت إضافة المنتج إلى المفضلة');
+      } else {
+        await removeFavorite(listing.id);
+        toast.success('تمت إزالة المنتج من المفضلة');
+      }
+    } catch (err) {
+      console.error('Error updating favorite:', err);
+      setIsFavorite(!nextIsFavorite);
+      toast.error('حدث خطأ أثناء تحديث المفضلة');
+    } finally {
+      setFavoriteLoading(false);
     }
   };
 
@@ -142,7 +192,6 @@ export default function ListingDetail() {
     'Refurbished': 'مجدد'
   };
 
-  const maxQuantity = listing.stock || 1;
   const isAvailable = listing.stock === undefined || listing.stock > 0;
   const isOwnListing = user?.id === (listing.sellerId || listing.seller?.id);
 
@@ -253,7 +302,8 @@ export default function ListingDetail() {
 
                   <div className="flex gap-2 mb-6">
                     <button
-                      onClick={() => setIsFavorite(!isFavorite)}
+                      onClick={handleFavoriteToggle}
+                      disabled={favoriteLoading}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
                         isFavorite
                           ? 'bg-red-50 border-red-300 text-red-600'
@@ -316,76 +366,89 @@ export default function ListingDetail() {
                   {listing.seller && (
                     <div className="border-t pt-4 mb-6">
                       <h2 className="text-xl font-semibold mb-3">البائع</h2>
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                          <span className="text-primary-600 font-bold text-lg">
-                            {listing.seller.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium">{listing.seller.name}</p>
-                          {listing.seller.rating !== undefined && (
-                            <div className="flex items-center gap-1 text-sm">
-                              <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                              <span className="text-gray-600">{listing.seller.rating.toFixed(1)}</span>
-                            </div>
+                      {listing.seller.id ? (
+                        <Link
+                          href={`/seller/${listing.seller.id}`}
+                          className="flex items-center gap-4 rounded-lg border border-transparent hover:border-gray-200 hover:bg-gray-50 p-3 -m-3 transition-colors"
+                        >
+                          <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
+                            {listing.seller.avatar ? (
+                              <img
+                                src={listing.seller.avatar}
+                                alt={listing.seller.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-primary-600 font-bold text-lg">
+                                {listing.seller.name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{listing.seller.name}</p>
+                            {listing.seller.rating !== undefined && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                                <span className="text-gray-600">{listing.seller.rating.toFixed(1)}</span>
+                              </div>
+                            )}
+                            {listing.seller.reviewCount !== undefined && (
+                              <p className="text-xs text-gray-500">
+                                {listing.seller.reviewCount} تقييم
+                              </p>
+                            )}
+                            {listing.seller.city && (
+                              <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <MapPin size={12} />
+                                {listing.seller.city}
+                              </p>
+                            )}
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
+                          {listing.seller.avatar ? (
+                            <img
+                              src={listing.seller.avatar}
+                              alt={listing.seller.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-primary-600 font-bold text-lg">
+                              {listing.seller.name.charAt(0).toUpperCase()}
+                            </span>
                           )}
                         </div>
-                      </div>
+                          <div>
+                            <p className="font-medium">{listing.seller.name}</p>
+                            {listing.seller.rating !== undefined && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                                <span className="text-gray-600">{listing.seller.rating.toFixed(1)}</span>
+                              </div>
+                            )}
+                            {listing.seller.reviewCount !== undefined && (
+                              <p className="text-xs text-gray-500">
+                                {listing.seller.reviewCount} تقييم
+                              </p>
+                            )}
+                            {listing.seller.city && (
+                              <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <MapPin size={12} />
+                                {listing.seller.city}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
 
                 {/* Action Buttons */}
                 <div className="border-t pt-6 mt-6">
-                  {isAvailable && !isOwnListing ? (
-                    <>
-                      <div className="flex items-center gap-4 mb-4">
-                        <label className="text-sm font-medium">الكمية:</label>
-                        <div className="flex items-center border rounded-lg">
-                          <button
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                            className="px-3 py-2 hover:bg-gray-100 transition-colors"
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            value={quantity}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value) || 1;
-                              setQuantity(Math.max(1, Math.min(maxQuantity, val)));
-                            }}
-                            className="w-16 text-center border-x py-2 focus:outline-none"
-                            min="1"
-                            max={maxQuantity}
-                          />
-                          <button
-                            onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
-                            className="px-3 py-2 hover:bg-gray-100 transition-colors"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3 mb-4">
-                        <button
-                          onClick={handleAddToCart}
-                          className="flex-1 flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-medium transition-colors"
-                        >
-                          <ShoppingCart size={20} />
-                          أضف للسلة
-                        </button>
-                        <button
-                          onClick={handleBuyNow}
-                          className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium transition-colors"
-                        >
-                          اشتر الآن
-                        </button>
-                      </div>
-                    </>
-                  ) : !isAvailable ? (
+                  {!isAvailable ? (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-center">
                       المنتج غير متوفر حالياً
                     </div>
@@ -411,6 +474,13 @@ export default function ListingDetail() {
                         className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-medium transition-colors"
                       >
                         تعديل الإعلان
+                      </button>
+                      <button
+                        onClick={handleDeleteListing}
+                        disabled={deleteLoading}
+                        className="w-full flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-70"
+                      >
+                        {deleteLoading ? 'جارٍ الحذف...' : 'حذف الإعلان'}
                       </button>
                     </div>
                   )}
@@ -438,4 +508,12 @@ export default function ListingDetail() {
       </div>
     </>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+    }
+  };
 }

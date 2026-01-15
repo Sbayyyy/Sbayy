@@ -5,6 +5,7 @@ import ProductCard from '@/components/ProductCard';
 import { getAllListings } from '@/lib/api/listings';
 import { Product, SearchFilters } from '@sbay/shared';
 import { Loader2, AlertCircle, Filter, X } from 'lucide-react';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -502,4 +503,12 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
       </div>
     </Layout>
   );
+}
+
+export async function getStaticProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+    }
+  };
 }

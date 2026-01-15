@@ -15,6 +15,7 @@ import { getCurrentUser } from '@/lib/api/users';
 import { useAuthStore } from '../../lib/store';
 import ImageUpload from '../../components/imageUpload';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 // Extended type for form state to allow empty strings for numeric fields
 interface ProductFormData {
@@ -355,4 +356,12 @@ export default function SellPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+    }
+  };
 }

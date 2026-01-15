@@ -43,7 +43,7 @@ export default function SalesPage() {
   useEffect(() => {
     if (!isAuthed) return;
     loadOrders();
-  }, [isAuthed, statusFilter]);
+  }, [isAuthed, statusFilter, page]);
 
   const loadOrders = async () => {
     try {
@@ -57,7 +57,7 @@ export default function SalesPage() {
         filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
       }
       
-      setOrders(filteredOrders);
+      setOrders(prev => (page > 1 ? [...prev, ...filteredOrders] : filteredOrders));
       setHasMore(data.total > page * 20);
       
       // Calculate stats
@@ -245,7 +245,12 @@ export default function SalesPage() {
               ].map(tab => (
                 <button
                   key={tab.value}
-                  onClick={() => setStatusFilter(tab.value)}
+                  onClick={() => {
+                    if (statusFilter !== tab.value) {
+                      setStatusFilter(tab.value);
+                      setPage(1);
+                    }
+                  }}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     statusFilter === tab.value
                       ? 'bg-primary text-white'
@@ -447,10 +452,7 @@ export default function SalesPage() {
           {hasMore && orders.length > 0 && (
             <div className="text-center mt-6">
               <button
-                onClick={() => {
-                  setPage(prev => prev + 1);
-                  loadOrders();
-                }}
+                onClick={() => setPage(prev => prev + 1)}
                 className="btn-outline"
               >
                 تحميل المزيد

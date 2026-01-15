@@ -114,7 +114,8 @@ INSERT INTO users (id, email, password_hash, display_name, phone, role, is_selle
 VALUES
   ('10000000-0000-0000-0000-000000000001', 'seller@example.com',  '$dev_hash_seller',  'Demo Seller',   '+963900000001', 'seller', true),
   ('10000000-0000-0000-0000-000000000002', 'buyer@example.com',   '$dev_hash_buyer',   'Demo Buyer',    '+963900000002', 'user',   false),
-  ('10000000-0000-0000-0000-000000000003', 'support@example.com', '$dev_hash_support', 'Support Agent', '+963900000003', 'admin',  false)
+  ('10000000-0000-0000-0000-000000000003', 'support@example.com', '$dev_hash_support', 'Support Agent', '+963900000003', 'admin',  false),
+  ('10000000-0000-0000-0000-000000000004', 'test@test.com',       '$dev_hash_test',    'Technical User', '+963900000004', 'user',  true)
 ON CONFLICT (email) DO NOTHING;
 
 -- Listings

@@ -40,6 +40,11 @@ export const getMyListings = async (): Promise<Product[]> => {
   return response.data;
 };
 
+export const getListingsBySeller = async (sellerId: string): Promise<Product[]> => {
+  const response = await api.get<Product[]>(`/listings/seller/${sellerId}`);
+  return response.data;
+};
+
 /**
  * Alle Listings abrufen (mit Pagination und Filtern)
  */

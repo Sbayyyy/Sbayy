@@ -23,5 +23,6 @@
         public string? ThumbnailUrl { get; init; }
         public IReadOnlyList<ListingImageDto> Images { get; init; } = Array.Empty<ListingImageDto>();
         public IReadOnlyList<string> ImageUrls { get; init; } = Array.Empty<string>();
+        public SellerSummaryDto? Seller { get; init; }
     }
 }

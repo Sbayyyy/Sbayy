@@ -9,6 +9,9 @@ using ShoppingCart = SBay.Domain.Entities.ShoppingCart;
 using User = SBay.Domain.Entities.User;
 using Category = SBay.Domain.Entities.Category;
 using Address = SBay.Domain.Entities.Address;
+using FavoriteListing = SBay.Domain.Entities.FavoriteListing;
+using Review = SBay.Domain.Entities.Review;
+using ReviewHelpful = SBay.Domain.Entities.ReviewHelpful;
 
 namespace SBay.Domain.Database
 {
@@ -23,6 +26,9 @@ namespace SBay.Domain.Database
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Message> Messages => Set<Message>();
         public DbSet<Address> Addresses => Set<Address>();
+        public DbSet<FavoriteListing> Favorites => Set<FavoriteListing>();
+        public DbSet<Review> Reviews => Set<Review>();
+        public DbSet<ReviewHelpful> ReviewHelpfuls => Set<ReviewHelpful>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -37,6 +43,8 @@ namespace SBay.Domain.Database
                 e.Property(x => x.PasswordHash).HasColumnName("password_hash").IsRequired();
                 e.Property(x => x.DisplayName).HasColumnName("display_name");
                 e.Property(x => x.Phone).HasColumnName("phone");
+                e.Property(x => x.City).HasColumnName("city");
+                e.Property(x => x.AvatarUrl).HasColumnName("avatar_url");
                 e.Property(x => x.Role).HasColumnName("role");
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
                 e.Property(x => x.LastSeen).HasColumnName("last_seen");
@@ -54,6 +62,10 @@ namespace SBay.Domain.Database
                 e.Property(x => x.ReviewCount)
                     .HasColumnName("review_count")
                     .HasDefaultValue(0);
+                e.Property(x => x.Rating)
+                    .HasColumnName("average_rating")
+                    .HasColumnType("numeric(3,2)")
+                    .HasDefaultValue(0);
                 e.Property(x => x.ListingBanned)
                     .HasColumnName("listing_banned")
                     .HasDefaultValue(false);
@@ -67,11 +79,12 @@ namespace SBay.Domain.Database
                 e.Property(x => x.ListingLimitResetAt)
                     .HasColumnName("listing_limit_reset_at");
                 e.HasIndex(x => x.Email).IsUnique();
-                e.Ignore(x => x.AvatarUrl);
                 e.Ignore(x => x.ExternalId);
-                e.Ignore(x => x.Rating);
                 e.Ignore(x => x.Region);
                 e.Ignore(x => x.UserName);
+                e.Ignore(x => x.Cart);
+                e.Ignore(x => x.Listings);
+                e.Ignore(x => x.ShoppingLists);
             });
             modelBuilder.Entity<User>()
                 .Property(x => x.Id)
