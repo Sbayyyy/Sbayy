@@ -43,7 +43,7 @@ export default function SalesPage() {
   useEffect(() => {
     if (!isAuthed) return;
     loadOrders();
-  }, [isAuthed, statusFilter]);
+  }, [isAuthed, statusFilter, page]);
 
   const loadOrders = async () => {
     try {
@@ -447,10 +447,7 @@ export default function SalesPage() {
           {hasMore && orders.length > 0 && (
             <div className="text-center mt-6">
               <button
-                onClick={() => {
-                  setPage(prev => prev + 1);
-                  loadOrders();
-                }}
+                onClick={() => setPage(prev => prev + 1)}
                 className="btn-outline"
               >
                 تحميل المزيد

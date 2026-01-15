@@ -41,7 +41,8 @@ public sealed class ReviewsController : ControllerBase
         var (pageValue, limitValue) = NormalizePaging(page, limit);
         var (items, total) = await _reviews.GetByListingAsync(productId, pageValue, limitValue, ct);
         var stats = await _reviews.GetStatsByListingAsync(productId, ct);
-        var dtos = await MapReviewsAsync(items, ct);
+        var currentUserId = await _resolver.GetUserIdAsync(User, ct);
+        var dtos = await MapReviewsAsync(items, currentUserId, ct);
         return Ok(new { reviews = dtos, stats = ToStats(stats), total });
     }
 
@@ -51,7 +52,8 @@ public sealed class ReviewsController : ControllerBase
         var (pageValue, limitValue) = NormalizePaging(page, limit);
         var (items, total) = await _reviews.GetBySellerAsync(sellerId, pageValue, limitValue, ct);
         var stats = await _reviews.GetStatsBySellerAsync(sellerId, ct);
-        var dtos = await MapReviewsAsync(items, ct);
+        var currentUserId = await _resolver.GetUserIdAsync(User, ct);
+        var dtos = await MapReviewsAsync(items, currentUserId, ct);
         return Ok(new { reviews = dtos, stats = ToStats(stats), total });
     }
 
@@ -63,7 +65,7 @@ public sealed class ReviewsController : ControllerBase
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
 
         var items = await _reviews.GetByReviewerAsync(me.Value, ct);
-        var dtos = await MapReviewsAsync(items, ct);
+        var dtos = await MapReviewsAsync(items, me, ct);
         return Ok(dtos);
     }
 
@@ -124,7 +126,7 @@ public sealed class ReviewsController : ControllerBase
         await _uow.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
-        var dto = await MapReviewAsync(review, ct);
+        var dto = await MapReviewAsync(review, me, ct);
         return CreatedAtAction(nameof(GetBySeller), new { sellerId }, dto);
     }
 
@@ -170,7 +172,7 @@ public sealed class ReviewsController : ControllerBase
         await _uow.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
-        var dto = await MapReviewAsync(review, ct);
+        var dto = await MapReviewAsync(review, me, ct);
         return Ok(dto);
     }
 
@@ -247,19 +249,22 @@ public sealed class ReviewsController : ControllerBase
         seller.Rating = Math.Round(newAverage, 2);
     }
 
-    private async Task<IReadOnlyList<ReviewDto>> MapReviewsAsync(IReadOnlyList<Review> reviews, CancellationToken ct)
+    private async Task<IReadOnlyList<ReviewDto>> MapReviewsAsync(IReadOnlyList<Review> reviews, Guid? currentUserId, CancellationToken ct)
     {
         var dtos = new List<ReviewDto>(reviews.Count);
         foreach (var review in reviews)
-            dtos.Add(await MapReviewAsync(review, ct));
+            dtos.Add(await MapReviewAsync(review, currentUserId, ct));
         return dtos;
     }
 
-    private async Task<ReviewDto> MapReviewAsync(Review review, CancellationToken ct)
+    private async Task<ReviewDto> MapReviewAsync(Review review, Guid? currentUserId, CancellationToken ct)
     {
         var user = await _users.GetByIdAsync(review.ReviewerId, ct);
         var userName = user?.DisplayName ?? user?.Email ?? "User";
         var userAvatar = user?.AvatarUrl;
+        var isHelpful = currentUserId.HasValue
+            ? await _reviews.IsMarkedHelpfulAsync(review.Id, currentUserId.Value, ct)
+            : false;
 
         return new ReviewDto(
             review.Id,
@@ -272,7 +277,7 @@ public sealed class ReviewsController : ControllerBase
             review.Rating,
             review.Comment,
             review.HelpfulCount,
-            false,
+            isHelpful,
             review.CreatedAt,
             review.UpdatedAt
         );

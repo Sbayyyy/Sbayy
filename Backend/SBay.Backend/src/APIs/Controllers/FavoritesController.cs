@@ -106,6 +106,19 @@ public sealed class FavoritesController : ControllerBase
             })
             .ToList();
 
+        SellerSummaryDto? seller = null;
+        if (l.Seller != null)
+        {
+            seller = new SellerSummaryDto(
+                l.Seller.Id,
+                l.Seller.DisplayName ?? l.Seller.Email,
+                l.Seller.AvatarUrl,
+                l.Seller.Rating,
+                l.Seller.ReviewCount,
+                l.Seller.City
+            );
+        }
+
         return new ListingResponse
         {
             Id = l.Id,
@@ -121,7 +134,8 @@ public sealed class FavoritesController : ControllerBase
             CreatedAt = new DateTimeOffset(l.CreatedAt),
             ThumbnailUrl = l.ThumbnailUrl,
             Images = images,
-            ImageUrls = images.Select(i => i.Url).ToList()
+            ImageUrls = images.Select(i => i.Url).ToList(),
+            Seller = seller
         };
     }
 }

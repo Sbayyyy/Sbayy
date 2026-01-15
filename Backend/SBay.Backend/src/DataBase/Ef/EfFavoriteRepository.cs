@@ -29,10 +29,14 @@ public sealed class EfFavoriteRepository : IFavoriteRepository
         await _db.Set<FavoriteListing>().AddAsync(entity, ct);
     }
 
-    public Task RemoveAsync(Guid userId, Guid listingId, CancellationToken ct)
+    public async Task RemoveAsync(Guid userId, Guid listingId, CancellationToken ct)
     {
-        var entity = new FavoriteListing { UserId = userId, ListingId = listingId };
+        var entity = await _db.Set<FavoriteListing>()
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.ListingId == listingId, ct);
+        if (entity == null)
+            return;
+
         _db.Set<FavoriteListing>().Remove(entity);
-        return Task.CompletedTask;
+        await _db.SaveChangesAsync(ct);
     }
 }

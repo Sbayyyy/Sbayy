@@ -77,7 +77,7 @@ public class UserController : ControllerBase
 
         var dto = new SellerProfileDto(
             user.Id,
-            user.DisplayName ?? user.Email,
+            user.DisplayName ?? "Seller",
             user.AvatarUrl,
             user.Rating,
             user.ReviewCount,

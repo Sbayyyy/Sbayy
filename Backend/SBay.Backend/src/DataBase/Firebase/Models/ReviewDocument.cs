@@ -14,8 +14,13 @@ internal sealed class ReviewDocument
     [FirestoreProperty] public int Rating { get; set; }
     [FirestoreProperty] public string Comment { get; set; } = string.Empty;
     [FirestoreProperty] public int HelpfulCount { get; set; }
-    [FirestoreProperty] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    [FirestoreProperty] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    [FirestoreProperty]
+    [ServerTimestamp]
+    public DateTime CreatedAt { get; set; }
+
+    [FirestoreProperty]
+    [ServerTimestamp]
+    public DateTime UpdatedAt { get; set; }
 
     public static ReviewDocument FromDomain(Review review) => new()
     {

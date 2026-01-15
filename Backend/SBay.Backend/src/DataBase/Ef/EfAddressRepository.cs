@@ -23,6 +23,18 @@ public sealed class EfAddressRepository : IAddressRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == id, ct);
     }
+
+    public async Task<IReadOnlyList<Address>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var idList = ids.Distinct().ToList();
+        if (idList.Count == 0)
+            return Array.Empty<Address>();
+
+        return await _db.Set<Address>()
+            .AsNoTracking()
+            .Where(a => idList.Contains(a.Id))
+            .ToListAsync(ct);
+    }
     
     public async Task<List<Address>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
     {

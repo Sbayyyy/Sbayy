@@ -88,28 +88,55 @@ public sealed class EfReviewRepository : IReviewRepository
 
     public async Task<(int HelpfulCount, bool IsHelpful)> ToggleHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct)
     {
-        var review = await _db.Set<Review>()
-            .FirstOrDefaultAsync(r => r.Id == reviewId, ct);
-        if (review == null) return (0, false);
-
-        var helpful = await _db.Set<ReviewHelpful>()
-            .FirstOrDefaultAsync(h => h.ReviewId == reviewId && h.UserId == userId, ct);
-
-        if (helpful == null)
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
         {
-            _db.Set<ReviewHelpful>().Add(new ReviewHelpful
-            {
-                ReviewId = reviewId,
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow
-            });
-            review.HelpfulCount += 1;
-            return (review.HelpfulCount, true);
-        }
+            var review = await _db.Set<Review>()
+                .FirstOrDefaultAsync(r => r.Id == reviewId, ct);
+            if (review == null) return (0, false);
 
-        _db.Set<ReviewHelpful>().Remove(helpful);
-        review.HelpfulCount = Math.Max(0, review.HelpfulCount - 1);
-        return (review.HelpfulCount, false);
+            var helpful = await _db.Set<ReviewHelpful>()
+                .FirstOrDefaultAsync(h => h.ReviewId == reviewId && h.UserId == userId, ct);
+
+            if (helpful == null)
+            {
+                _db.Set<ReviewHelpful>().Add(new ReviewHelpful
+                {
+                    ReviewId = reviewId,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+                review.HelpfulCount += 1;
+                await _db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                return (review.HelpfulCount, true);
+            }
+
+            _db.Set<ReviewHelpful>().Remove(helpful);
+            review.HelpfulCount = Math.Max(0, review.HelpfulCount - 1);
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return (review.HelpfulCount, false);
+        }
+        catch (DbUpdateException)
+        {
+            var currentReview = await _db.Set<Review>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == reviewId, ct);
+            if (currentReview == null) return (0, false);
+
+            var exists = await _db.Set<ReviewHelpful>()
+                .AsNoTracking()
+                .AnyAsync(h => h.ReviewId == reviewId && h.UserId == userId, ct);
+            return (currentReview.HelpfulCount, exists);
+        }
+    }
+
+    public async Task<bool> IsMarkedHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct)
+    {
+        return await _db.Set<ReviewHelpful>()
+            .AsNoTracking()
+            .AnyAsync(h => h.ReviewId == reviewId && h.UserId == userId, ct);
     }
 
     private static async Task<ReviewStatsResult> BuildStatsAsync(IQueryable<Review> query, CancellationToken ct)

@@ -11,6 +11,11 @@ public interface IAddressRepository
     /// Get address by ID
     /// </summary>
     Task<Address?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Get addresses by IDs
+    /// </summary>
+    Task<IReadOnlyList<Address>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
     
     /// <summary>
     /// Get all addresses for a user

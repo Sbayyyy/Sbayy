@@ -60,6 +60,23 @@ public sealed class FirebaseAddressRepository : IAddressRepository
         return Convert(doc);
     }
 
+    public async Task<IReadOnlyList<Address>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var idList = ids.Distinct().ToList();
+        if (idList.Count == 0)
+            return Array.Empty<Address>();
+
+        var refs = idList
+            .Select(id => _db.Collection("addresses").Document(id.ToString()))
+            .ToList();
+
+        var snapshots = await EnsureCompleted(_db.GetAllSnapshotsAsync(refs, ct));
+        return snapshots
+            .Where(s => s.Exists)
+            .Select(Convert)
+            .ToList();
+    }
+
     public async Task<List<Address>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         var snapshot = await EnsureCompleted(

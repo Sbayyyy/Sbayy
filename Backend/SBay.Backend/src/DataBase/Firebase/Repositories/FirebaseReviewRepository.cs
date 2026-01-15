@@ -196,9 +196,22 @@ public sealed class FirebaseReviewRepository : IReviewRepository
                 return (review.HelpfulCount, false);
             }
 
-            await EnsureCompleted(helpfulRef.DeleteAsync(cancellationToken: ct));
-            await EnsureCompleted(reviewDoc.Reference.SetAsync(ReviewDocument.FromDomain(review), cancellationToken: ct));
-            return (review.HelpfulCount, false);
+            var result = await EnsureCompleted(_db.RunTransactionAsync(async transaction =>
+            {
+                var currentReviewSnap = await transaction.GetSnapshotAsync(reviewDoc.Reference);
+                if (!currentReviewSnap.Exists) return (0, false);
+                var currentReview = Convert(currentReviewSnap);
+
+                var currentHelpfulSnap = await transaction.GetSnapshotAsync(helpfulRef);
+                if (!currentHelpfulSnap.Exists) return (currentReview.HelpfulCount, false);
+
+                currentReview.HelpfulCount = Math.Max(0, currentReview.HelpfulCount - 1);
+                currentReview.UpdatedAt = DateTime.UtcNow;
+                transaction.Delete(helpfulRef);
+                transaction.Set(reviewDoc.Reference, ReviewDocument.FromDomain(currentReview));
+                return (currentReview.HelpfulCount, false);
+            }, cancellationToken: ct));
+            return result;
         }
 
         review.HelpfulCount += 1;
@@ -217,9 +230,31 @@ public sealed class FirebaseReviewRepository : IReviewRepository
             return (review.HelpfulCount, true);
         }
 
-        await EnsureCompleted(helpfulRef.SetAsync(helpfulPayload, cancellationToken: ct));
-        await EnsureCompleted(reviewDoc.Reference.SetAsync(ReviewDocument.FromDomain(review), cancellationToken: ct));
-        return (review.HelpfulCount, true);
+        var addResult = await EnsureCompleted(_db.RunTransactionAsync(async transaction =>
+        {
+            var currentReviewSnap = await transaction.GetSnapshotAsync(reviewDoc.Reference);
+            if (!currentReviewSnap.Exists) return (0, false);
+            var currentReview = Convert(currentReviewSnap);
+
+            var currentHelpfulSnap = await transaction.GetSnapshotAsync(helpfulRef);
+            if (currentHelpfulSnap.Exists) return (currentReview.HelpfulCount, true);
+
+            currentReview.HelpfulCount += 1;
+            currentReview.UpdatedAt = DateTime.UtcNow;
+            transaction.Set(helpfulRef, helpfulPayload);
+            transaction.Set(reviewDoc.Reference, ReviewDocument.FromDomain(currentReview));
+            return (currentReview.HelpfulCount, true);
+        }, cancellationToken: ct));
+        return addResult;
+    }
+
+    public async Task<bool> IsMarkedHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct)
+    {
+        var doc = await EnsureCompleted(
+            _db.Collection("review_helpfuls")
+               .Document(ComposeHelpfulId(reviewId, userId))
+               .GetSnapshotAsync(ct));
+        return doc.Exists;
     }
 
     private static async Task<ReviewStatsResult> BuildStatsAsync(Query query, CancellationToken ct)
