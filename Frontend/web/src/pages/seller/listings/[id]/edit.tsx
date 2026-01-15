@@ -5,6 +5,7 @@ import ImageUpload from '@/components/imageUpload';
 import { getListingById, updateListing } from '@/lib/api/listings';
 import { Product, ProductUpdate } from '@sbay/shared';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 
 interface ProductFormData {
   title: string;
@@ -21,6 +22,7 @@ interface ProductFormData {
 export default function EditListingPage() {
   const router = useRouter();
   const { id } = router.query;
+  const isAuthed = useRequireAuth();
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -42,10 +44,11 @@ export default function EditListingPage() {
   const [errors, setErrors] = useState<Partial<ProductFormData>>({});
 
   useEffect(() => {
+    if (!isAuthed) return;
     if (id && typeof id === 'string') {
       loadListing(id);
     }
-  }, [id]);
+  }, [id, isAuthed]);
 
   const loadListing = async (listingId: string) => {
     try {

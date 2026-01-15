@@ -5,6 +5,7 @@ import Layout from '@/components/Layout';
 import { getMessages, sendMessage, markAsRead, getChats } from '@/lib/api/messages';
 import { Message, Chat } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { 
   Send, 
   ArrowLeft,
@@ -20,7 +21,8 @@ import Head from 'next/head';
 export default function ChatPage() {
   const router = useRouter();
   const { chatId } = router.query;
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
+  const isAuthed = useRequireAuth();
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [chat, setChat] = useState<Chat | null>(null);
@@ -33,14 +35,11 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login');
-      return;
-    }
+    if (!isAuthed) return;
     if (chatId) {
       loadChat();
     }
-  }, [chatId, isAuthenticated]);
+  }, [chatId, isAuthed]);
 
   useEffect(() => {
     scrollToBottom();

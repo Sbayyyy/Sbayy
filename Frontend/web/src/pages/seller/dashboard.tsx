@@ -9,10 +9,12 @@ import { SellerStats, Order, DailyRevenue, WeeklySales } from '@sbay/shared';
 import { getSellerStats, getRecentOrders, getDailyRevenue, getWeeklySales } from '@/lib/api/seller';
 import { DollarSign, ShoppingCart, Users, TrendingUp, Package, CheckCircle, Clock } from 'lucide-react';
 import { formatPrice } from '@/lib/cartStore';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 
 
 
 export default function SellerDashboard() {
+  const isAuthed = useRequireAuth();
   const [stats, setStats] = useState<SellerStats | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [dailyRevenue, setDailyRevenue] = useState<DailyRevenue[]>([]);
@@ -20,8 +22,9 @@ export default function SellerDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthed) return;
     loadDashboardData();
-  }, []);
+  }, [isAuthed]);
 
   const loadDashboardData = async () => {
     try {

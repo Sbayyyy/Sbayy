@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { getCurrentUser, updateProfile, UpdateProfileRequest } from '@/lib/api/users';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { User, Mail, Phone, MapPin, Calendar, Edit2, Save, X } from 'lucide-react';
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { user, isAuthenticated, setUser } = useAuthStore();
+  const isAuthed = useRequireAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -44,11 +44,7 @@ export default function ProfilePage() {
     loadUserData();
   }, [isAuthenticated, setUser]);
 
-  // Redirect if not authenticated
-  if (!isAuthenticated) {
-    if (typeof window !== 'undefined') {
-      router.push('/auth/login?redirect=/profile');
-    }
+  if (!isAuthed) {
     return null;
   }
 

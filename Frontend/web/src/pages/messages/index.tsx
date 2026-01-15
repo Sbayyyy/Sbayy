@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { getChats } from '@/lib/api/messages';
 import { Chat, User } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { 
   MessageSquare, 
   Search,
@@ -27,8 +27,8 @@ interface ChatWithParticipant extends Chat {
 }
 
 export default function MessagesPage() {
-  const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
+  const isAuthed = useRequireAuth();
   
   const [chats, setChats] = useState<ChatWithParticipant[]>([]);
   const [filteredChats, setFilteredChats] = useState<ChatWithParticipant[]>([]);
@@ -36,18 +36,6 @@ export default function MessagesPage() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login?redirect=/messages');
-      return;
-    }
-    loadChats();
-  }, [isAuthenticated, router]);
-
-  useEffect(() => {
-    filterChats();
-  }, [chats, searchQuery, filter]);
 
   const loadChats = useCallback(async () => {
     if (!user?.id) return;
@@ -102,6 +90,15 @@ export default function MessagesPage() {
       setLoading(false);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!isAuthed) return;
+    loadChats();
+  }, [isAuthed, loadChats]);
+
+  useEffect(() => {
+    filterChats();
+  }, [chats, searchQuery, filter]);
 
   const filterChats = () => {
     let filtered = chats;

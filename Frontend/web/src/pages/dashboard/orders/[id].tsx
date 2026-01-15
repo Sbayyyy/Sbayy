@@ -5,7 +5,7 @@ import Layout from '@/components/Layout';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { getOrder, updateOrderStatus, cancelOrder } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
-import { useAuthStore } from '@/lib/store';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { 
   Package, 
   Truck, 
@@ -28,7 +28,7 @@ import Head from 'next/head';
 export default function OrderDetailsPage() {
   const router = useRouter();
   const { id } = router.query;
-  const { user, isAuthenticated } = useAuthStore();
+  const isAuthed = useRequireAuth();
   
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,14 +36,11 @@ export default function OrderDetailsPage() {
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login');
-      return;
-    }
+    if (!isAuthed) return;
     if (id) {
       loadOrder();
     }
-  }, [id, isAuthenticated]);
+  }, [id, isAuthed]);
 
   const loadOrder = async () => {
     try {

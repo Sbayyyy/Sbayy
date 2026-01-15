@@ -13,6 +13,10 @@ export default function Login() {
     const [apiError, setApiError] = useState('');
 
     const router = useRouter();
+    const redirectParam = typeof router.query.redirect === 'string' ? router.query.redirect : '';
+    const registerHref = redirectParam
+      ? `/auth/register?redirect=${encodeURIComponent(redirectParam)}`
+      : '/auth/register';
   
     const validateForm = (): boolean => {
         const newErrors = { email: '', password: '' };
@@ -43,8 +47,26 @@ export default function Login() {
             loginStore(data.user, data.token);
             
             // Redirect
-            const redirect = router.query.redirect as string;
-            router.push(redirect || '/');
+            const queryRedirect = typeof router.query.redirect === 'string' ? router.query.redirect : '';
+            const storedRedirect = typeof window !== 'undefined'
+              ? window.sessionStorage.getItem('authRedirect') || ''
+              : '';
+            const rawRedirect = queryRedirect || storedRedirect || '/';
+            const normalizeRedirect = (value: string) => {
+              if (!value || value.startsWith('http://') || value.startsWith('https://') || value.startsWith('//')) {
+                return '/';
+              }
+              if (!value.startsWith('/')) return `/${value}`;
+              const locales = router.locales || [];
+              const hasLocalePrefix = locales.some(locale => value === `/${locale}` || value.startsWith(`/${locale}/`));
+              if (hasLocalePrefix || !router.locale) return value;
+              return `/${router.locale}${value}`;
+            };
+            const redirect = normalizeRedirect(rawRedirect);
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.removeItem('authRedirect');
+            }
+            router.push(redirect);
         } catch (error: any) {
             setApiError(error.response?.data?.message || 'خطأ في الاتصال بالخادم');
         } finally {
@@ -148,7 +170,7 @@ export default function Login() {
           </form>
 
             <div className="mt-4 text-center text-sm">
-                <a href="/auth/register" className="font-semibold text-indigo-400 hover:text-indigo-300">
+                <a href={registerHref} className="font-semibold text-indigo-400 hover:text-indigo-300">
                     ليس لديك حساب؟ سجل الآن
                   </a>
             </div>

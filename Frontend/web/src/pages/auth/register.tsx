@@ -12,6 +12,10 @@ import { register } from '../../lib/api/auth';
 
 export default function Register() {
     const router = useRouter();
+    const redirectParam = typeof router.query.redirect === 'string' ? router.query.redirect : '';
+    const loginHref = redirectParam
+      ? `/auth/login?redirect=${encodeURIComponent(redirectParam)}`
+      : '/auth/login';
 
     const [formData, setFormData] = useState({
         username: '',
@@ -91,7 +95,10 @@ export default function Register() {
             });
             
             // Registration successful, redirect to login
-            router.push('/auth/login?registered=true');
+            const redirectSuffix = redirectParam
+              ? `&redirect=${encodeURIComponent(redirectParam)}`
+              : '';
+            router.push(`/auth/login?registered=true${redirectSuffix}`);
         } catch (error: any) {
             setApiError(error.response?.data?.message || 'خطأ في الاتصال بالخادم');
         } finally {
@@ -261,7 +268,7 @@ export default function Register() {
         </form>
 
         <div className="mt-4 text-center text-sm">
-          <a href="/auth/login" className="font-semibold text-indigo-400 hover:text-indigo-300">
+          <a href={loginHref} className="font-semibold text-indigo-400 hover:text-indigo-300">
             لديك حساب بالفعل؟ سجل الدخول
           </a>
         </div>

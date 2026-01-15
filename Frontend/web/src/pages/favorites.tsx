@@ -1,30 +1,22 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
 import { getFavorites, removeFavorite } from '@/lib/api/favorites';
-import { useAuthStore } from '@/lib/store';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { Product } from '@sbay/shared';
 import { Loader2, Heart, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
 export default function FavoritesPage() {
-  const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthed = useRequireAuth();
   const [favorites, setFavorites] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    //TODO: confirm authentication later with proper redirect
-    // Redirect if not authenticated
-    if (!isAuthenticated) {
-       router.push('/auth/login?redirect=/favorites');
-       return;
-    }
-
+    if (!isAuthed) return;
     loadFavorites();
-  }, [isAuthenticated, router]);
+  }, [isAuthed]);
 
   const loadFavorites = async () => {
     try {

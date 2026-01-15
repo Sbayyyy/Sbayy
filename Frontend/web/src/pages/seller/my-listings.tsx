@@ -5,9 +5,11 @@ import { getMyListings, deleteListing } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
 import { Loader2, AlertCircle, Plus, Edit, Trash2, Eye, Package } from 'lucide-react';
 import { formatPrice } from '@/lib/cartStore';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 
 export default function MyListingsPage() {
   const router = useRouter();
+  const isAuthed = useRequireAuth();
   const [listings, setListings] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -16,8 +18,9 @@ export default function MyListingsPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    if (!isAuthed) return;
     loadListings();
-  }, []);
+  }, [isAuthed]);
 
   const loadListings = async () => {
     try {

@@ -14,6 +14,7 @@ import { createListing } from '../../lib/api/listings';
 import { getCurrentUser } from '@/lib/api/users';
 import { useAuthStore } from '../../lib/store';
 import ImageUpload from '../../components/imageUpload';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 
 // Extended type for form state to allow empty strings for numeric fields
 interface ProductFormData {
@@ -31,6 +32,7 @@ interface ProductFormData {
 export default function SellPage() {
   const router = useRouter();
   const { isAuthenticated, setUser } = useAuthStore();
+  const isAuthed = useRequireAuth();
   
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
@@ -48,14 +50,9 @@ export default function SellPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
-  // Later uncomment to enable authentication check
-  // Redirect if not authenticated
-  /*
-  if (typeof window !== 'undefined' && !isAuthenticated) {
-    router.push('/login?redirect=/sell');
+  if (!isAuthed) {
     return null;
   }
-    */
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof ProductCreate, string>> = {};

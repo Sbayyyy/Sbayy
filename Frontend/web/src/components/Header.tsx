@@ -10,6 +10,9 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const redirectParam = encodeURIComponent(router.asPath);
+  const loginHref = `/auth/login?redirect=${redirectParam}`;
+  const registerHref = `/auth/register?redirect=${redirectParam}`;
 
   const handleLogout = () => {
     logout();
@@ -152,7 +155,7 @@ export default function Header() {
               </div>
             ) : (
               <Link
-                href="/auth/login"
+                href={loginHref}
                 className="hidden md:flex items-center gap-2 px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
               >
                 <User size={18} />
@@ -236,14 +239,14 @@ export default function Header() {
               <>
                 <hr className="my-2" />
                 <Link
-                  href="/auth/login"
+                  href={loginHref}
                   className="block py-2 text-gray-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   تسجيل الدخول
                 </Link>
                 <Link
-                  href="/auth/register"
+                  href={registerHref}
                   className="block py-2 text-gray-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >

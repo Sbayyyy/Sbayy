@@ -22,7 +22,7 @@ import { toast } from '@/lib/toast';
 export default function ListingDetail() {
   const router = useRouter();
   const { id } = router.query;
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { addItem } = useCartStore();
   
   const [listing, setListing] = useState<Product | null>(null);
@@ -50,6 +50,12 @@ export default function ListingDetail() {
       setLoading(false);
     }
   };
+  const requireAuth = () => {
+    if (isAuthenticated) return true;
+    const redirectTo = encodeURIComponent(router.asPath);
+    router.push(`/auth/login?redirect=${redirectTo}`);
+    return false;
+  };
   const handleAddToCart = () => {
     if (listing) {
       addItem(listing, quantity);
@@ -58,11 +64,13 @@ export default function ListingDetail() {
   };
 
   const handleBuyNow = () => {
+    if (!requireAuth()) return;
     // TODO: Implement direct checkout
     router.push('/checkout');
   };
 
   const handleContactSeller = () => {
+    if (!requireAuth()) return;
     // TODO: Implement messaging
     toast.info('سيتم فتح محادثة مع البائع');
   };

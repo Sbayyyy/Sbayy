@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { getPurchases } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
-import { useAuthStore } from '@/lib/store';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { 
   Package, 
   Truck, 
@@ -20,8 +19,7 @@ import {
 import Head from 'next/head';
 
 export default function PurchasesPage() {
-  const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const isAuthed = useRequireAuth();
   
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,12 +54,9 @@ export default function PurchasesPage() {
   }, [page, statusFilter]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login?redirect=/dashboard/orders/purchases');
-      return;
-    }
+    if (!isAuthed) return;
     loadOrders();
-  }, [isAuthenticated, router, loadOrders]);
+  }, [isAuthed, loadOrders]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
