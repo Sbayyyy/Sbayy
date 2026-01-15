@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace SBay.Backend.APIs.Records;
 
-[JsonConstructor]
+
 public record RegisterRequest(
     string Email,
     string Password,
