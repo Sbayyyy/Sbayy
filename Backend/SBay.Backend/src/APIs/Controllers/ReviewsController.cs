@@ -213,7 +213,6 @@ public sealed class ReviewsController : ControllerBase
             if (exists == null) return NotFound();
         }
 
-        await _uow.SaveChangesAsync(ct);
         return Ok(new { helpful = count, isHelpful });
     }
 

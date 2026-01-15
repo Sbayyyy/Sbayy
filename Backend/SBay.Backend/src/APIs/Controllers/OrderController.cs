@@ -370,12 +370,25 @@ public sealed class OrdersController : ControllerBase
 
         var (pageValue, limitValue) = NormalizePaging(page, limit);
         var (orders, total) = await _orders.GetBySellerAsync(me.Value, pageValue, limitValue, ct);
+        var missingAddressIds = orders
+            .Where(o => o.ShippingAddress == null && o.ShippingAddressId.HasValue)
+            .Select(o => o.ShippingAddressId!.Value)
+            .Distinct()
+            .ToList();
+
+        var addressLookup = new Dictionary<Guid, Address>();
+        if (missingAddressIds.Count > 0)
+        {
+            var addresses = await _addresses.GetByIdsAsync(missingAddressIds, ct);
+            addressLookup = addresses.ToDictionary(a => a.Id);
+        }
+
         var dtos = new List<OrderDto>(orders.Count);
         foreach (var order in orders)
         {
             var address = order.ShippingAddress;
             if (address == null && order.ShippingAddressId.HasValue)
-                address = await _addresses.GetByIdAsync(order.ShippingAddressId.Value, ct);
+                addressLookup.TryGetValue(order.ShippingAddressId.Value, out address);
             dtos.Add(ToDto(order, address));
         }
 

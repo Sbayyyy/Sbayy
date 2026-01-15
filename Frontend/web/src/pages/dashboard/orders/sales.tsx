@@ -45,6 +45,10 @@ export default function SalesPage() {
     loadOrders();
   }, [isAuthed, statusFilter, page]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
   const loadOrders = async () => {
     try {
       setLoading(true);

@@ -88,7 +88,6 @@ public sealed class FavoritesController : ControllerBase
         if (listingId == Guid.Empty) return BadRequest("ListingId is required.");
 
         await _favorites.RemoveAsync(me.Value, listingId, ct);
-        await _uow.SaveChangesAsync(ct);
         return NoContent();
     }
 
