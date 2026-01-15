@@ -12,6 +12,7 @@ namespace SBay.Backend.Api.Controllers;
 [Route("api/reviews")]
 public sealed class ReviewsController : ControllerBase
 {
+    private const int MaxCommentLength = 2000;
     private readonly IReviewRepository _reviews;
     private readonly IUserRepository _users;
     private readonly IListingRepository _listings;
@@ -78,6 +79,8 @@ public sealed class ReviewsController : ControllerBase
         if (req == null) return BadRequest("Review payload is required.");
         if (req.Rating < 1 || req.Rating > 5) return BadRequest("Rating must be between 1 and 5.");
         if (string.IsNullOrWhiteSpace(req.Comment)) return BadRequest("Comment is required.");
+        if (req.Comment.Trim().Length > MaxCommentLength)
+            return BadRequest($"Comment must be {MaxCommentLength} characters or less.");
         if (!req.OrderId.HasValue || req.OrderId.Value == Guid.Empty)
             return BadRequest("OrderId is required to create a review.");
 
@@ -154,7 +157,10 @@ public sealed class ReviewsController : ControllerBase
         {
             if (string.IsNullOrWhiteSpace(req.Comment))
                 return BadRequest("Comment cannot be empty.");
-            review.Comment = req.Comment.Trim();
+            var trimmed = req.Comment.Trim();
+            if (trimmed.Length > MaxCommentLength)
+                return BadRequest($"Comment must be {MaxCommentLength} characters or less.");
+            review.Comment = trimmed;
         }
 
         review.UpdatedAt = DateTime.UtcNow;

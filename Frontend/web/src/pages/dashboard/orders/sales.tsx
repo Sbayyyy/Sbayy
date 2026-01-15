@@ -45,10 +45,6 @@ export default function SalesPage() {
     loadOrders();
   }, [isAuthed, statusFilter, page]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter]);
-
   const loadOrders = async () => {
     try {
       setLoading(true);
@@ -249,7 +245,12 @@ export default function SalesPage() {
               ].map(tab => (
                 <button
                   key={tab.value}
-                  onClick={() => setStatusFilter(tab.value)}
+                  onClick={() => {
+                    if (statusFilter !== tab.value) {
+                      setStatusFilter(tab.value);
+                      setPage(1);
+                    }
+                  }}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     statusFilter === tab.value
                       ? 'bg-primary text-white'
