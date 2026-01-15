@@ -172,11 +172,11 @@ public sealed class FirebaseReviewRepository : IReviewRepository
             ct);
     }
 
-    public async Task<(int HelpfulCount, bool IsHelpful)> ToggleHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct)
+    public async Task<(int HelpfulCount, bool IsHelpful)?> ToggleHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct)
     {
         var reviewDoc = await EnsureCompleted(
             _db.Collection("reviews").Document(reviewId.ToString()).GetSnapshotAsync(ct));
-        if (!reviewDoc.Exists) return (0, false);
+        if (!reviewDoc.Exists) return null;
 
         var review = Convert(reviewDoc);
         var helpfulRef = _db.Collection("review_helpfuls")
@@ -199,7 +199,7 @@ public sealed class FirebaseReviewRepository : IReviewRepository
             var result = await EnsureCompleted(_db.RunTransactionAsync(async transaction =>
             {
                 var currentReviewSnap = await transaction.GetSnapshotAsync(reviewDoc.Reference);
-                if (!currentReviewSnap.Exists) return (0, false);
+                if (!currentReviewSnap.Exists) return ((int, bool)?)null;
                 var currentReview = Convert(currentReviewSnap);
 
                 var currentHelpfulSnap = await transaction.GetSnapshotAsync(helpfulRef);
@@ -233,7 +233,7 @@ public sealed class FirebaseReviewRepository : IReviewRepository
         var addResult = await EnsureCompleted(_db.RunTransactionAsync(async transaction =>
         {
             var currentReviewSnap = await transaction.GetSnapshotAsync(reviewDoc.Reference);
-            if (!currentReviewSnap.Exists) return (0, false);
+            if (!currentReviewSnap.Exists) return ((int, bool)?)null;
             var currentReview = Convert(currentReviewSnap);
 
             var currentHelpfulSnap = await transaction.GetSnapshotAsync(helpfulRef);

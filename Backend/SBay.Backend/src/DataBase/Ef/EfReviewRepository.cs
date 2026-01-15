@@ -86,14 +86,14 @@ public sealed class EfReviewRepository : IReviewRepository
         return await BuildStatsAsync(_db.Set<Review>().AsNoTracking().Where(r => r.ListingId == listingId), ct);
     }
 
-    public async Task<(int HelpfulCount, bool IsHelpful)> ToggleHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct)
+    public async Task<(int HelpfulCount, bool IsHelpful)?> ToggleHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct)
     {
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
         try
         {
             var review = await _db.Set<Review>()
                 .FirstOrDefaultAsync(r => r.Id == reviewId, ct);
-            if (review == null) return (0, false);
+            if (review == null) return null;
 
             var helpful = await _db.Set<ReviewHelpful>()
                 .FirstOrDefaultAsync(h => h.ReviewId == reviewId && h.UserId == userId, ct);
@@ -123,7 +123,7 @@ public sealed class EfReviewRepository : IReviewRepository
             var currentReview = await _db.Set<Review>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == reviewId, ct);
-            if (currentReview == null) return (0, false);
+            if (currentReview == null) return null;
 
             var exists = await _db.Set<ReviewHelpful>()
                 .AsNoTracking()

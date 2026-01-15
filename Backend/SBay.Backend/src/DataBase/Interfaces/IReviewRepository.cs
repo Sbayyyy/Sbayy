@@ -16,6 +16,6 @@ public interface IReviewRepository
     Task RemoveAsync(Review review, CancellationToken ct);
     Task<ReviewStatsResult> GetStatsBySellerAsync(Guid sellerId, CancellationToken ct);
     Task<ReviewStatsResult> GetStatsByListingAsync(Guid listingId, CancellationToken ct);
-    Task<(int HelpfulCount, bool IsHelpful)> ToggleHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct);
+    Task<(int HelpfulCount, bool IsHelpful)?> ToggleHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct);
     Task<bool> IsMarkedHelpfulAsync(Guid reviewId, Guid userId, CancellationToken ct);
 }

@@ -212,14 +212,9 @@ public sealed class ReviewsController : ControllerBase
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
 
-        var (count, isHelpful) = await _reviews.ToggleHelpfulAsync(id, me.Value, ct);
-        if (count == 0 && !isHelpful)
-        {
-            var exists = await _reviews.GetByIdAsync(id, ct);
-            if (exists == null) return NotFound();
-        }
-
-        return Ok(new { helpful = count, isHelpful });
+        var result = await _reviews.ToggleHelpfulAsync(id, me.Value, ct);
+        if (result == null) return NotFound();
+        return Ok(new { helpful = result.Value.HelpfulCount, isHelpful = result.Value.IsHelpful });
     }
 
     private static void ApplyReviewCreated(User seller, int rating)

@@ -57,7 +57,7 @@ export default function SalesPage() {
         filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
       }
       
-      setOrders(filteredOrders);
+      setOrders(prev => (page > 1 ? [...prev, ...filteredOrders] : filteredOrders));
       setHasMore(data.total > page * 20);
       
       // Calculate stats
