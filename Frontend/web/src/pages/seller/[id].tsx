@@ -6,7 +6,9 @@ import Layout from '@/components/Layout';
 import RatingStars from '@/components/RatingStars';
 import ReviewList from '@/components/ReviewList';
 import { getSellerReviews } from '@/lib/api/reviews';
-import { getAllListings } from '@/lib/api/listings';
+import { getListingsBySeller } from '@/lib/api/listings';
+import { getSellerProfile } from '@/lib/api/users';
+import { toast } from '@/lib/toast';
 import { 
   User as UserIcon,
   MapPin,
@@ -16,31 +18,17 @@ import {
   MessageSquare,
   Loader2,
   AlertCircle,
-  Clock,
   CheckCircle
 } from 'lucide-react';
 import type { Review, Product } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
-
-interface SellerProfile {
-  id: string;
-  name: string;
-  avatar?: string;
-  rating: number;
-  reviewCount: number;
-  region?: string;
-  memberSince: string;
-  responseTime?: string;
-  completionRate?: number;
-  totalSales?: number;
-  verified: boolean;
-}
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function SellerProfilePage() {
   const router = useRouter();
   const { id: sellerId } = router.query;
 
-  const [seller, setSeller] = useState<SellerProfile | null>(null);
+  const [seller, setSeller] = useState<Awaited<ReturnType<typeof getSellerProfile>> | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,24 +45,12 @@ export default function SellerProfilePage() {
     try {
       setLoading(true);
 
-      // TODO: Get seller info from backend
-      // For now using mock data
-      setSeller({
-        id: sellerId as string,
-        name: `البائع ${(sellerId as string).substring(0, 8)}`,
-        rating: 4.5,
-        reviewCount: 128,
-        region: 'دمشق',
-        memberSince: '2024-01-15',
-        responseTime: '2 ساعة',
-        completionRate: 95,
-        totalSales: 342,
-        verified: true
-      });
+      const profile = await getSellerProfile(sellerId as string);
+      setSeller(profile);
 
       // Load seller's products
-      const productsData = await getAllListings(1, 20);
-      setProducts(productsData.items.slice(0, 8)); // Limit to 8 for demo
+      const productsData = await getListingsBySeller(sellerId as string);
+      setProducts(productsData);
 
       // Load seller reviews
       try {
@@ -164,9 +140,6 @@ export default function SellerProfilePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-2xl font-bold text-gray-900">{seller.name}</h1>
-                  {seller.verified && (
-                    <CheckCircle className="w-6 h-6 text-green-500" fill="currentColor" />
-                  )}
                 </div>
 
                 <div className="flex items-center gap-4 mb-4">
@@ -176,12 +149,12 @@ export default function SellerProfilePage() {
                       ({seller.reviewCount} تقييم)
                     </span>
                   </div>
-                  {seller.region && (
+                  {seller.city && (
                     <>
                       <span className="text-gray-300">•</span>
                       <div className="flex items-center gap-1 text-sm text-gray-600">
                         <MapPin className="w-4 h-4" />
-                        <span>{seller.region}</span>
+                        <span>{seller.city}</span>
                       </div>
                     </>
                   )}
@@ -194,45 +167,34 @@ export default function SellerProfilePage() {
                       <Calendar className="w-4 h-4" />
                       <span className="text-xs">عضو منذ</span>
                     </div>
-                    <p className="font-bold text-gray-900">{formatDate(seller.memberSince)}</p>
+                    <p className="font-bold text-gray-900">{formatDate(seller.createdAt)}</p>
                   </div>
 
-                  {seller.totalSales && (
+                  {seller.totalOrders > 0 && (
                     <div className="bg-gray-50 rounded-lg p-3">
                       <div className="flex items-center gap-2 text-gray-600 mb-1">
                         <Package className="w-4 h-4" />
                         <span className="text-xs">إجمالي المبيعات</span>
                       </div>
-                      <p className="font-bold text-gray-900">{seller.totalSales}</p>
-                    </div>
-                  )}
-
-                  {seller.responseTime && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-xs">وقت الاستجابة</span>
-                      </div>
-                      <p className="font-bold text-gray-900">{seller.responseTime}</p>
-                    </div>
-                  )}
-
-                  {seller.completionRate && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="text-xs">معدل الإنجاز</span>
-                      </div>
-                      <p className="font-bold text-gray-900">{seller.completionRate}%</p>
+                      <p className="font-bold text-gray-900">{seller.totalOrders}</p>
                     </div>
                   )}
                 </div>
 
                 {/* Contact Button */}
-                <button className="btn-primary flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  تواصل مع البائع
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button className="flex items-center gap-2 bg-primary-600 text-white px-5 py-2.5 rounded-lg hover:bg-primary-700 transition-colors">
+                    <MessageSquare className="w-5 h-5" />
+                    تواصل مع البائع
+                  </button>
+                  <button
+                    onClick={() => toast.info('سيتم إضافة ميزة الإبلاغ قريبًا')}
+                    className="flex items-center gap-2 border border-red-300 text-red-700 px-5 py-2.5 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    <AlertCircle className="w-5 h-5" />
+                    الإبلاغ عن البائع
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -290,4 +252,12 @@ export default function SellerProfilePage() {
       </div>
     </Layout>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+    }
+  };
 }

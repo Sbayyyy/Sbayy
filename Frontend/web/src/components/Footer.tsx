@@ -1,7 +1,34 @@
 import Link from 'next/link';
+import { useTranslation } from 'next-i18next';
 import { Facebook, Instagram, Twitter, Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
+  const { i18n } = useTranslation('common');
+  const currentLocale = i18n?.language ?? 'en';
+  const setLocaleCookie = (locale: string) => {
+    document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
+  };
+
+  const ensureLocaleLoaded = async (locale: string) => {
+    const canCheck = typeof i18n?.hasResourceBundle === 'function';
+    if (!i18n) return;
+    if (canCheck && i18n.hasResourceBundle(locale, 'common')) return;
+    if (typeof i18n.addResourceBundle !== 'function') return;
+    const response = await fetch(`/locales/${locale}/common.json`);
+    if (!response.ok) return;
+    const resources = await response.json();
+    i18n.addResourceBundle(locale, 'common', resources, true, true);
+  };
+
+  const handleLocaleChange = async (locale: string) => {
+    if (typeof window === 'undefined') return;
+    setLocaleCookie(locale);
+    await ensureLocaleLoaded(locale);
+    i18n?.changeLanguage?.(locale);
+    document.documentElement.lang = locale;
+    document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+  };
+
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12">
@@ -124,16 +151,35 @@ export default function Footer() {
           <p className="text-gray-400 text-sm text-center md:text-right">
             &copy; 2025 سباي. جميع الحقوق محفوظة.
           </p>
-          <div className="flex gap-6 text-sm">
-            <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
-              الخصوصية
-            </Link>
-            <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
-              الشروط
-            </Link>
-            <Link href="/sitemap" className="text-gray-400 hover:text-white transition-colors">
-              خريطة الموقع
-            </Link>
+          <div className="flex flex-col md:flex-row items-center gap-4 text-sm">
+            <div className="flex gap-6">
+              <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
+                الخصوصية
+              </Link>
+              <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
+                الشروط
+              </Link>
+              <Link href="/sitemap" className="text-gray-400 hover:text-white transition-colors">
+                خريطة الموقع
+              </Link>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <button
+                type="button"
+                onClick={() => handleLocaleChange('en')}
+                className={currentLocale === 'en' ? 'text-white' : 'hover:text-white transition-colors'}
+              >
+                EN
+              </button>
+              <span className="text-gray-500">|</span>
+              <button
+                type="button"
+                onClick={() => handleLocaleChange('ar')}
+                className={currentLocale === 'ar' ? 'text-white' : 'hover:text-white transition-colors'}
+              >
+                AR
+              </button>
+            </div>
           </div>
         </div>
       </div>

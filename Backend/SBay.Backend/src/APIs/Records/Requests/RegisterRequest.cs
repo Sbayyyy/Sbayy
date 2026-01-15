@@ -1,3 +1,12 @@
-﻿namespace SBay.Backend.APIs.Records;
+using System.Text.Json.Serialization;
 
-public record RegisterRequest(string Email, string Password, string? DisplayName, string? Phone);
+namespace SBay.Backend.APIs.Records;
+
+[JsonConstructor]
+public record RegisterRequest(
+    string Email,
+    string Password,
+    string? Name,
+    string? DisplayName,
+    string? Phone,
+    string? City);

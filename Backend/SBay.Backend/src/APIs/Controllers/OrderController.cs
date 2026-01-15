@@ -327,6 +327,48 @@ public sealed class OrdersController : ControllerBase
         return Ok(ToDto(order, address));
     }
 
+    [HttpGet("my-purchases")]
+    [Authorize(Policy = ScopePolicies.OrdersRead)]
+    public async Task<ActionResult<object>> GetMyPurchases([FromQuery] int page = 1, [FromQuery] int limit = 20, CancellationToken ct = default)
+    {
+        var me = await _resolver.GetUserIdAsync(User, ct);
+        if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
+
+        var (pageValue, limitValue) = NormalizePaging(page, limit);
+        var (orders, total) = await _orders.GetByBuyerAsync(me.Value, pageValue, limitValue, ct);
+        var dtos = new List<OrderDto>(orders.Count);
+        foreach (var order in orders)
+        {
+            var address = order.ShippingAddress;
+            if (address == null && order.ShippingAddressId.HasValue)
+                address = await _addresses.GetByIdAsync(order.ShippingAddressId.Value, ct);
+            dtos.Add(ToDto(order, address));
+        }
+
+        return Ok(new { orders = dtos, total });
+    }
+
+    [HttpGet("my-sales")]
+    [Authorize(Policy = ScopePolicies.OrdersRead)]
+    public async Task<ActionResult<object>> GetMySales([FromQuery] int page = 1, [FromQuery] int limit = 20, CancellationToken ct = default)
+    {
+        var me = await _resolver.GetUserIdAsync(User, ct);
+        if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
+
+        var (pageValue, limitValue) = NormalizePaging(page, limit);
+        var (orders, total) = await _orders.GetBySellerAsync(me.Value, pageValue, limitValue, ct);
+        var dtos = new List<OrderDto>(orders.Count);
+        foreach (var order in orders)
+        {
+            var address = order.ShippingAddress;
+            if (address == null && order.ShippingAddressId.HasValue)
+                address = await _addresses.GetByIdAsync(order.ShippingAddressId.Value, ct);
+            dtos.Add(ToDto(order, address));
+        }
+
+        return Ok(new { orders = dtos, total });
+    }
+
     // ===== UPDATED: ToDto with Address and ShippingInfo =====
     private static OrderDto ToDto(Order order, Address? address)
     {
@@ -374,5 +416,12 @@ public sealed class OrdersController : ControllerBase
                 order.TrackingNumber
             )
         );
+    }
+
+    private static (int Page, int Limit) NormalizePaging(int page, int limit)
+    {
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedLimit = limit < 1 ? 20 : Math.Min(limit, 100);
+        return (normalizedPage, normalizedLimit);
     }
 }

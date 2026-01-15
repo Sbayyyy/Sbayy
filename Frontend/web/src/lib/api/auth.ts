@@ -1,12 +1,32 @@
 import { api } from '../api';
-import type { UserLogin, UserRegistration } from '@sbay/shared';
+import type { User, UserLogin, UserRegistration } from '@sbay/shared';
+
+type BackendUserDto = Omit<User, 'name'> & {
+  displayName?: string;
+  name?: string;
+  avatarUrl?: string;
+};
+
+type AuthResponse = {
+  user: BackendUserDto;
+  token: string;
+};
+
+const toUser = (dto: BackendUserDto): User => ({
+  ...dto,
+  name: dto.displayName ?? dto.name ?? '',
+  avatar: dto.avatar ?? dto.avatarUrl
+});
 
 /**
  * Login
  */
 export const login = async (credentials: UserLogin) => {
-  const response = await api.post('/auth/login', credentials);
-  return response.data;
+  const response = await api.post<AuthResponse>('/auth/login', credentials);
+  return {
+    ...response.data,
+    user: toUser(response.data.user)
+  };
 };
 
 /**

@@ -29,7 +29,7 @@ public sealed class ListingsController : ControllerBase
         _config = config;
     }
 
-    private static ListingResponse ToResponse(Listing l)
+    private static ListingResponse ToResponse(Listing l, User? seller = null)
     {
         var images = l.Images
             .OrderBy(i => i.Position)
@@ -42,6 +42,19 @@ public sealed class ListingsController : ControllerBase
                 Height = i.Height
             })
             .ToList();
+
+        SellerSummaryDto? sellerDto = null;
+        if (seller != null)
+        {
+            sellerDto = new SellerSummaryDto(
+                seller.Id,
+                seller.DisplayName ?? seller.Email,
+                seller.AvatarUrl,
+                seller.Rating,
+                seller.ReviewCount,
+                seller.City
+            );
+        }
 
         return new ListingResponse
         {
@@ -58,7 +71,8 @@ public sealed class ListingsController : ControllerBase
             CreatedAt = new DateTimeOffset(l.CreatedAt),
             ThumbnailUrl = l.ThumbnailUrl,
             Images = images,
-            ImageUrls = images.Select(i => i.Url).ToList()
+            ImageUrls = images.Select(i => i.Url).ToList(),
+            Seller = sellerDto
         };
     }
 
@@ -77,19 +91,19 @@ public sealed class ListingsController : ControllerBase
         var sellerIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         if (!Guid.TryParse(sellerIdStr, out var sellerId)) return Forbid();
 
-        var seller = await _users.GetByIdAsync(sellerId, ct);
-        if (seller == null) return Forbid();
+        var sellerUser = await _users.GetByIdAsync(sellerId, ct);
+        if (sellerUser == null) return Forbid();
         if (!User.IsInRole("admin"))
         {
-            if (seller.ListingBanned) return Forbid();
-            if (seller.ListingBanUntil.HasValue && seller.ListingBanUntil.Value > DateTimeOffset.UtcNow)
+            if (sellerUser.ListingBanned) return Forbid();
+            if (sellerUser.ListingBanUntil.HasValue && sellerUser.ListingBanUntil.Value > DateTimeOffset.UtcNow)
                 return Forbid();
 
-            if (seller.ListingLimit.HasValue)
+            if (sellerUser.ListingLimit.HasValue)
             {
                 var periodHours = _config.GetValue<int?>("ListingLimits:PeriodHours") ?? 24;
                 var now = DateTimeOffset.UtcNow;
-                var consumed = await _users.TryConsumeListingSlotAsync(seller.Id, seller.ListingLimit.Value, now, periodHours, ct);
+                var consumed = await _users.TryConsumeListingSlotAsync(sellerUser.Id, sellerUser.ListingLimit.Value, now, periodHours, ct);
                 if (!consumed)
                     return BadRequest("Listing limit reached. Please try again later.");
             }
@@ -131,7 +145,8 @@ public sealed class ListingsController : ControllerBase
         await _repo.AddAsync(listing, ct);
         await _uow.SaveChangesAsync(ct);
 
-        return CreatedAtAction(nameof(GetById), new { id = listing.Id }, ToResponse(listing));
+        var sellerUserForResponse = await _users.GetByIdAsync(sellerId, ct);
+        return CreatedAtAction(nameof(GetById), new { id = listing.Id }, ToResponse(listing, sellerUserForResponse));
     }
 
     [HttpGet("me")]
@@ -142,7 +157,14 @@ public sealed class ListingsController : ControllerBase
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
 
         var items = await _repo.GetBySellerAsync(me.Value, ct);
-        return items.Select(ToResponse).ToList();
+        return items.Select(l => ToResponse(l, null)).ToList();
+    }
+
+    [HttpGet("seller/{sellerId:guid}")]
+    public async Task<ActionResult<IReadOnlyList<ListingResponse>>> GetBySeller(Guid sellerId, CancellationToken ct)
+    {
+        var items = await _repo.GetBySellerAsync(sellerId, ct);
+        return items.Select(l => ToResponse(l, null)).ToList();
     }
 
     [HttpGet("{id:guid}")]
@@ -150,7 +172,8 @@ public sealed class ListingsController : ControllerBase
     {
         var listing = await _repo.GetByIdAsync(id, ct);
         if (listing is null) return NotFound();
-        return ToResponse(listing);
+        var seller = await _users.GetByIdAsync(listing.SellerId, ct);
+        return ToResponse(listing, seller);
     }
 
     [HttpPut("{id:guid}")]
@@ -207,7 +230,8 @@ public sealed class ListingsController : ControllerBase
         await _repo.UpdateAsync(listing, ct);
         await _uow.SaveChangesAsync(ct);
 
-        return Ok(ToResponse(listing));
+        var seller = await _users.GetByIdAsync(listing.SellerId, ct);
+        return Ok(ToResponse(listing, seller));
     }
 
     [HttpDelete("{id:guid}")]
@@ -239,6 +263,6 @@ public sealed class ListingsController : ControllerBase
         }
 
         var items = await _repo.SearchAsync(q, ct);
-        return items.Select(ToResponse).ToList();
+        return items.Select(l => ToResponse(l, null)).ToList();
     }
 }

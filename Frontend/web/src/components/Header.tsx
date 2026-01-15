@@ -4,9 +4,11 @@ import { useRouter } from 'next/router';
 import { ShoppingCart, User, Menu, X, Heart, Package } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { useCartStore } from '@/lib/cartStore';
+import { useTranslation } from 'next-i18next';
 
 export default function Header() {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -37,10 +39,10 @@ export default function Header() {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex gap-6">
               <Link href="/" className="text-gray-700 hover:text-primary-600 transition-colors">
-                الرئيسية
+                {t('nav.home')}
               </Link>
               <Link href="/browse" className="text-gray-700 hover:text-primary-600 transition-colors">
-                تصفح المنتجات
+                {t('nav.browse')}
               </Link>
               
             </nav>
@@ -54,23 +56,24 @@ export default function Header() {
               className="hidden md:flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
             >
               <Package size={18} />
-              بيع الآن
+              {t('nav.sellNow')}
             </Link>
 
             {/* Favorites */}
             <Link
               href="/favorites"
               className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="المفضلة"
+              aria-label={t('nav.favorites')}
             >
               <Heart size={24} />
             </Link>
 
-            {/* Shopping Cart */}
+            {/* Shopping Cart (hidden for now) */}
+            {/*
             <button
               onClick={openCart}
               className="relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="السلة"
+              aria-label={t('nav.cart')}
             >
               <ShoppingCart size={24} />
               {itemCount > 0 && (
@@ -79,6 +82,7 @@ export default function Header() {
                 </span>
               )}
             </button>
+            */}
 
             {/* User Menu */}
             {isAuthenticated && user ? (
@@ -87,12 +91,20 @@ export default function Header() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <span className="text-primary-600 font-bold text-sm">
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
-                    </span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user?.name || t('nav.user')}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-primary-600 font-bold text-sm">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    )}
                   </div>
-                  <span className="hidden lg:block text-sm font-medium">{user?.name || 'مستخدم'}</span>
+                  <span className="hidden lg:block text-sm font-medium">{user?.name || t('nav.user')}</span>
                 </button>
 
                 {/* Dropdown Menu */}
@@ -104,50 +116,50 @@ export default function Header() {
                     />
                     <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-20">
                       <div className="px-4 py-2 border-b">
-                        <p className="text-sm text-gray-500">مرحباً</p>
-                        <p className="font-semibold text-gray-900">{user?.name || 'مستخدم'}</p>
+                        <p className="text-sm text-gray-500">{t('nav.welcome')}</p>
+                        <p className="font-semibold text-gray-900">{user?.name || t('nav.user')}</p>
                       </div>
                       <Link
                         href="/profile"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        الملف الشخصي
+                        {t('nav.profile')}
                       </Link>
                       <Link
                         href="/dashboard"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        لوحة التحكم
+                        {t('nav.dashboard')}
                       </Link>
                       <Link
                         href="/seller/my-listings"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        إعلاناتي
+                        {t('nav.myListings')}
                       </Link>
                       <Link
                         href="/dashboard/orders"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        طلباتي
+                        {t('nav.orders')}
                       </Link>
                       <Link
                         href="/messages"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        الرسائل
+                        {t('nav.messages')}
                       </Link>
                       <hr className="my-2" />
                       <button
                         onClick={handleLogout}
                         className="block w-full text-right px-4 py-2 text-red-600 hover:bg-gray-100"
                       >
-                        تسجيل الخروج
+                        {t('nav.logout')}
                       </button>
                     </div>
                   </>
@@ -159,7 +171,7 @@ export default function Header() {
                 className="hidden md:flex items-center gap-2 px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
               >
                 <User size={18} />
-                تسجيل الدخول
+                {t('nav.login')}
               </Link>
             )}
 
@@ -183,56 +195,56 @@ export default function Header() {
               className="block py-2 text-gray-700 hover:text-primary-600"
               onClick={() => setMobileMenuOpen(false)}
             >
-              الرئيسية
+              {t('nav.home')}
             </Link>
             <Link
               href="/browse"
               className="block py-2 text-gray-700 hover:text-primary-600"
               onClick={() => setMobileMenuOpen(false)}
             >
-              تصفح المنتجات
+              {t('nav.browse')}
             </Link>
             <Link
               href="/categories"
               className="block py-2 text-gray-700 hover:text-primary-600"
               onClick={() => setMobileMenuOpen(false)}
             >
-              الفئات
+              {t('nav.categories')}
             </Link>
             <Link
               href="/listing/sell"
               className="block py-2 text-primary-600 font-semibold"
               onClick={() => setMobileMenuOpen(false)}
             >
-              بيع الآن
+              {t('nav.sellNow')}
             </Link>
 
             {isAuthenticated && user ? (
               <>
                 <hr className="my-2" />
                 <div className="py-2 px-2 bg-gray-50 rounded">
-                  <p className="text-sm text-gray-500">مرحباً</p>
-                  <p className="font-semibold">{user?.name || 'مستخدم'}</p>
+                  <p className="text-sm text-gray-500">{t('nav.welcome')}</p>
+                  <p className="font-semibold">{user?.name || t('nav.user')}</p>
                 </div>
                 <Link
                   href="/profile"
                   className="block py-2 text-gray-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  الملف الشخصي
+                  {t('nav.profile')}
                 </Link>
                 <Link
                   href="/dashboard"
                   className="block py-2 text-gray-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  لوحة التحكم
+                  {t('nav.dashboard')}
                 </Link>
                 <button
                   onClick={handleLogout}
                   className="block w-full text-right py-2 text-red-600"
                 >
-                  تسجيل الخروج
+                  {t('nav.logout')}
                 </button>
               </>
             ) : (
@@ -243,14 +255,14 @@ export default function Header() {
                   className="block py-2 text-gray-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  تسجيل الدخول
+                  {t('nav.login')}
                 </Link>
                 <Link
                   href={registerHref}
                   className="block py-2 text-gray-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  إنشاء حساب
+                  {t('nav.register')}
                 </Link>
               </>
             )}

@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   display_name TEXT,
   phone TEXT,
+  city TEXT,
+  avatar_url TEXT,
   role TEXT NOT NULL DEFAULT 'user',
   is_seller BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -36,6 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
   total_orders INT NOT NULL DEFAULT 0,
   pending_orders INT NOT NULL DEFAULT 0,
   review_count INT NOT NULL DEFAULT 0,
+  average_rating NUMERIC(3,2) NOT NULL DEFAULT 0,
   listing_banned BOOLEAN NOT NULL DEFAULT FALSE,
   listing_ban_until TIMESTAMPTZ,
   listing_limit INT,
@@ -47,6 +50,9 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS total_revenue NUMERIC(12,2)
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS total_orders INT NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS pending_orders INT NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS review_count INT NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS average_rating NUMERIC(3,2) NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_banned BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_ban_until TIMESTAMPTZ;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit INT;
@@ -134,6 +140,16 @@ CREATE TABLE IF NOT EXISTS listing_images (
 );
 
 CREATE INDEX IF NOT EXISTS idx_listing_images_listing_pos ON listing_images(listing_id, position);
+
+-- Favorites
+CREATE TABLE IF NOT EXISTS favorites (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, listing_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_favorites_user_time ON favorites(user_id, created_at DESC);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Chats & Messages
@@ -234,3 +250,34 @@ DROP TRIGGER IF EXISTS trg_orders_updated_at ON orders;
 CREATE TRIGGER trg_orders_updated_at
 BEFORE UPDATE ON orders
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Reviews
+CREATE TABLE IF NOT EXISTS reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
+  order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT NOT NULL,
+  helpful_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ux_reviews_reviewer_order UNIQUE (reviewer_id, order_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_seller_time ON reviews(seller_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reviews_listing_time ON reviews(listing_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reviews_reviewer_time ON reviews(reviewer_id, created_at DESC);
+
+DROP TRIGGER IF EXISTS trg_reviews_updated_at ON reviews;
+CREATE TRIGGER trg_reviews_updated_at
+BEFORE UPDATE ON reviews
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS review_helpfuls (
+  review_id UUID NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (review_id, user_id)
+);

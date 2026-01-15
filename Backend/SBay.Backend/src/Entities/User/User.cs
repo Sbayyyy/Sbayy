@@ -26,8 +26,10 @@ namespace SBay.Domain.Entities
 
         [MaxLength(100)]
         public string? Region { get; set; }
+        [MaxLength(100)]
+        public string? City { get; set; }
 
-        public double Rating { get; set; } = 0.0;
+        public decimal Rating { get; set; } = 0m;
         public string? Phone { get; set; }
         public bool IsSeller { get; set; } = true;
         public string Role { get; set; } = "user";

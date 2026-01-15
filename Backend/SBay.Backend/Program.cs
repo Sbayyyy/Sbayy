@@ -36,7 +36,9 @@ if (useEf)
     builder.Services.AddScoped<IReadStore<Listing>>(sp => sp.GetRequiredService<IListingRepository>());
     builder.Services.AddScoped<IWriteStore<Listing>>(sp => sp.GetRequiredService<IListingRepository>());
     builder.Services.AddScoped<ICartRepository, EfCartRepository>();
+    builder.Services.AddScoped<IFavoriteRepository, EfFavoriteRepository>();
     builder.Services.AddScoped<IOrderRepository, EfOrderRepository>();
+    builder.Services.AddScoped<IReviewRepository, EfReviewRepository>();
     builder.Services.AddScoped<IChatRepository, EfChatRepository>();
     builder.Services.AddScoped<IMessageRepository, EfMessageRepository>();
     builder.Services.AddScoped<IAddressRepository, EfAddressRepository>();  // NEW
@@ -73,7 +75,9 @@ else
     builder.Services.AddScoped<IListingRepository, FirebaseListingRepository>();
     builder.Services.AddScoped<ICartRepository, FirebaseCartRepository>();
     builder.Services.AddScoped<IImageRepository, FirebaseImageRepository>();
+    builder.Services.AddScoped<IFavoriteRepository, FirebaseFavoriteRepository>();
     builder.Services.AddScoped<IOrderRepository, FirebaseOrderRepository>();
+    builder.Services.AddScoped<IReviewRepository, FirebaseReviewRepository>();
     builder.Services.AddScoped<IChatRepository, FirebaseChatRepository>();
     builder.Services.AddScoped<IMessageRepository, FirebaseMessageRepository>();
     builder.Services.AddScoped<IAddressRepository, FirebaseAddressRepository>();

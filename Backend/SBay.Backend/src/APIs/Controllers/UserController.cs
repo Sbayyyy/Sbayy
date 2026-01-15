@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SBay.Backend.APIs.Records;
+using SBay.Backend.APIs.Records.Responses;
 using SBay.Domain.Database;
 using SBay.Domain.Authentication;
 using SBay.Domain.Entities;
@@ -46,6 +47,8 @@ public class UserController : ControllerBase
             user.Email,
             user.DisplayName,
             user.Phone,
+            user.City,
+            user.AvatarUrl,
             user.Role,
             user.IsSeller,
             user.CreatedAt,
@@ -54,11 +57,33 @@ public class UserController : ControllerBase
             user.TotalOrders,
             user.PendingOrders,
             user.ReviewCount,
+            user.Rating,
             user.ListingBanned,
             user.ListingBanUntil,
             user.ListingLimit,
             user.ListingLimitCount,
             user.ListingLimitResetAt
+        );
+
+        return Ok(dto);
+    }
+
+    [HttpGet("{id:guid}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<SellerProfileDto>> GetById(Guid id, CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(id, ct);
+        if (user is null) return NotFound();
+
+        var dto = new SellerProfileDto(
+            user.Id,
+            user.DisplayName ?? user.Email,
+            user.AvatarUrl,
+            user.Rating,
+            user.ReviewCount,
+            user.TotalOrders,
+            user.City,
+            user.CreatedAt
         );
 
         return Ok(dto);
@@ -92,6 +117,26 @@ public class UserController : ControllerBase
             if (!string.Equals(user.Phone, ph, StringComparison.Ordinal))
             {
                 user.Phone = ph;
+                changed = true;
+            }
+        }
+
+        if (req.City != null)
+        {
+            var city = string.IsNullOrWhiteSpace(req.City) ? null : req.City.Trim();
+            if (!string.Equals(user.City, city, StringComparison.Ordinal))
+            {
+                user.City = city;
+                changed = true;
+            }
+        }
+
+        if (req.Avatar != null)
+        {
+            var avatar = string.IsNullOrWhiteSpace(req.Avatar) ? null : req.Avatar.Trim();
+            if (!string.Equals(user.AvatarUrl, avatar, StringComparison.Ordinal))
+            {
+                user.AvatarUrl = avatar;
                 changed = true;
             }
         }

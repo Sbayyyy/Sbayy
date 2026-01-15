@@ -43,6 +43,50 @@ public class FirebaseOrderRepository : IOrderRepository
         return Convert(doc);
     }
 
+    public async Task<(IReadOnlyList<Order> Orders, int Total)> GetByBuyerAsync(Guid buyerId, int page, int pageSize, CancellationToken ct)
+    {
+        var baseQuery = _db.Collection("orders")
+            .WhereEqualTo("BuyerId", buyerId.ToString());
+
+        var totalSnapshot = await EnsureCompleted(baseQuery.GetSnapshotAsync(ct));
+        var total = totalSnapshot.Count;
+
+        var snapshot = await EnsureCompleted(
+            baseQuery.OrderByDescending("CreatedAt")
+                .Offset((page - 1) * pageSize)
+                .Limit(pageSize)
+                .GetSnapshotAsync(ct));
+
+        var orders = snapshot.Documents
+            .Where(d => d.Exists)
+            .Select(Convert)
+            .ToList();
+
+        return (orders, total);
+    }
+
+    public async Task<(IReadOnlyList<Order> Orders, int Total)> GetBySellerAsync(Guid sellerId, int page, int pageSize, CancellationToken ct)
+    {
+        var baseQuery = _db.Collection("orders")
+            .WhereEqualTo("SellerId", sellerId.ToString());
+
+        var totalSnapshot = await EnsureCompleted(baseQuery.GetSnapshotAsync(ct));
+        var total = totalSnapshot.Count;
+
+        var snapshot = await EnsureCompleted(
+            baseQuery.OrderByDescending("CreatedAt")
+                .Offset((page - 1) * pageSize)
+                .Limit(pageSize)
+                .GetSnapshotAsync(ct));
+
+        var orders = snapshot.Documents
+            .Where(d => d.Exists)
+            .Select(Convert)
+            .ToList();
+
+        return (orders, total);
+    }
+
     public async Task<Order?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var doc = await EnsureCompleted(

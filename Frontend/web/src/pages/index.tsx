@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ProductCardSkeleton from '@/components/ProductCardSkeleton';
 import { Search, MapPin, Package } from 'lucide-react';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 const categories = [
   { id: 'cars', slug: 'cars', name: 'مركبات', icon: '🚗' },
@@ -129,5 +130,13 @@ export default function Home() {
       </div>
     </Layout>
   );
+}
+
+export async function getStaticProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+    }
+  };
 }
 

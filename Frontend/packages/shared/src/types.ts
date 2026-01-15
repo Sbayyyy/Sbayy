@@ -4,6 +4,7 @@ export interface User {
   email: string;
   name: string;
   phone?: string;
+  city?: string;
   avatar?: string;
   rating?: number;
   verified: boolean;
@@ -24,6 +25,7 @@ export interface UserRegistration {
   password: string;
   name: string;
   phone?: string;
+  city?: string;
 }
 
 export interface UserLogin {
@@ -51,7 +53,10 @@ export interface Product {
   seller?: {
     id: string;
     name: string;
+    avatar?: string;
     rating?: number;
+    reviewCount?: number;
+    city?: string;
   };
   status?: 'active' | 'sold' | 'inactive';
   views?: number;
