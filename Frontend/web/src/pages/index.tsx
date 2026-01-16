@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { getAllListings } from '@/lib/api/listings';
-import { Product } from '@sbay/shared';
+import { Product, defaultTextInputValidator, loadProfanityListFromUrl } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
@@ -25,9 +25,14 @@ export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchError, setSearchError] = useState('');
   
   useEffect(() => {
     loadFeaturedProducts();
+  }, []);
+
+  useEffect(() => {
+    void loadProfanityListFromUrl('/profanities.txt');
   }, []);
 
   const loadFeaturedProducts = async () => {
@@ -47,6 +52,11 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    const validation = defaultTextInputValidator.validate(searchQuery);
+    if (!validation.isValid) {
+      setSearchError(validation.message ?? 'Input contains disallowed content');
+      return;
+    }
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
@@ -65,11 +75,17 @@ export default function Home() {
                 <input
                   type="search"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setSearchQuery(next);
+                    const validation = defaultTextInputValidator.validate(next);
+                    setSearchError(validation.isValid ? '' : validation.message ?? 'Input contains disallowed content');
+                  }}
                   placeholder="ابحث عن منتجات..."
                   className="w-full pr-10 pl-4 h-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </form>
+              {searchError && <p className="text-sm text-red-500">{searchError}</p>}
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4" />
                 <span>دمشق والمناطق المحيطة</span>

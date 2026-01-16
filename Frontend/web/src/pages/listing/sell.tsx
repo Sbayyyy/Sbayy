@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import {
+  defaultTextInputValidator,
+  IValidator,
   getListingTitleValidationMessage,
   getListingDescriptionValidationMessage,
   getListingPriceValidationMessage,
   getListingCategoryValidationMessage,
   getListingLocationValidationMessage,
+  loadProfanityListFromUrl,
   sanitizeInput
 } from '@sbay/shared';
 import type { ProductCreate } from '@sbay/shared';
@@ -51,18 +54,38 @@ export default function SellPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
+  useEffect(() => {
+    void loadProfanityListFromUrl('/profanities.txt');
+  }, []);
+
+  const fieldValidators: Partial<Record<keyof ProductFormData, IValidator<string>>> = {
+    title: defaultTextInputValidator,
+    description: defaultTextInputValidator,
+    categoryPath: defaultTextInputValidator,
+    region: defaultTextInputValidator
+  };
+
   if (!isAuthed) {
     return null;
   }
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof ProductCreate, string>> = {};
+    const unsafeMessage = 'Input contains disallowed content';
 
     const titleError = getListingTitleValidationMessage(sanitizeInput(formData.title));
     if (titleError) newErrors.title = titleError;
+    if (!newErrors.title && fieldValidators.title) {
+      const result = fieldValidators.title.validate(sanitizeInput(formData.title));
+      if (!result.isValid) newErrors.title = result.message ?? unsafeMessage;
+    }
 
     const descError = getListingDescriptionValidationMessage(sanitizeInput(formData.description));
     if (descError) newErrors.description = descError;
+    if (!newErrors.description && fieldValidators.description) {
+      const result = fieldValidators.description.validate(sanitizeInput(formData.description));
+      if (!result.isValid) newErrors.description = result.message ?? unsafeMessage;
+    }
 
     const priceError = getListingPriceValidationMessage(
       formData.priceAmount === '' ? NaN : formData.priceAmount
@@ -71,9 +94,17 @@ export default function SellPage() {
 
     const categoryError = getListingCategoryValidationMessage(formData.categoryPath);
     if (categoryError) newErrors.categoryPath = categoryError as any;
+    if (!newErrors.categoryPath && fieldValidators.categoryPath) {
+      const result = fieldValidators.categoryPath.validate(formData.categoryPath);
+      if (!result.isValid) newErrors.categoryPath = result.message ?? unsafeMessage;
+    }
 
     const locationError = getListingLocationValidationMessage(sanitizeInput(formData.region));
     if (locationError) newErrors.region = locationError as any;
+    if (!newErrors.region && fieldValidators.region) {
+      const result = fieldValidators.region.validate(sanitizeInput(formData.region));
+      if (!result.isValid) newErrors.region = result.message ?? unsafeMessage;
+    }
 
     // Validate stock
     if (formData.stock === '' || formData.stock === undefined) {
@@ -111,7 +142,19 @@ export default function SellPage() {
         : value
     }));
 
-    // Clear error when user starts typing
+    const validator = fieldValidators[name as keyof ProductFormData];
+    if (validator) {
+      const inputValue = name === 'title' || name === 'description' || name === 'region'
+        ? sanitizeInput(value)
+        : value;
+      const result = validator.validate(inputValue);
+      setErrors(prev => ({
+        ...prev,
+        [name]: result.isValid ? undefined : result.message ?? 'Input contains disallowed content'
+      }));
+      return;
+    }
+
     setErrors(prev => ({
       ...prev,
       [name]: undefined

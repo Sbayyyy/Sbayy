@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import {
+  defaultTextInputValidator,
+  IValidator,
+  loadProfanityListFromUrl,
   isValidEmail,
   isValidPhone,
   passwordsMatch,
@@ -102,10 +105,26 @@ export default function Register() {
         void ensureLocaleLoaded();
     }, [i18n, i18n?.language]);
     
+    useEffect(() => {
+        void loadProfanityListFromUrl('/profanities.txt');
+    }, []);
+
+    const fieldValidators: Partial<Record<keyof typeof formData, IValidator<string>>> = {
+        username: defaultTextInputValidator,
+        email: defaultTextInputValidator,
+        phone: defaultTextInputValidator,
+        city: defaultTextInputValidator
+    };
+    
     const validateForm = (): boolean => {
         const newErrors: typeof errors = {};
         const username = sanitizeInput(formData.username);
         const email = sanitizeInput(formData.email);
+        const unsafeMessage = tr(
+            'auth.errors.inputUnsafe',
+            'Input contains disallowed content',
+            'Input contains disallowed content'
+        );
 
         if (!username) {
             newErrors.username = tr('auth.errors.usernameRequired', 'Username is required', 'اسم المستخدم مطلوب');
@@ -115,18 +134,24 @@ export default function Register() {
             newErrors.username = tr('auth.errors.usernameMax', 'Username must be 20 characters or less', 'اسم المستخدم يجب ألا يتجاوز 20 حرفًا');
         } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
             newErrors.username = tr('auth.errors.usernamePattern', 'Username can only contain letters, numbers, and underscores', 'اسم المستخدم يجب أن يحتوي على حروف وأرقام فقط');
+        } else if (fieldValidators.username && !fieldValidators.username.validate(username).isValid) {
+            newErrors.username = fieldValidators.username.validate(username).message ?? unsafeMessage;
         }
 
         if (!email) {
             newErrors.email = tr('auth.errors.emailRequired', 'Email is required', 'عنوان البريد الإلكتروني مطلوب');
         } else if (!isValidEmail(email)) {
             newErrors.email = tr('auth.errors.emailInvalid', 'Email is invalid', 'عنوان البريد الإلكتروني غير صالح');
+        } else if (fieldValidators.email && !fieldValidators.email.validate(email).isValid) {
+            newErrors.email = fieldValidators.email.validate(email).message ?? unsafeMessage;
         }
 
         if (formData.phone) {
             const phone = sanitizeInput(formData.phone);
             if (!isValidPhone(phone)) {
                 newErrors.phone = tr('auth.errors.phoneInvalid', 'Phone number is invalid (e.g. 0912345678)', 'رقم الهاتف غير صالح (مثال: 0912345678)');
+            } else if (fieldValidators.phone && !fieldValidators.phone.validate(phone).isValid) {
+                newErrors.phone = fieldValidators.phone.validate(phone).message ?? unsafeMessage;
             }
         }
 
@@ -159,10 +184,16 @@ export default function Register() {
             [name]: value
         }));
 
-        // Clear error when user starts typing
+        const validator = fieldValidators[name as keyof typeof formData];
+        const validation = validator ? validator.validate(value) : { isValid: true };
+        const unsafeMessage = tr(
+            'auth.errors.inputUnsafe',
+            'Input contains disallowed content',
+            'Input contains disallowed content'
+        );
         setErrors(prev => ({
             ...prev,
-            [name]: undefined
+            [name]: validation.isValid ? undefined : validation.message ?? unsafeMessage
         }));
 
     }

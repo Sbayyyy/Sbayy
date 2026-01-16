@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
 import { searchProducts } from '@/lib/api/search';
-import { Product, SearchFilters } from '@sbay/shared';
+import { Product, SearchFilters, defaultTextInputValidator, loadProfanityListFromUrl } from '@sbay/shared';
 import { Search, Loader2, X, SlidersHorizontal } from 'lucide-react';
 
 export default function SearchPage() {
@@ -11,6 +11,7 @@ export default function SearchPage() {
   const { q, category, minPrice, maxPrice, condition, region, sortBy } = router.query;
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchError, setSearchError] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -28,6 +29,10 @@ export default function SearchPage() {
     sortBy: 'date',
     sortOrder: 'desc'
   });
+
+  useEffect(() => {
+    void loadProfanityListFromUrl('/profanities.txt');
+  }, []);
 
   useEffect(() => {
     if (q && typeof q === 'string') {
@@ -50,6 +55,11 @@ export default function SearchPage() {
 
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
+    const validation = defaultTextInputValidator.validate(query);
+    if (!validation.isValid) {
+      setSearchError(validation.message ?? 'Input contains disallowed content');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -75,6 +85,11 @@ export default function SearchPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    const validation = defaultTextInputValidator.validate(searchQuery);
+    if (!validation.isValid) {
+      setSearchError(validation.message ?? 'Input contains disallowed content');
+      return;
+    }
     if (searchQuery.trim()) {
       // Build query params
       const params = new URLSearchParams({ q: searchQuery });
@@ -123,7 +138,12 @@ export default function SearchPage() {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                  const next = e.target.value;
+                  setSearchQuery(next);
+                  const validation = defaultTextInputValidator.validate(next);
+                  setSearchError(validation.isValid ? '' : validation.message ?? 'Input contains disallowed content');
+                }}
                   placeholder="ابحث عن منتجات..."
                   className="w-full px-6 py-4 pr-14 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   autoFocus
@@ -145,6 +165,9 @@ export default function SearchPage() {
                 </button>
               </div>
             </form>
+            {searchError && (
+              <p className="mt-2 text-sm text-red-500 text-center">{searchError}</p>
+            )}
 
             {/* Filter Toggle Button */}
             {searched && (
