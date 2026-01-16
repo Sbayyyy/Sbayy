@@ -15,17 +15,20 @@ public sealed class FavoritesController : ControllerBase
     private readonly IFavoriteRepository _favorites;
     private readonly IListingRepository _listings;
     private readonly ICurrentUserResolver _resolver;
+    private readonly IUserRepository _users;
     private readonly IUnitOfWork _uow;
 
     public FavoritesController(
         IFavoriteRepository favorites,
         IListingRepository listings,
         ICurrentUserResolver resolver,
+        IUserRepository users,
         IUnitOfWork uow)
     {
         _favorites = favorites;
         _listings = listings;
         _resolver = resolver;
+        _users = users;
         _uow = uow;
     }
 
@@ -43,12 +46,22 @@ public sealed class FavoritesController : ControllerBase
         var listingIds = favorites.Select(f => f.ListingId).Distinct().ToList();
         var listings = await _listings.GetByIdsAsync(listingIds, ct);
         var listingById = listings.ToDictionary(l => l.Id);
+        var sellerById = new Dictionary<Guid, User>();
+        foreach (var sellerId in listings.Select(l => l.SellerId).Distinct())
+        {
+            var seller = await _users.GetByIdAsync(sellerId, ct);
+            if (seller != null)
+                sellerById[sellerId] = seller;
+        }
 
         var ordered = new List<ListingResponse>();
         foreach (var favorite in favorites)
         {
             if (listingById.TryGetValue(favorite.ListingId, out var listing))
-                ordered.Add(ToResponse(listing));
+            {
+                sellerById.TryGetValue(listing.SellerId, out var seller);
+                ordered.Add(ToResponse(listing, seller));
+            }
         }
 
         return Ok(ordered);
@@ -91,7 +104,7 @@ public sealed class FavoritesController : ControllerBase
         return NoContent();
     }
 
-    private static ListingResponse ToResponse(Listing l)
+    private static ListingResponse ToResponse(Listing l, User? seller)
     {
         var images = l.Images
             .OrderBy(i => i.Position)
@@ -105,16 +118,16 @@ public sealed class FavoritesController : ControllerBase
             })
             .ToList();
 
-        SellerSummaryDto? seller = null;
-        if (l.Seller != null)
+        SellerSummaryDto? sellerDto = null;
+        if (seller != null)
         {
-            seller = new SellerSummaryDto(
-                l.Seller.Id,
-                l.Seller.DisplayName ?? l.Seller.Email,
-                l.Seller.AvatarUrl,
-                l.Seller.Rating,
-                l.Seller.ReviewCount,
-                l.Seller.City
+            sellerDto = new SellerSummaryDto(
+                seller.Id,
+                seller.DisplayName ?? seller.Email,
+                seller.AvatarUrl,
+                seller.Rating,
+                seller.ReviewCount,
+                seller.City
             );
         }
 
@@ -134,7 +147,7 @@ public sealed class FavoritesController : ControllerBase
             ThumbnailUrl = l.ThumbnailUrl,
             Images = images,
             ImageUrls = images.Select(i => i.Url).ToList(),
-            Seller = seller
+            Seller = sellerDto
         };
     }
 }

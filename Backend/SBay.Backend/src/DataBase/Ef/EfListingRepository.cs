@@ -127,7 +127,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             if (idsArray.Length == 0) return Array.Empty<Listing>();
             return await _db.Set<Listing>()
                 .Include(l => l.Images)
-                .Include(l => l.Seller)
+                .Include(l => l.SellerId)
                 .AsNoTracking()
                 .Where(l => idsArray.Contains(l.Id))
                 .ToListAsync(ct);
