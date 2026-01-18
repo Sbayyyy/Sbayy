@@ -100,12 +100,6 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 
 var filters = Path.Combine(AppContext.BaseDirectory, "src", "Messaging", "Filters");
 
-
-Console.WriteLine("FILTERS_DIR=" + filters);
-Console.WriteLine("standalone exists=" + File.Exists(Path.Combine(filters, "profanity-standalone.txt")));
-Console.WriteLine("substring  exists=" + File.Exists(Path.Combine(filters, "profanity-substring.txt")));
-Console.WriteLine("whitelist  exists=" + File.Exists(Path.Combine(filters, "profanity-whitelist.txt")));
-
 builder.Services.AddSingleton<HtmlTextSanitizer>();
 builder.Services.AddSingleton(sp =>
     ProfanityTextSanitizer.FromSources(

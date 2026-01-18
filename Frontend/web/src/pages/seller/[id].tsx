@@ -100,6 +100,28 @@ export default function SellerProfilePage() {
 
   if (loading) {
     return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-gray-600">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <span>Loading seller profile...</span>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!seller) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center text-gray-600">Seller not found.</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
     <Layout>
       <Head>
         <title>{seller.name} - Seller Profile | SBay</title>
@@ -134,7 +156,7 @@ export default function SellerProfilePage() {
                     <div className="flex items-center gap-2 mt-2">
                       <RatingStars rating={averageRating} size="md" showNumber />
                       <span className="text-sm text-gray-600">
-                        {averageRating.toFixed(1)} ? {reviewTotal} reviews
+                        {averageRating.toFixed(1)} | {reviewTotal} reviews
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
@@ -278,7 +300,7 @@ export default function SellerProfilePage() {
         </div>
       </div>
     </Layout>
-
+  );
 }
 
 export async function getServerSideProps({ locale }: { locale?: string }) {

@@ -42,8 +42,7 @@ public sealed class CanStartChatHandler
         Guid? listingId = null;
 
 
-        if (http.Request.ContentLength > 0 &&
-            http.Request.Body.CanRead)
+        if (http.Request.Body.CanRead)
         {
             http.Request.EnableBuffering();
 
@@ -58,12 +57,19 @@ public sealed class CanStartChatHandler
 
             if (!string.IsNullOrWhiteSpace(body))
             {
-                using var doc = JsonDocument.Parse(body);
-                if (doc.RootElement.TryGetProperty("listingId", out var prop) &&
-                    prop.ValueKind == JsonValueKind.String &&
-                    Guid.TryParse(prop.GetString(), out var parsed))
+                try
                 {
-                    listingId = parsed;
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("listingId", out var prop) &&
+                        prop.ValueKind == JsonValueKind.String &&
+                        Guid.TryParse(prop.GetString(), out var parsed))
+                    {
+                        listingId = parsed;
+                    }
+                }
+                catch (JsonException)
+                {
+                    return;
                 }
             }
         }

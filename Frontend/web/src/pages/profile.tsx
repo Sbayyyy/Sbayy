@@ -97,7 +97,7 @@ export default function ProfilePage() {
     if (!value) return '';
     const fixed = fixMojibake(value).trim();
     const lower = fixed.toLowerCase();
-    return cityAliasMap.get(lower) ?? cityAliasMap.get(fixed) ?? '';
+    return cityAliasMap.get(lower) ?? cityAliasMap.get(fixed) ?? fixed;
   };
 
   const getCityLabel = (value?: string) => {
@@ -224,9 +224,9 @@ export default function ProfilePage() {
   const validateProfile = () => {
     const unsafeMessage = 'Input contains disallowed content';
     const nextErrors: typeof profileErrors = {};
-    const nameValue = sanitizeInput(formData.name);
-    const phoneValue = sanitizeInput(formData.phone);
-    const cityValue = sanitizeInput(formData.city);
+    const nameValue = formData.name;
+    const phoneValue = formData.phone;
+    const cityValue = formData.city;
 
     if (!defaultTextInputValidator.validate(nameValue).isValid) {
       nextErrors.name = defaultTextInputValidator.validate(nameValue).message ?? unsafeMessage;
@@ -247,9 +247,9 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
         const updateData: UpdateProfileRequest = {
-          displayName: formData.name,
-          phone: formData.phone,
-          city: formData.city,
+          displayName: sanitizeInput(formData.name),
+          phone: sanitizeInput(formData.phone),
+          city: sanitizeInput(formData.city),
           avatar: formData.avatar
         };
 

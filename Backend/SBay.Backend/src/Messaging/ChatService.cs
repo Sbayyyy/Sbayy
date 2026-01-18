@@ -83,10 +83,7 @@ public sealed class ChatService : IChatService
         if (senderId != chat.BuyerId && senderId != chat.SellerId) throw new InvalidOperationException("Forbidden");
 
         var receiverId = senderId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
-        Console.WriteLine("SANITIZER_TYPE=" + _sanitizer.GetType().FullName);
-        Console.WriteLine("BEFORE=" + trimmed);
         var clean = _sanitizer.Sanitize(trimmed);
-        Console.WriteLine("AFTER =" + clean);
 
         var msg = new Message(chat.Id, clean, senderId, receiverId, chat.ListingId) { CreatedAt = now };
         await _messages.AddAsync(msg, ct);
