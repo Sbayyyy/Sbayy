@@ -9,7 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using SBay.Domain.Authentication;
 using SBay.Domain.Authentication.Handlers;
 using SBay.Domain.Authentication.Requirements;
-using SBay.Domain.Entities; 
+using SBay.Domain.Entities;
 
 namespace SBay.Domain.ValueObjects;
 
@@ -23,26 +23,29 @@ public static class ConnectAuthenticators
         builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
         var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
         var firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
-        var oidcAuthority     = builder.Configuration["Oidc:Authority"];
-        var oidcAudience      = builder.Configuration["Oidc:Audience"];
+        var oidcAuthority = builder.Configuration["Oidc:Authority"];
+        var oidcAudience = builder.Configuration["Oidc:Audience"];
 
         builder.Services
             .AddAuthentication(options =>
             {
-                options.DefaultScheme            = "Composite";
+                options.DefaultScheme = "Composite";
                 options.DefaultAuthenticateScheme = "Composite";
-                options.DefaultChallengeScheme    = "Composite";
+                options.DefaultChallengeScheme = "Composite";
             })
             .AddJwtBearer("SBayJwt", o =>
             {
                 o.MapInboundClaims = false;
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,   ValidIssuer   = jwt.Issuer,
-                    ValidateAudience = true, ValidAudience = jwt.Audience,
+                    ValidateIssuer = true,
+                    ValidIssuer = jwt.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwt.Audience,
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret)),
-                    ValidateLifetime = true, ClockSkew = TimeSpan.FromMinutes(2),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromMinutes(2),
                     NameClaimType = "sub",
                     RoleClaimType = "role"
                 };
@@ -52,13 +55,16 @@ public static class ConnectAuthenticators
                 if (string.IsNullOrWhiteSpace(firebaseProjectId)) return;
 
                 o.MapInboundClaims = false;
-                o.Authority       = $"https://securetoken.google.com/{firebaseProjectId}";
+                o.Authority = $"https://securetoken.google.com/{firebaseProjectId}";
                 o.MetadataAddress = "https://www.googleapis.com/identitytoolkit/.well-known/openid-configuration";
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,   ValidIssuer   = $"https://securetoken.google.com/{firebaseProjectId}",
-                    ValidateAudience = true, ValidAudience = firebaseProjectId,
-                    ValidateLifetime = true, ClockSkew = TimeSpan.FromMinutes(2),
+                    ValidateIssuer = true,
+                    ValidIssuer = $"https://securetoken.google.com/{firebaseProjectId}",
+                    ValidateAudience = true,
+                    ValidAudience = firebaseProjectId,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromMinutes(2),
                     NameClaimType = "user_id",
                     RoleClaimType = "role"
                 };
@@ -70,8 +76,9 @@ public static class ConnectAuthenticators
 
                 o.MapInboundClaims = false;
                 o.Authority = oidcAuthority;
-                o.TokenValidationParameters = new TokenValidationParameters {
-                    ValidateIssuer = true,  
+                o.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
                     ValidateAudience = !string.IsNullOrWhiteSpace(oidcAudience),
                     ValidAudience = oidcAudience,
                     NameClaimType = "sub",
@@ -118,7 +125,7 @@ public static class ConnectAuthenticators
 
             options.AddPolicy("CanStartChat", p =>
                 p.RequireAuthenticatedUser()
-                 .AddRequirements(new ListingActiveRequirement(), new NotSelfMessageRequirement()));
+                 .AddRequirements(new CanStartChatRequirement()));
 
             options.AddPolicy("CanSendMessage", p =>
                 p.RequireAuthenticatedUser()
@@ -140,8 +147,8 @@ public static class ConnectAuthenticators
                 p.RequireAuthenticatedUser()
                  .AddRequirements(new SameUserRequirement()));
 
-            options.AddPolicy("SellerOnly", p => p.RequireRole( "seller", "admin"));
-            options.AddPolicy("AdminOnly",  p => p.RequireRole("admin"));
+            options.AddPolicy("SellerOnly", p => p.RequireRole("seller", "admin"));
+            options.AddPolicy("AdminOnly", p => p.RequireRole("admin"));
 
             foreach (var scope in Scopes.All)
             {

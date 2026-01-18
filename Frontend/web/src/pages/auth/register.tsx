@@ -54,17 +54,17 @@ export default function Register() {
     };
 
     const ensureLocaleLoaded = async (locale: string): Promise<boolean> => {
-        if (!i18n) return;
+        if (!i18n) return false;
         const canCheck = typeof i18n.getResourceBundle === 'function';
         if (canCheck) {
             try {
                 const bundle = i18n.getResourceBundle(locale, 'common');
-                if (bundle) return;
+                if (bundle) return true;
             } catch {
                 // ignore and fall back to fetch
             }
         }
-        if (typeof i18n.addResourceBundle !== 'function') return;
+        if (typeof i18n.addResourceBundle !== 'function') return false;
         const response = await fetch(`/locales/${locale}/common.json`);
         if (!response.ok) return false;
         const resources = await response.json();

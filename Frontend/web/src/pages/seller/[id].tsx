@@ -20,7 +20,7 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
-import type { Review, Product } from '@sbay/shared';
+import type { Review, ReviewStats, Product } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
@@ -31,6 +31,7 @@ export default function SellerProfilePage() {
   const [seller, setSeller] = useState<Awaited<ReturnType<typeof getSellerProfile>> | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'products' | 'reviews'>('products');
@@ -59,9 +60,11 @@ export default function SellerProfilePage() {
           ...r,
           isOwn: false // TODO: Check against current user
         })));
+        setReviewStats(reviewsData.stats);
       } catch (err) {
         console.log('Reviews not available yet:', err);
         setReviews([]);
+        setReviewStats(null);
       }
 
       setError('');
@@ -81,126 +84,121 @@ export default function SellerProfilePage() {
     });
   };
 
+  const averageRating = reviewStats?.averageRating ?? seller?.rating ?? 0;
+  const reviewTotal = reviewStats?.totalReviews ?? seller?.reviewCount ?? 0;
+  const ratingDistribution = reviewStats?.ratingDistribution ?? {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0
+  };
+  const getDistributionPercent = (stars: 1 | 2 | 3 | 4 | 5) => {
+    if (!reviewTotal) return 0;
+    return Math.round((ratingDistribution[stars] / reviewTotal) * 100);
+  };
+
   if (loading) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error || !seller) {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {error || 'البائع غير موجود'}
-            </h2>
-            <Link href="/browse" className="btn-primary mt-4">
-              تصفح المنتجات
-            </Link>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  return (
     <Layout>
       <Head>
-        <title>{seller.name} - ملف البائع | Sbay سباي</title>
-        <meta name="description" content={`ملف البائع ${seller.name} - التقييم ${seller.rating} من ${seller.reviewCount} تقييم`} />
+        <title>{seller.name} - Seller Profile | SBay</title>
+        <meta
+          name="description"
+          content={`Seller profile for ${seller.name}. Rated ${averageRating.toFixed(1)} out of 5.`}
+        />
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Seller Header */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
             <div className="flex flex-col md:flex-row gap-6">
-              {/* Avatar */}
               <div className="flex-shrink-0">
                 {seller.avatar ? (
                   <img
                     src={seller.avatar}
                     alt={seller.name}
-                    className="w-24 h-24 rounded-full object-cover"
+                    className="w-28 h-28 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
-                    <UserIcon className="w-12 h-12 text-gray-500" />
+                  <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center">
+                    <UserIcon className="w-12 h-12 text-gray-400" />
                   </div>
                 )}
               </div>
 
-              {/* Seller Info */}
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-2xl font-bold text-gray-900">{seller.name}</h1>
-                </div>
-
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    <RatingStars rating={seller.rating} size="md" showNumber />
-                    <span className="text-sm text-gray-600">
-                      ({seller.reviewCount} تقييم)
-                    </span>
-                  </div>
-                  {seller.city && (
-                    <>
-                      <span className="text-gray-300">•</span>
-                      <div className="flex items-center gap-1 text-sm text-gray-600">
-                        <MapPin className="w-4 h-4" />
-                        <span>{seller.city}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-gray-600 mb-1">
-                      <Calendar className="w-4 h-4" />
-                      <span className="text-xs">عضو منذ</span>
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900">{seller.name}</h1>
+                    <div className="flex items-center gap-2 mt-2">
+                      <RatingStars rating={averageRating} size="md" showNumber />
+                      <span className="text-sm text-gray-600">
+                        {averageRating.toFixed(1)} ? {reviewTotal} reviews
+                      </span>
                     </div>
-                    <p className="font-bold text-gray-900">{formatDate(seller.createdAt)}</p>
-                  </div>
-
-                  {seller.totalOrders > 0 && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
-                        <Package className="w-4 h-4" />
-                        <span className="text-xs">إجمالي المبيعات</span>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>Joined {formatDate(seller.createdAt)}</span>
                       </div>
-                      <p className="font-bold text-gray-900">{seller.totalOrders}</p>
+                      {seller.city && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          <span>{seller.city}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Contact Button */}
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3 mt-4">
                   <button className="flex items-center gap-2 bg-primary-600 text-white px-5 py-2.5 rounded-lg hover:bg-primary-700 transition-colors">
                     <MessageSquare className="w-5 h-5" />
-                    تواصل مع البائع
+                    Contact seller
                   </button>
                   <button
-                    onClick={() => toast.info('سيتم إضافة ميزة الإبلاغ قريبًا')}
+                    onClick={() => toast.info('Reporting sellers is not available yet.')}
                     className="flex items-center gap-2 border border-red-300 text-red-700 px-5 py-2.5 rounded-lg hover:bg-red-50 transition-colors"
                   >
                     <AlertCircle className="w-5 h-5" />
-                    الإبلاغ عن البائع
+                    Report
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="bg-white rounded-lg shadow-sm mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="flex items-center gap-2 text-gray-600 mb-1">
+                <Package className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wide">Items Sold</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{seller.totalOrders}</p>
+              <p className="text-xs text-gray-500 mt-1">Completed sales</p>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="flex items-center gap-2 text-gray-600 mb-1">
+                <Star className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wide">Average Rating</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{averageRating.toFixed(1)}</p>
+              <p className="text-xs text-gray-500 mt-1">{reviewTotal} total reviews</p>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="flex items-center gap-2 text-gray-600 mb-1">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wide">Positive Feedback</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {reviewTotal ? Math.round((averageRating / 5) * 100) : 0}%
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Based on reviews</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm mb-6">
             <div className="border-b border-gray-200">
               <div className="flex">
                 <button
@@ -211,7 +209,7 @@ export default function SellerProfilePage() {
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  المنتجات ({products.length})
+                  Listings ({products.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('reviews')}
@@ -221,7 +219,7 @@ export default function SellerProfilePage() {
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  التقييمات ({reviews.length})
+                  Reviews ({reviewTotal})
                 </button>
               </div>
             </div>
@@ -237,21 +235,50 @@ export default function SellerProfilePage() {
                 ) : (
                   <div className="text-center py-12">
                     <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">لا توجد منتجات معروضة حالياً</p>
+                    <p className="text-gray-500">No listings available right now.</p>
                   </div>
                 )
               ) : (
-                <ReviewList
-                  reviews={reviews}
-                  loading={false}
-                />
+                <div className="space-y-8">
+                  <div className="bg-gray-50 rounded-xl p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-gray-900 mb-2">
+                          {averageRating.toFixed(1)}
+                        </div>
+                        <RatingStars rating={averageRating} size="md" showNumber={false} />
+                        <p className="text-sm text-gray-600 mt-2">
+                          {reviewTotal} total ratings
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        {[5, 4, 3, 2, 1].map((stars) => (
+                          <div key={stars} className="flex items-center gap-3">
+                            <span className="text-sm w-12">{stars} star</span>
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary"
+                                style={{ width: `${getDistributionPercent(stars as 1 | 2 | 3 | 4 | 5)}%` }}
+                              />
+                            </div>
+                            <span className="text-sm text-gray-600 w-12 text-right">
+                              {getDistributionPercent(stars as 1 | 2 | 3 | 4 | 5)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <ReviewList reviews={reviews} loading={false} />
+                </div>
               )}
             </div>
           </div>
         </div>
       </div>
     </Layout>
-  );
+
 }
 
 export async function getServerSideProps({ locale }: { locale?: string }) {
