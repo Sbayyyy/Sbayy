@@ -7,13 +7,14 @@ using SBay.Backend.Messaging;
 using SBay.Domain.Authentication;
 
 namespace SBay.Backend.Api.Controllers;
+
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ChatsController:ControllerBase
+public class ChatsController : ControllerBase
 {
     private readonly IChatService _svc;
-    
+
     public ChatsController(IChatService svc)
     {
         _svc = svc;
@@ -68,6 +69,6 @@ public class ChatsController:ControllerBase
         var n = await _svc.MarkReadAsync(chatId, me, boundary ?? DateTime.UtcNow, ct);
         return Ok(n);
     }
-    
+
 }
 
