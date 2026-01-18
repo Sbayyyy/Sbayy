@@ -13,6 +13,7 @@ import { getFavorites, removeFavorite } from '@/lib/api/favorites';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
 import type { Product, OrderResponse } from '@sbay/shared';
+import { defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
 import {
   Mail,
   Phone,
@@ -35,15 +36,87 @@ export default function ProfilePage() {
   const { user, isAuthenticated, setUser } = useAuthStore();
   const isAuthed = useRequireAuth();
 
+  const fixMojibake = (value: string) => {
+    try {
+      const bytes = Uint8Array.from(value, (char) => char.charCodeAt(0));
+      return new TextDecoder('utf-8').decode(bytes);
+    } catch {
+      return value;
+    }
+  };
+
+  const cityOptions = [
+    { value: 'damascus', label: t('cities.damascus', 'Damascus', 'دمشق') },
+    { value: 'rif-damascus', label: t('cities.rifDamascus', 'Rif Dimashq', 'ريف دمشق') },
+    { value: 'aleppo', label: t('cities.aleppo', 'Aleppo', 'حلب') },
+    { value: 'homs', label: t('cities.homs', 'Homs', 'حمص') },
+    { value: 'hama', label: t('cities.hama', 'Hama', 'حماة') },
+    { value: 'latakia', label: t('cities.latakia', 'Latakia', 'اللاذقية') },
+    { value: 'tartus', label: t('cities.tartus', 'Tartus', 'طرطوس') },
+    { value: 'idlib', label: t('cities.idlib', 'Idlib', 'إدلب') },
+    { value: 'raqqa', label: t('cities.raqqa', 'Raqqa', 'الرقة') },
+    { value: 'deir-ez-zor', label: t('cities.deirEzZor', 'Deir ez-Zor', 'دير الزور') },
+    { value: 'al-hasakah', label: t('cities.alHasakah', 'Al-Hasakah', 'الحسكة') },
+    { value: 'daraa', label: t('cities.daraa', 'Daraa', 'درعا') },
+    { value: 'as-suwayda', label: t('cities.asSuwayda', 'As-Suwayda', 'السويداء') },
+    { value: 'quneitra', label: t('cities.quneitra', 'Quneitra', 'القنيطرة') }
+  ];
+
+  const cityAliasMap = new Map<string, string>([
+    ['damascus', 'damascus'],
+    ['دمشق', 'damascus'],
+    ['rif dimashq', 'rif-damascus'],
+    ['ريف دمشق', 'rif-damascus'],
+    ['aleppo', 'aleppo'],
+    ['حلب', 'aleppo'],
+    ['homs', 'homs'],
+    ['حمص', 'homs'],
+    ['hama', 'hama'],
+    ['حماة', 'hama'],
+    ['latakia', 'latakia'],
+    ['اللاذقية', 'latakia'],
+    ['tartus', 'tartus'],
+    ['طرطوس', 'tartus'],
+    ['idlib', 'idlib'],
+    ['إدلب', 'idlib'],
+    ['raqqa', 'raqqa'],
+    ['الرقة', 'raqqa'],
+    ['deir ez-zor', 'deir-ez-zor'],
+    ['دير الزور', 'deir-ez-zor'],
+    ['al-hasakah', 'al-hasakah'],
+    ['الحسكة', 'al-hasakah'],
+    ['daraa', 'daraa'],
+    ['درعا', 'daraa'],
+    ['as-suwayda', 'as-suwayda'],
+    ['السويداء', 'as-suwayda'],
+    ['quneitra', 'quneitra'],
+    ['القنيطرة', 'quneitra']
+  ]);
+
+  const normalizeCityValue = (value?: string) => {
+    if (!value) return '';
+    const fixed = fixMojibake(value).trim();
+    const lower = fixed.toLowerCase();
+    return cityAliasMap.get(lower) ?? cityAliasMap.get(fixed) ?? '';
+  };
+
+  const getCityLabel = (value?: string) => {
+    if (!value) return '';
+    const normalized = normalizeCityValue(value);
+    if (normalized) return cityOptions.find((opt) => opt.value === normalized)?.label ?? fixMojibake(value);
+    return fixMojibake(value);
+  };
+
   const [activeTab, setActiveTab] = useState<'overview' | 'listings' | 'purchases' | 'watchlist'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    city: user?.city || '',
+    city: normalizeCityValue(user?.city || ''),
     avatar: user?.avatar || ''
   });
+  const [profileErrors, setProfileErrors] = useState<{ name?: string; phone?: string; city?: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -68,7 +141,7 @@ export default function ProfilePage() {
         name: userData.name || '',
         email: userData.email || '',
         phone: userData.phone || '',
-        city: userData.city || '',
+        city: normalizeCityValue(userData.city || ''),
         avatar: userData.avatar || ''
       });
     } catch (error) {
@@ -131,6 +204,10 @@ export default function ProfilePage() {
   }, [isAuthenticated, loadListings, loadPurchases, loadUserData]);
 
   useEffect(() => {
+    void loadProfanityListFromUrl('/profanities.txt');
+  }, []);
+
+  useEffect(() => {
     if (!isAuthenticated) return;
     if (activeTab === 'watchlist' && !watchlistLoaded && !watchlistLoading) {
       loadWatchlist();
@@ -144,7 +221,29 @@ export default function ProfilePage() {
     setWatchlistError('');
   }, [isAuthenticated]);
 
+  const validateProfile = () => {
+    const unsafeMessage = 'Input contains disallowed content';
+    const nextErrors: typeof profileErrors = {};
+    const nameValue = sanitizeInput(formData.name);
+    const phoneValue = sanitizeInput(formData.phone);
+    const cityValue = sanitizeInput(formData.city);
+
+    if (!defaultTextInputValidator.validate(nameValue).isValid) {
+      nextErrors.name = defaultTextInputValidator.validate(nameValue).message ?? unsafeMessage;
+    }
+    if (phoneValue && !defaultTextInputValidator.validate(phoneValue).isValid) {
+      nextErrors.phone = defaultTextInputValidator.validate(phoneValue).message ?? unsafeMessage;
+    }
+    if (cityValue && !defaultTextInputValidator.validate(cityValue).isValid) {
+      nextErrors.city = defaultTextInputValidator.validate(cityValue).message ?? unsafeMessage;
+    }
+
+    setProfileErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const handleSave = async () => {
+    if (!validateProfile()) return;
     setIsSaving(true);
     try {
         const updateData: UpdateProfileRequest = {
@@ -171,10 +270,22 @@ export default function ProfilePage() {
         name: user?.name || '',
         email: user?.email || '',
         phone: user?.phone || '',
-        city: user?.city || '',
+        city: normalizeCityValue(user?.city || ''),
         avatar: user?.avatar || ''
       });
+    setProfileErrors({});
     setIsEditing(false);
+  };
+
+  const handleProfileFieldChange = (field: 'name' | 'phone' | 'city', value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    const unsafeMessage = 'Input contains disallowed content';
+    const inputValue = sanitizeInput(value);
+    const validation = defaultTextInputValidator.validate(inputValue);
+    setProfileErrors((prev) => ({
+      ...prev,
+      [field]: validation.isValid ? undefined : validation.message ?? unsafeMessage
+    }));
   };
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -293,11 +404,14 @@ export default function ProfilePage() {
                         <input
                           type="text"
                           value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          onChange={(e) => handleProfileFieldChange('name', e.target.value)}
                           className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-lg font-semibold text-gray-900"
                         />
                       ) : (
                         <h1 className="text-2xl font-bold text-gray-900">{user?.name || t('nav.user')}</h1>
+                      )}
+                      {isEditing && profileErrors.name && (
+                        <p className="text-xs text-red-500 mt-1">{profileErrors.name}</p>
                       )}
                       <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
                         <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
@@ -349,26 +463,37 @@ export default function ProfilePage() {
                         <input
                           type="tel"
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          onChange={(e) => handleProfileFieldChange('phone', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                           placeholder={t('profile.phonePlaceholder')}
                         />
                       ) : (
                         <span>{user?.phone || t('profile.phoneNotSet')}</span>
                       )}
+                      {isEditing && profileErrors.phone && (
+                        <p className="text-xs text-red-500 mt-1">{profileErrors.phone}</p>
+                      )}
                     </div>
                       <div className="flex items-center gap-3 text-sm text-gray-700">
                         <MapPin className="w-5 h-5 text-gray-400" />
                         {isEditing ? (
-                          <input
-                            type="text"
+                          <select
                             value={formData.city}
-                            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            onChange={(e) => handleProfileFieldChange('city', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder={t('profile.cityPlaceholder')}
-                          />
+                          >
+                            <option value="">{t('profile.cityPlaceholder')}</option>
+                            {cityOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
-                          <span>{user?.city || t('profile.cityNotSet')}</span>
+                          <span>{user?.city ? getCityLabel(user.city) : t('profile.cityNotSet')}</span>
+                        )}
+                        {isEditing && profileErrors.city && (
+                          <p className="text-xs text-red-500 mt-1">{profileErrors.city}</p>
                         )}
                       </div>
                     <div className="flex items-center gap-3 text-sm text-gray-700">

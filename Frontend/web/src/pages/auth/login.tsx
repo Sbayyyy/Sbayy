@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { isValidEmail } from '@sbay/shared';
+import { defaultTextInputValidator, IValidator, loadProfanityListFromUrl, isValidEmail } from '@sbay/shared';
 import { login } from '../../lib/api/auth';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from 'next-i18next';
@@ -14,6 +14,10 @@ export default function Login() {
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
     const [isLoading, setIsLoading] = useState(false);
     const [apiError, setApiError] = useState('');
+    const fieldValidators: Partial<Record<'email' | 'password', IValidator<string>>> = {
+        email: defaultTextInputValidator,
+        password: defaultTextInputValidator
+    };
 
     const currentLocale = i18n?.language ?? 'ar';
     const tr = (key: string, fallbackEn: string, fallbackAr: string) => {
@@ -78,6 +82,10 @@ export default function Login() {
         };
         void ensureLocaleLoaded();
     }, [i18n, i18n?.language]);
+    
+    useEffect(() => {
+        void loadProfanityListFromUrl('/profanities.txt');
+    }, []);
 
     const router = useRouter();
     const redirectParam = typeof router.query.redirect === 'string' ? router.query.redirect : '';
@@ -87,19 +95,41 @@ export default function Login() {
   
     const validateForm = (): boolean => {
         const newErrors = { email: '', password: '' };
+        const unsafeMessage = tr(
+            'auth.errors.inputUnsafe',
+            'Input contains disallowed content',
+            'Input contains disallowed content'
+        );
         if(!email){
             newErrors.email = tr('auth.errors.emailRequired', 'Email is required', 'عنوان البريد الإلكتروني مطلوب');
         } else if (!isValidEmail(email)) {
             newErrors.email = tr('auth.errors.emailInvalid', 'Email is invalid', 'عنوان البريد الإلكتروني غير صالح');
+        } else if (fieldValidators.email && !fieldValidators.email.validate(email).isValid) {
+            newErrors.email = fieldValidators.email.validate(email).message ?? unsafeMessage;
         }
         if(!password || password.length < 6){
             newErrors.password = tr('auth.errors.passwordMinLogin', 'Password must be at least 6 characters', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+        } else if (fieldValidators.password && !fieldValidators.password.validate(password).isValid) {
+            newErrors.password = fieldValidators.password.validate(password).message ?? unsafeMessage;
         }
         setErrors(newErrors);
         return !newErrors.email && !newErrors.password;
             
     };
-  
+
+    const handleFieldChange = (name: 'email' | 'password', value: string) => {
+        const validator = fieldValidators[name];
+        const unsafeMessage = tr(
+            'auth.errors.inputUnsafe',
+            'Input contains disallowed content',
+            'Input contains disallowed content'
+        );
+        const result = validator ? validator.validate(value) : { isValid: true };
+        setErrors(prev => ({
+            ...prev,
+            [name]: result.isValid ? undefined : result.message ?? unsafeMessage
+        }));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -198,7 +228,10 @@ export default function Login() {
                   name="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    handleFieldChange('email', e.target.value);
+                  }}
                   disabled={isLoading}
                   required
                   autoComplete="email"
@@ -229,7 +262,10 @@ export default function Login() {
                   name="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    handleFieldChange('password', e.target.value);
+                  }}
                   disabled={isLoading}
                   required
                   autoComplete="current-password"
