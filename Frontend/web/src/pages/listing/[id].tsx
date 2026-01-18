@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
@@ -15,15 +15,19 @@ import {
 } from 'lucide-react';
 import { deleteListing, getListingById } from '@/lib/api/listings';
 import { addFavorite, getFavorites, removeFavorite } from '@/lib/api/favorites';
+import { openChat } from '@/lib/api/messages';
 import { Product } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
+import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function ListingDetail() {
   const router = useRouter();
   const { id } = router.query;
   const { user, isAuthenticated } = useAuthStore();
+  const { t } = useTranslation('common');
+  const locale = router.locale ?? 'ar';
   
   const [listing, setListing] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +36,7 @@ export default function ListingDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
 
   useEffect(() => {
     if (id && typeof id === 'string') {
@@ -65,21 +70,42 @@ export default function ListingDetail() {
       setListing(data);
     } catch (err: any) {
       console.error('Error loading listing:', err);
-      setError(err.response?.data?.message || 'فشل تحميل المنتج');
+      setError(err.response?.data?.message || t('listing.errors.load', 'Failed to load listing'));
     } finally {
       setLoading(false);
     }
   };
   const requireAuth = () => {
     if (isAuthenticated) return true;
-    const redirectTo = encodeURIComponent(router.asPath);
+    const redirectPath = listing?.id
+      ? `/listing/${listing.id}`
+      : typeof id === 'string'
+        ? `/listing/${id}`
+        : '/';
+    const redirectTo = encodeURIComponent(redirectPath);
     router.push(`/auth/login?redirect=${redirectTo}`);
     return false;
   };
   const handleContactSeller = () => {
     if (!requireAuth()) return;
-    // TODO: Implement messaging
-    toast.info('سيتم فتح محادثة مع البائع');
+    if (!listing || contactLoading) return;
+    const otherUserId = listing.seller?.id || listing.sellerId;
+    if (!otherUserId) {
+      toast.error(t('listing.actions.openChatError', 'Unable to open chat.'));
+      return;
+    }
+    setContactLoading(true);
+    openChat({ otherUserId, listingId: listing.id })
+      .then(({ chatId }) => {
+        router.push(`/messages/${chatId}`);
+      })
+      .catch((err) => {
+        console.error('Error opening chat:', err);
+        toast.error(t('listing.actions.openChatError', 'Unable to open chat.'));
+      })
+      .finally(() => {
+        setContactLoading(false);
+      });
   };
 
   const handleShare = async () => {
@@ -95,24 +121,24 @@ export default function ListingDetail() {
       }
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert('تم نسخ الرابط');
+      toast.success(t('listing.share.copied', 'Link copied.'));
     }
   };
 
   const handleDeleteListing = async () => {
     if (!listing || deleteLoading) return;
     if (!requireAuth()) return;
-    const confirmed = window.confirm('هل أنت متأكد من حذف هذا الإعلان؟');
+    const confirmed = window.confirm(t('listing.actions.deleteConfirm', 'Are you sure you want to delete this listing?'));
     if (!confirmed) return;
 
     setDeleteLoading(true);
     try {
       await deleteListing(listing.id);
-      toast.success('تم حذف الإعلان');
+      toast.success(t('listing.actions.deleteSuccess', 'Listing deleted.'));
       router.push('/');
     } catch (err) {
       console.error('Error deleting listing:', err);
-      toast.error('حدث خطأ أثناء حذف الإعلان');
+      toast.error(t('listing.actions.deleteError', 'Failed to delete listing.'));
     } finally {
       setDeleteLoading(false);
     }
@@ -128,15 +154,15 @@ export default function ListingDetail() {
     try {
       if (nextIsFavorite) {
         await addFavorite(listing.id);
-        toast.success('تمت إضافة المنتج إلى المفضلة');
+        toast.success(t('listing.actions.favoriteAdded', 'Added to favorites.'));
       } else {
         await removeFavorite(listing.id);
-        toast.success('تمت إزالة المنتج من المفضلة');
+        toast.success(t('listing.actions.favoriteRemoved', 'Removed from favorites.'));
       }
     } catch (err) {
       console.error('Error updating favorite:', err);
       setIsFavorite(!nextIsFavorite);
-      toast.error('حدث خطأ أثناء تحديث المفضلة');
+      toast.error(t('listing.actions.favoriteError', 'Failed to update favorites.'));
     } finally {
       setFavoriteLoading(false);
     }
@@ -170,12 +196,12 @@ export default function ListingDetail() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'المنتج غير موجود'}</p>
+          <p className="text-red-600 mb-4">{error || t('listing.errors.notFound', 'Listing not found')}</p>
           <button
             onClick={() => router.push('/')}
             className="text-primary-600 hover:underline"
           >
-            العودة إلى الصفحة الرئيسية
+            {t('listing.actions.backHome', 'Back to home')}
           </button>
         </div>
       </div>
@@ -183,13 +209,13 @@ export default function ListingDetail() {
   }
 
   const conditionLabels: Record<string, string> = {
-    'New': 'جديد',
-    'LikeNew': 'كالجديد',
-    'Good': 'جيد',
-    'Fair': 'مقبول',
-    'Poor': 'سيئ',
-    'Used': 'مستعمل',
-    'Refurbished': 'مجدد'
+    New: t('listing.conditions.new', 'New'),
+    LikeNew: t('listing.conditions.likeNew', 'Like new'),
+    Good: t('listing.conditions.good', 'Good'),
+    Fair: t('listing.conditions.fair', 'Fair'),
+    Poor: t('listing.conditions.poor', 'Poor'),
+    Used: t('listing.conditions.used', 'Used'),
+    Refurbished: t('listing.conditions.refurbished', 'Refurbished')
   };
 
   const isAvailable = listing.stock === undefined || listing.stock > 0;
@@ -199,7 +225,7 @@ export default function ListingDetail() {
   return (
     <>
       <Head>
-        <title>{listing.title} - سباي</title>
+        <title>{t('listing.meta.title', '{{title}} - SBay', { title: listing.title })}</title>
         <meta name="description" content={listing.description} />
       </Head>
 
@@ -208,11 +234,11 @@ export default function ListingDetail() {
           {/* Breadcrumb */}
           <nav className="mb-4 text-sm">
             <button onClick={() => router.push('/')} className="text-gray-500 hover:text-gray-700">
-              الرئيسية
+              {t('listing.breadcrumbs.home', 'Home')}
             </button>
             <span className="mx-2 text-gray-400">/</span>
             <button onClick={() => router.push(`/?category=${listing.categoryPath}`)} className="text-gray-500 hover:text-gray-700">
-              {listing.categoryPath || 'منتجات'}
+              {listing.categoryPath || t('listing.breadcrumbs.categoryFallback', 'Listings')}
             </button>
             <span className="mx-2 text-gray-400">/</span>
             <span className="text-gray-900 truncate max-w-xs inline-block">{listing.title}</span>
@@ -235,14 +261,14 @@ export default function ListingDetail() {
                           <button
                             onClick={prevImage}
                             className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all"
-                            aria-label="الصورة السابقة"
+                            aria-label={t('listing.images.previous', 'Previous image')}
                           >
                             <ChevronLeft size={24} />
                           </button>
                           <button
                             onClick={nextImage}
                             className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all"
-                            aria-label="الصورة التالية"
+                            aria-label={t('listing.images.next', 'Next image')}
                           >
                             <ChevronRight size={24} />
                           </button>
@@ -292,7 +318,7 @@ export default function ListingDetail() {
 
                   <div className="flex items-center gap-4 mb-6">
                     <span className="text-3xl font-bold text-primary-600">
-                      {listing.priceAmount.toLocaleString('ar-SY')} {listing.priceCurrency || 'ل.س'}
+                      {listing.priceAmount.toLocaleString(locale === 'ar' ? 'ar-SY' : 'en-US')} {listing.priceCurrency || t('listing.details.currencyFallback', 'SYP')}
                     </span>
                     {listing.condition && (
                       <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
@@ -312,20 +338,20 @@ export default function ListingDetail() {
                       }`}
                     >
                       <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
-                      حفظ
+                      {t('listing.actions.favorite', 'Save')}
                     </button>
                     <button
                       onClick={handleShare}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all"
                     >
                       <Share2 size={20} />
-                      مشاركة
+                      {t('listing.actions.share', 'Share')}
                     </button>
                   </div>
 
                   {/* Description */}
                   <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-2">الوصف</h2>
+                    <h2 className="text-xl font-semibold mb-2">{t('listing.sections.description', 'Description')}</h2>
                     <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
                       {listing.description}
                     </p>
@@ -333,21 +359,21 @@ export default function ListingDetail() {
 
                   {/* Details */}
                   <div className="border-t pt-4 mb-6">
-                    <h2 className="text-xl font-semibold mb-3">التفاصيل</h2>
+                    <h2 className="text-xl font-semibold mb-3">{t('listing.sections.details', 'Details')}</h2>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-gray-500">الفئة</p>
-                        <p className="font-medium">{listing.categoryPath || 'غير مصنف'}</p>
+                        <p className="text-sm text-gray-500">{t('listing.details.category', 'Category')}</p>
+                        <p className="font-medium">{listing.categoryPath || t('listing.details.unknown', 'Uncategorized')}</p>
                       </div>
                       {listing.condition && (
                         <div>
-                          <p className="text-sm text-gray-500">الحالة</p>
+                          <p className="text-sm text-gray-500">{t('listing.details.condition', 'Condition')}</p>
                           <p className="font-medium">{conditionLabels[listing.condition] || listing.condition}</p>
                         </div>
                       )}
                       {listing.region && (
                         <div>
-                          <p className="text-sm text-gray-500">الموقع</p>
+                          <p className="text-sm text-gray-500">{t('listing.details.region', 'Region')}</p>
                           <p className="font-medium flex items-center gap-1">
                             <MapPin size={16} />
                             {listing.region}
@@ -356,7 +382,7 @@ export default function ListingDetail() {
                       )}
                       {listing.stock !== undefined && (
                         <div>
-                          <p className="text-sm text-gray-500">الكمية المتوفرة</p>
+                          <p className="text-sm text-gray-500">{t('listing.details.stock', 'Available stock')}</p>
                           <p className="font-medium">{listing.stock}</p>
                         </div>
                       )}
@@ -366,7 +392,7 @@ export default function ListingDetail() {
                   {/* Seller Info */}
                   {listing.seller && (
                     <div className="border-t pt-4 mb-6">
-                      <h2 className="text-xl font-semibold mb-3">البائع</h2>
+                      <h2 className="text-xl font-semibold mb-3">{t('listing.sections.seller', 'Seller')}</h2>
                       {sellerProfileId ? (
                         <button
                           type="button"
@@ -396,7 +422,7 @@ export default function ListingDetail() {
                             )}
                             {listing.seller.reviewCount !== undefined && (
                               <p className="text-xs text-gray-500">
-                                {listing.seller.reviewCount} تقييم
+                                {t('listing.seller.reviews', '{{count}} reviews', { count: listing.seller.reviewCount })}
                               </p>
                             )}
                             {listing.seller.city && (
@@ -432,7 +458,7 @@ export default function ListingDetail() {
                             )}
                             {listing.seller.reviewCount !== undefined && (
                               <p className="text-xs text-gray-500">
-                                {listing.seller.reviewCount} تقييم
+                                {t('listing.seller.reviews', '{{count}} reviews', { count: listing.seller.reviewCount })}
                               </p>
                             )}
                             {listing.seller.city && (
@@ -451,38 +477,35 @@ export default function ListingDetail() {
                 {/* Action Buttons */}
                 <div className="border-t pt-6 mt-6">
                   {!isAvailable ? (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-center">
-                      المنتج غير متوفر حالياً
-                    </div>
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-center">{t('listing.availability.unavailable', 'This item is currently unavailable.')}</div>
                   ) : null}
 
                   {!isOwnListing && (
                     <button
                       onClick={handleContactSeller}
-                      className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                      disabled={contactLoading}
+                      className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-70"
                     >
                       <MessageCircle size={20} />
-                      تواصل مع البائع
-                    </button>
+                      {contactLoading ? t('listing.actions.openChatLoading', 'Opening chat...') : t('listing.actions.contactSeller', 'Message seller')}
+                      </button>
                   )}
 
                   {isOwnListing && (
                     <div className="flex flex-col gap-3">
-                      <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-center">
-                        هذا إعلانك
-                      </div>
+                      <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-center">{t('listing.owner.notice', 'This is your listing.')}</div>
                       <button
                         onClick={() => router.push(`/seller/listings/${listing.id}/edit`)}
                         className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-medium transition-colors"
                       >
-                        تعديل الإعلان
+                        {t('listing.actions.edit', 'Edit listing')}
                       </button>
                       <button
                         onClick={handleDeleteListing}
                         disabled={deleteLoading}
                         className="w-full flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-70"
                       >
-                        {deleteLoading ? 'جارٍ الحذف...' : 'حذف الإعلان'}
+                        {deleteLoading ? t('listing.actions.deleteLoading', 'Deleting...') : t('listing.actions.delete', 'Delete listing')}
                       </button>
                     </div>
                   )}
@@ -491,15 +514,15 @@ export default function ListingDetail() {
                   <div className="grid grid-cols-3 gap-4 mt-6 text-center">
                     <div>
                       <Shield className="mx-auto mb-2 text-green-600" size={24} />
-                      <p className="text-xs text-gray-600">دفع آمن</p>
+                      <p className="text-xs text-gray-600">{t('listing.trust.safe', 'Secure payment')}</p>
                     </div>
                     <div>
                       <Package className="mx-auto mb-2 text-blue-600" size={24} />
-                      <p className="text-xs text-gray-600">توصيل سريع</p>
+                      <p className="text-xs text-gray-600">{t('listing.trust.fastShipping', 'Fast delivery')}</p>
                     </div>
                     <div>
                       <Shield className="mx-auto mb-2 text-primary-600" size={24} />
-                      <p className="text-xs text-gray-600">ضمان الجودة</p>
+                      <p className="text-xs text-gray-600">{t('listing.trust.quality', 'Quality guaranteed')}</p>
                     </div>
                   </div>
                 </div>
@@ -519,3 +542,7 @@ export async function getServerSideProps({ locale }: { locale?: string }) {
     }
   };
 }
+
+
+
+

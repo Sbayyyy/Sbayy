@@ -56,4 +56,8 @@ body {
   .card {
     @apply bg-white rounded-lg shadow-md p-6;
   }
+
+  .message-bubble-primary {
+    @apply bg-primary-600 text-white;
+  }
 }

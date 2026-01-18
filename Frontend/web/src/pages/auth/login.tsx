@@ -153,6 +153,9 @@ export default function Login() {
               if (!value || value.startsWith('http://') || value.startsWith('https://') || value.startsWith('//')) {
                 return '/';
               }
+              if (value.includes('[')) {
+                return '/';
+              }
               if (!value.startsWith('/')) return `/${value}`;
               const locales = router.locales || [];
               const hasLocalePrefix = locales.some(locale => value === `/${locale}` || value.startsWith(`/${locale}/`));

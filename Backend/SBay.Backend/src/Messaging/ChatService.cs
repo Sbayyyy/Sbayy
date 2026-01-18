@@ -1,3 +1,4 @@
+using SBay.Backend.APIs.Records;
 using SBay.Backend.Utils;
 using SBay.Domain.Database;
 
@@ -8,6 +9,7 @@ public sealed class ChatService : IChatService
     private const int MaxMessageLength = 2000;
     private const int RateLimitCount = 5;
     private static readonly TimeSpan RateWindow = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan EditWindow = TimeSpan.FromMinutes(15);
 
     private readonly IChatRepository _chats;
     private readonly IMessageRepository _messages;
@@ -101,8 +103,92 @@ public sealed class ChatService : IChatService
     public async Task<int> MarkReadAsync(Guid chatId, Guid readerId, DateTime upTo, CancellationToken ct = default)
     {
         var affectedRows = await _messages.MarkReadUpToAsync(chatId, readerId, upTo, ct);
-        await _events.MessagesReadAsync(chatId, readerId, ct);
+        Guid? otherUserId = null;
+        var chat = await _chats.GetByIdAsync(chatId, ct);
+        if (chat is not null)
+        {
+            otherUserId = readerId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
+        }
+        await _events.MessagesReadAsync(chatId, readerId, otherUserId, ct);
         return affectedRows;
+    }
+
+    public async Task<Message> UpdateMessageAsync(Guid messageId, Guid editorId, string content, CancellationToken ct = default)
+    {
+        var message = await _messages.GetByIdAsync(messageId, ct)
+                      ?? throw new InvalidOperationException("Message not found");
+        if (message.SenderId != editorId) throw new InvalidOperationException("Forbidden");
+        if (_clock.UtcNow - message.CreatedAt > EditWindow) throw new InvalidOperationException("Edit window expired");
+
+        var trimmed = content?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(trimmed)) throw new InvalidOperationException("Empty message");
+        if (trimmed.Length > MaxMessageLength) throw new InvalidOperationException("Message too long");
+
+        message.Content = _sanitizer.Sanitize(trimmed);
+        await _messages.UpdateAsync(message, ct);
+        await _uow.SaveChangesAsync(ct);
+        await _events.MessageUpdatedAsync(message, ct);
+        return message;
+    }
+
+    public async Task DeleteMessageAsync(Guid messageId, Guid requesterId, CancellationToken ct = default)
+    {
+        var message = await _messages.GetByIdAsync(messageId, ct)
+                      ?? throw new InvalidOperationException("Message not found");
+        if (message.SenderId != requesterId) throw new InvalidOperationException("Forbidden");
+        if (_clock.UtcNow - message.CreatedAt > EditWindow) throw new InvalidOperationException("Delete window expired");
+
+        var chatId = message.ChatId;
+        await _messages.RemoveAsync(message, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        var latest = await _messages.GetMessagesAsync(chatId, 1, null, ct);
+        var chat = await _chats.GetByIdAsync(chatId, ct);
+        var timestamp = latest.FirstOrDefault()?.CreatedAt ?? chat?.CreatedAt ?? _clock.UtcNow;
+        await _chats.UpdateLastMessageTimestampAsync(chatId, timestamp, ct);
+
+        await _events.MessageDeletedAsync(message.Id, message.ChatId, message.SenderId, message.ReceiverId, message.IsRead, ct);
+    }
+
+    public async Task<int> GetUnreadCountAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await _messages.CountUnreadAsync(userId, ct);
+    }
+
+    public async Task<IReadOnlyList<ChatSummaryDto>> GetInboxSummaryAsync(Guid me, int take = 20, int skip = 0, CancellationToken ct = default)
+    {
+        var chats = await _chats.GetInboxAsync(me, take, skip, ct);
+        var summaries = new List<ChatSummaryDto>(chats.Count);
+
+        foreach (var chat in chats)
+        {
+            var latest = await _messages.GetMessagesAsync(chat.Id, 1, null, ct);
+            var lastMessage = latest.FirstOrDefault();
+            var lastMessageDto = lastMessage is null
+                ? null
+                : new MessageDto(
+                    lastMessage.Id,
+                    lastMessage.ChatId,
+                    lastMessage.SenderId,
+                    lastMessage.ReceiverId,
+                    lastMessage.Content,
+                    lastMessage.CreatedAt,
+                    lastMessage.IsRead);
+            var unreadCount = await _messages.CountUnreadForChatAsync(chat.Id, me, ct);
+            var lastMessageAt = chat.LastMessageAt ?? lastMessage?.CreatedAt ?? chat.CreatedAt;
+
+            summaries.Add(new ChatSummaryDto(
+                chat.Id,
+                chat.BuyerId,
+                chat.SellerId,
+                chat.ListingId,
+                chat.CreatedAt,
+                lastMessageAt,
+                unreadCount,
+                lastMessageDto));
+        }
+
+        return summaries;
     }
 
     public async Task<IReadOnlyList<Chat>> GetInboxAsync(Guid me, int take = 20, int skip = 0, CancellationToken ct = default)

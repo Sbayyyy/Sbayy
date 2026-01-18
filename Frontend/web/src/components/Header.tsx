@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { ShoppingCart, User, Menu, X, Heart, Package } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Heart, Package, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { useCartStore } from '@/lib/cartStore';
 import { useTranslation } from 'next-i18next';
+import { createChatConnection, onMessageNew, onMessagesRead, onMessageDeleted, type RealtimeDelete } from '@/lib/realtime/chat';
+import { getUnreadCount } from '@/lib/api/messages';
+import type { Message } from '@sbay/shared';
 
 export default function Header() {
   const router = useRouter();
@@ -12,6 +15,7 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [unreadTotal, setUnreadTotal] = useState(0);
   const redirectParam = encodeURIComponent(router.asPath);
   const loginHref = `/auth/login?redirect=${redirectParam}`;
   const registerHref = `/auth/register?redirect=${redirectParam}`;
@@ -24,6 +28,55 @@ export default function Header() {
 
   // Mock: Cart item count (später aus Cart Store)
   const { itemCount, openCart } = useCartStore();
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      setUnreadTotal(0);
+      return;
+    }
+    let isMounted = true;
+    let connection: Awaited<ReturnType<typeof createChatConnection>> | null = null;
+
+    const loadInitial = async () => {
+      const total = await getUnreadCount();
+      if (isMounted) setUnreadTotal(total);
+    };
+
+    const connect = async () => {
+      try {
+        connection = await createChatConnection();
+        if (!isMounted) return;
+        onMessageNew(connection, (incoming: Message) => {
+          if (incoming.receiverId === user.id) {
+            setUnreadTotal((prev) => prev + 1);
+          }
+        });
+        onMessagesRead(connection, (payload) => {
+          if (payload.readerId !== user.id) return;
+          void getUnreadCount().then((total) => {
+            if (isMounted) setUnreadTotal(total);
+          });
+        });
+        onMessageDeleted(connection, (payload: RealtimeDelete) => {
+          if (payload.receiverId !== user.id || payload.isRead) return;
+          setUnreadTotal((prev) => Math.max(0, prev - 1));
+        });
+        await connection.start();
+      } catch {
+        // ignore realtime failures
+      }
+    };
+
+    void loadInitial();
+    void connect();
+
+    return () => {
+      isMounted = false;
+      if (connection) {
+        void connection.stop();
+      }
+    };
+  }, [isAuthenticated, user?.id]);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -68,6 +121,19 @@ export default function Header() {
               <Heart size={24} />
             </Link>
 
+            <Link
+              href="/messages"
+              className="relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label={t('nav.messages')}
+            >
+              <MessageCircle size={24} />
+              {unreadTotal > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                  {unreadTotal > 99 ? '99+' : unreadTotal}
+                </span>
+              )}
+            </Link>
+
             {/* Shopping Cart (hidden for now) */}
             {/*
             <button
@@ -89,7 +155,7 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="relative flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
                     {user?.avatar ? (
@@ -149,10 +215,15 @@ export default function Header() {
                       </Link>
                       <Link
                         href="/messages"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        className="flex items-center justify-between px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        {t('nav.messages')}
+                        <span>{t('nav.messages')}</span>
+                        {unreadTotal > 0 && (
+                          <span className="inline-flex items-center justify-center min-w-[18px] h-5 px-1.5 rounded-full bg-primary text-white text-xs font-semibold">
+                            {unreadTotal > 99 ? '99+' : unreadTotal}
+                          </span>
+                        )}
                       </Link>
                       <hr className="my-2" />
                       <button

@@ -175,10 +175,7 @@ export default function SellerProfilePage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 mt-4">
-                  <button className="flex items-center gap-2 bg-primary-600 text-white px-5 py-2.5 rounded-lg hover:bg-primary-700 transition-colors">
-                    <MessageSquare className="w-5 h-5" />
-                    Contact seller
-                  </button>
+
                   <button
                     onClick={() => toast.info('Reporting sellers is not available yet.')}
                     className="flex items-center gap-2 border border-red-300 text-red-700 px-5 py-2.5 rounded-lg hover:bg-red-50 transition-colors"

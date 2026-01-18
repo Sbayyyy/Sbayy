@@ -16,6 +16,20 @@ public class EfMessageRepository : IMessageRepository
             .CountAsync(m => m.SenderId == senderId && m.CreatedAt >= from, ct);
     }
 
+    public async Task<int> CountUnreadAsync(Guid receiverId, CancellationToken ct)
+    {
+        return await _db.Set<Message>()
+            .AsNoTracking()
+            .CountAsync(m => m.ReceiverId == receiverId && !m.IsRead, ct);
+    }
+
+    public async Task<int> CountUnreadForChatAsync(Guid chatId, Guid receiverId, CancellationToken ct)
+    {
+        return await _db.Set<Message>()
+            .AsNoTracking()
+            .CountAsync(m => m.ChatId == chatId && m.ReceiverId == receiverId && !m.IsRead, ct);
+    }
+
     public async Task<IReadOnlyList<Message>> GetMessagesAsync(Guid chatId, int take, DateTime? before, CancellationToken ct)
     {
         var query = _db.Set<Message>()

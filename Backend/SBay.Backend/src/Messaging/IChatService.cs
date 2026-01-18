@@ -1,4 +1,6 @@
-﻿namespace SBay.Backend.Messaging;
+﻿using SBay.Backend.APIs.Records;
+
+namespace SBay.Backend.Messaging;
 
 public interface IChatService
 {
@@ -11,6 +13,17 @@ public interface IChatService
         CancellationToken ct = default);
 
     Task<int> MarkReadAsync(Guid chatId, Guid readerId, DateTime upTo, CancellationToken ct = default);
+
+    Task<int> GetUnreadCountAsync(Guid userId, CancellationToken ct = default);
+
+    Task<Message> UpdateMessageAsync(Guid messageId, Guid editorId, string content, CancellationToken ct = default);
+    Task DeleteMessageAsync(Guid messageId, Guid requesterId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<ChatSummaryDto>> GetInboxSummaryAsync(
+        Guid me,
+        int take = 20,
+        int skip = 0,
+        CancellationToken ct = default);
 
     Task<IReadOnlyList<Chat>> GetInboxAsync(
         Guid me,

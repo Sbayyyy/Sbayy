@@ -98,17 +98,55 @@ export const markAsRead = async (chatId: string, upToMessageId?: string): Promis
   }
 };
 
+export type ChatSummary = {
+  chatId: string;
+  buyerId: string;
+  sellerId: string;
+  listingId?: string;
+  createdAt: string;
+  lastMessageAt: string;
+  unreadCount: number;
+  lastMessage?: Message;
+};
+
+export const getChatSummaries = async (take = 20, skip = 0): Promise<ChatSummary[]> => {
+  try {
+    const response = await api.get<ChatSummary[]>('/chats/summary', {
+      params: { take, skip }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch chat summaries:', error);
+    throw error;
+  }
+};
+
+export const updateMessage = async (messageId: string, content: string): Promise<Message> => {
+  try {
+    const response = await api.patch<Message>(`/messages/${messageId}`, { content });
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to update message ${messageId}:`, error);
+    throw error;
+  }
+};
+
+export const deleteMessage = async (messageId: string): Promise<void> => {
+  try {
+    await api.delete(`/messages/${messageId}`);
+  } catch (error) {
+    console.error(`Failed to delete message ${messageId}:`, error);
+    throw error;
+  }
+};
+
 /**
  * Get unread count (calculated from chats)
  */
 export const getUnreadCount = async (): Promise<number> => {
   try {
-    const chats = await getChats(100, 0);
-    // Count unread messages from other users
-    return chats.reduce((sum, chat) => {
-      // This would need to be calculated from messages or added to backend
-      return sum;
-    }, 0);
+    const response = await api.get<{ total: number }>('/messages/unread-count');
+    return response.data?.total ?? 0;
   } catch (error) {
     console.error('Failed to fetch unread count:', error);
     return 0;
@@ -124,7 +162,10 @@ export const messagesApi = {
   sendMessage,
   openChat,
   markAsRead,
-  getUnreadCount
+  updateMessage,
+  deleteMessage,
+  getUnreadCount,
+  getChatSummaries
 };
 
 

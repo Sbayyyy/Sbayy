@@ -7,12 +7,16 @@ interface LayoutProps {
   children: ReactNode;
   title?: string;
   description?: string;
+  hideHeader?: boolean;
+  hideFooter?: boolean;
 }
 
 export default function Layout({ 
   children, 
   title = 'سباي - سوق سوريا الإلكتروني',
-  description = 'منصة تجارة إلكترونية مثل eBay مصممة خصيصاً لسوريا'
+  description = 'منصة تجارة إلكترونية مثل eBay مصممة خصيصاً لسوريا',
+  hideHeader = false,
+  hideFooter = false,
 }: LayoutProps) {
   return (
     <>
@@ -24,11 +28,11 @@ export default function Layout({
       </Head>
 
       <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-1">
+        {!hideHeader && <Header />}
+        <main className="flex-1 min-h-0">
           {children}
         </main>
-        <Footer />
+        {!hideFooter && <Footer />}
       </div>
     </>
   );
