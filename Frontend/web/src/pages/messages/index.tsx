@@ -1,10 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
-import { getChats } from '@/lib/api/messages';
-import { Chat, User } from '@sbay/shared';
+import { getChatSummaries } from '@/lib/api/messages';
+import { getListingById } from '@/lib/api/listings';
+import { getSellerProfile } from '@/lib/api/users';
+import { createChatConnection, onMessageNew, onMessagesRead, onMessageUpdated, onMessageDeleted, type RealtimeDelete } from '@/lib/realtime/chat';
+import { User, Message } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { HubConnectionState } from '@microsoft/signalr';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { 
   MessageSquare, 
   Search,
@@ -16,9 +21,17 @@ import {
 } from 'lucide-react';
 import Head from 'next/head';
 
-interface ChatWithParticipant extends Chat {
+interface ChatWithParticipant {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  listingId?: string;
+  createdAt: string;
+  lastMessageAt?: string;
   participant?: User;
+  listingTitle?: string;
   lastMessage?: {
+    id?: string;
     content: string;
     createdAt: string;
     senderId: string;
@@ -36,41 +49,83 @@ export default function MessagesPage() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const connectionRef = useRef<Awaited<ReturnType<typeof createChatConnection>> | null>(null);
+  const joinedRef = useRef<Set<string>>(new Set());
+  const chatsRef = useRef<ChatWithParticipant[]>([]);
 
-  const loadChats = useCallback(async () => {
+  const loadChats = useCallback(async (mode: 'initial' | 'silent' = 'initial') => {
     if (!user?.id) return;
     
     try {
-      setLoading(true);
-      const data = await getChats(50, 0);
+      if (mode === 'initial') setLoading(true);
+      const data = await getChatSummaries(50, 0);
+
+      const otherUserIds = Array.from(
+        new Set(
+          data.map((chat) =>
+            chat.buyerId === user?.id ? chat.sellerId : chat.buyerId,
+          ),
+        ),
+      );
+
+      const listingIds = Array.from(
+        new Set(data.map((chat) => chat.listingId).filter(Boolean) as string[]),
+      );
+
+      const profileMap = new Map<string, { name: string; avatar?: string }>();
+      await Promise.all(
+        otherUserIds.map(async (userId) => {
+          try {
+            const profile = await getSellerProfile(userId);
+            profileMap.set(userId, { name: profile.name, avatar: profile.avatar });
+          } catch {
+            profileMap.set(userId, { name: `User ${userId.substring(0, 8)}` });
+          }
+        }),
+      );
+
+      const listingMap = new Map<string, string>();
+      await Promise.all(
+        listingIds.map(async (listingId) => {
+          try {
+            const listing = await getListingById(listingId);
+            listingMap.set(listingId, listing.title);
+          } catch {
+            listingMap.set(listingId, `منتج ${listingId.substring(0, 8)}`);
+          }
+        }),
+      );
       
       // Process chats to add derived fields
       const processedChats = data.map(chat => {
         const otherUserId = chat.buyerId === user?.id ? chat.sellerId : chat.buyerId;
-        const lastMessage = chat.messages && chat.messages.length > 0
-          ? chat.messages[chat.messages.length - 1]
-          : undefined;
-        
-        // Count unread messages from other user
-        const unreadCount = chat.messages?.filter(
-          msg => msg.senderId === otherUserId && !msg.isRead
-        ).length || 0;
+        const lastMessage = chat.lastMessage;
 
         return {
-          ...chat,
+          id: chat.chatId,
+          buyerId: chat.buyerId,
+          sellerId: chat.sellerId,
+          listingId: chat.listingId,
+          createdAt: chat.createdAt,
+          lastMessageAt: chat.lastMessageAt,
           participant: {
             id: otherUserId,
-            name: `User ${otherUserId.substring(0, 8)}`, // Placeholder - should fetch from API
+            name: profileMap.get(otherUserId)?.name ?? `User ${otherUserId.substring(0, 8)}`,
+            avatar: profileMap.get(otherUserId)?.avatar,
             email: '',
             verified: false,
             createdAt: ''
           },
+          listingTitle: chat.listingId
+            ? listingMap.get(chat.listingId) ?? `منتج ${chat.listingId.substring(0, 8)}`
+            : undefined,
           lastMessage: lastMessage ? {
+            id: lastMessage.id,
             content: lastMessage.content,
             createdAt: lastMessage.createdAt,
             senderId: lastMessage.senderId
           } : undefined,
-          unreadCount
+          unreadCount: chat.unreadCount ?? 0
         };
       });
 
@@ -87,14 +142,143 @@ export default function MessagesPage() {
       console.error('Error loading chats:', err);
       setError('حدث خطأ في تحميل المحادثات');
     } finally {
-      setLoading(false);
+      if (mode === 'initial') setLoading(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
     if (!isAuthed) return;
-    loadChats();
+    loadChats('initial');
   }, [isAuthed, loadChats]);
+
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
+
+  useEffect(() => {
+    if (!isAuthed) return;
+    let isMounted = true;
+
+    const handleMessageNew = (incoming: Message) => {
+      setChats((prev) => {
+        const idx = prev.findIndex((c) => c.id === incoming.chatId);
+        if (idx === -1) {
+          void loadChats('silent');
+          return prev;
+        }
+
+        const chat = prev[idx];
+        const unreadDelta = incoming.senderId === user?.id ? 0 : 1;
+        const updated = {
+          ...chat,
+          lastMessageAt: incoming.createdAt,
+          lastMessage: {
+            id: incoming.id,
+            content: incoming.content,
+            createdAt: incoming.createdAt,
+            senderId: incoming.senderId,
+          },
+          unreadCount: chat.unreadCount + unreadDelta,
+        };
+
+        const next = [...prev];
+        next[idx] = updated;
+        next.sort((a, b) => {
+          const aTime = a.lastMessageAt || a.createdAt;
+          const bTime = b.lastMessageAt || b.createdAt;
+          return new Date(bTime).getTime() - new Date(aTime).getTime();
+        });
+        return next;
+      });
+    };
+
+    const handleRead = (payload: { chatId: string; readerId: string }) => {
+      if (payload.readerId !== user?.id) return;
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.id === payload.chatId
+            ? {
+                ...chat,
+                unreadCount: 0,
+              }
+            : chat,
+        ),
+      );
+    };
+
+    const handleUpdate = (incoming: Message) => {
+      setChats((prev) =>
+        prev.map((chat) => {
+          if (chat.id !== incoming.chatId) return chat;
+          if (chat.lastMessage?.id !== incoming.id) return chat;
+          return {
+            ...chat,
+            lastMessage: { ...chat.lastMessage, content: incoming.content },
+          };
+        }),
+      );
+    };
+
+    const handleDelete = (payload: RealtimeDelete) => {
+      setChats((prev) =>
+        prev.map((chat) => {
+          if (chat.id !== payload.chatId) return chat;
+          const removedUnread =
+            payload.receiverId === user?.id && !payload.isRead ? 1 : 0;
+          const shouldClearLast = chat.lastMessage?.id === payload.id;
+          return {
+            ...chat,
+            lastMessage: shouldClearLast ? undefined : chat.lastMessage,
+            unreadCount: Math.max(0, chat.unreadCount - removedUnread),
+          };
+        }),
+      );
+    };
+
+    const connect = async () => {
+      try {
+        const connection = await createChatConnection();
+        if (!isMounted) return;
+        connectionRef.current = connection;
+        onMessageNew(connection, (msg) => handleMessageNew(msg as Message));
+        onMessagesRead(connection, handleRead);
+        onMessageUpdated(connection, (msg) => handleUpdate(msg as Message));
+        onMessageDeleted(connection, handleDelete);
+        await connection.start();
+        const currentChats = chatsRef.current;
+        if (currentChats.length > 0) {
+          currentChats.forEach((chat) => {
+            if (joinedRef.current.has(chat.id)) return;
+            joinedRef.current.add(chat.id);
+            void connection.invoke('Join', chat.id);
+          });
+        }
+      } catch {
+        // Silent fallback to REST if realtime fails.
+      }
+    };
+
+    void connect();
+
+    return () => {
+      isMounted = false;
+      const connection = connectionRef.current;
+      connectionRef.current = null;
+      joinedRef.current = new Set();
+      if (!connection) return;
+      void connection.stop();
+    };
+  }, [isAuthed, user?.id]);
+
+  useEffect(() => {
+    const connection = connectionRef.current;
+    if (!connection || connection.state !== HubConnectionState.Connected) return;
+    chats.forEach((chat) => {
+      if (joinedRef.current.has(chat.id)) return;
+      joinedRef.current.add(chat.id);
+      void connection.invoke('Join', chat.id);
+    });
+  }, [chats]);
 
   useEffect(() => {
     filterChats();
@@ -271,7 +455,9 @@ export default function MessagesPage() {
                       {chat.listingId && (
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                           <Package className="w-4 h-4" />
-                          <span className="truncate">منتج {chat.listingId.substring(0, 8)}</span>
+                          <span className="truncate">
+                            {chat.listingTitle ?? `منتج ${chat.listingId.substring(0, 8)}`}
+                          </span>
                         </div>
                       )}
 
@@ -342,4 +528,12 @@ export default function MessagesPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common'])),
+    },
+  };
 }

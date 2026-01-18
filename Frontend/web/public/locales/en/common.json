@@ -154,5 +154,78 @@
     "orderItems": "{{count}} items",
     "total": "Total",
     "viewOrder": "View order"
+  },
+  "listing": {
+    "errors": {
+      "load": "Failed to load listing.",
+      "notFound": "Listing not found."
+    },
+    "actions": {
+      "openChatError": "Unable to open chat.",
+      "openChatLoading": "Opening chat...",
+      "contactSeller": "Message seller",
+      "deleteConfirm": "Are you sure you want to delete this listing?",
+      "deleteSuccess": "Listing deleted.",
+      "deleteError": "Failed to delete listing.",
+      "favoriteAdded": "Added to favorites.",
+      "favoriteRemoved": "Removed from favorites.",
+      "favoriteError": "Failed to update favorites.",
+      "favorite": "Save",
+      "share": "Share",
+      "backHome": "Back to home",
+      "edit": "Edit listing",
+      "deleteLoading": "Deleting...",
+      "delete": "Delete listing"
+    },
+    "share": {
+      "copied": "Link copied."
+    },
+    "breadcrumbs": {
+      "home": "Home",
+      "categoryFallback": "Listings"
+    },
+    "images": {
+      "previous": "Previous image",
+      "next": "Next image"
+    },
+    "sections": {
+      "description": "Description",
+      "details": "Details",
+      "seller": "Seller"
+    },
+    "details": {
+      "category": "Category",
+      "condition": "Condition",
+      "region": "Region",
+      "stock": "Available stock",
+      "unknown": "Uncategorized",
+      "currencyFallback": "SYP"
+    },
+    "conditions": {
+      "new": "New",
+      "likeNew": "Like new",
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor",
+      "used": "Used",
+      "refurbished": "Refurbished"
+    },
+    "seller": {
+      "reviews": "{{count}} reviews"
+    },
+    "availability": {
+      "unavailable": "This item is currently unavailable."
+    },
+    "owner": {
+      "notice": "This is your listing."
+    },
+    "trust": {
+      "safe": "Secure payment",
+      "fastShipping": "Fast delivery",
+      "quality": "Quality guaranteed"
+    },
+    "meta": {
+      "title": "{{title}} - SBay"
+    }
   }
 }

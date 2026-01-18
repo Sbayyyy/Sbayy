@@ -84,6 +84,7 @@ export default function SellerProfilePage() {
     });
   };
 
+  const hasReviewStats = !!reviewStats;
   const averageRating = reviewStats?.averageRating ?? seller?.rating ?? 0;
   const reviewTotal = reviewStats?.totalReviews ?? seller?.reviewCount ?? 0;
   const ratingDistribution = reviewStats?.ratingDistribution ?? {
@@ -94,9 +95,13 @@ export default function SellerProfilePage() {
     5: 0
   };
   const getDistributionPercent = (stars: 1 | 2 | 3 | 4 | 5) => {
-    if (!reviewTotal) return 0;
+    if (!reviewStats || !reviewTotal) return 0;
     return Math.round((ratingDistribution[stars] / reviewTotal) * 100);
   };
+  const positiveFeedback =
+    reviewStats && reviewTotal
+      ? Math.round(((ratingDistribution[4] + ratingDistribution[5]) / reviewTotal) * 100)
+      : 0;
 
   if (loading) {
     return (
@@ -175,10 +180,7 @@ export default function SellerProfilePage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 mt-4">
-                  <button className="flex items-center gap-2 bg-primary-600 text-white px-5 py-2.5 rounded-lg hover:bg-primary-700 transition-colors">
-                    <MessageSquare className="w-5 h-5" />
-                    Contact seller
-                  </button>
+
                   <button
                     onClick={() => toast.info('Reporting sellers is not available yet.')}
                     className="flex items-center gap-2 border border-red-300 text-red-700 px-5 py-2.5 rounded-lg hover:bg-red-50 transition-colors"
@@ -214,7 +216,7 @@ export default function SellerProfilePage() {
                 <span className="text-xs uppercase tracking-wide">Positive Feedback</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">
-                {reviewTotal ? Math.round((averageRating / 5) * 100) : 0}%
+                {hasReviewStats ? `${positiveFeedback}%` : 'No stats'}
               </p>
               <p className="text-xs text-gray-500 mt-1">Based on reviews</p>
             </div>
@@ -263,33 +265,37 @@ export default function SellerProfilePage() {
               ) : (
                 <div className="space-y-8">
                   <div className="bg-gray-50 rounded-xl p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="text-center">
-                        <div className="text-4xl font-bold text-gray-900 mb-2">
-                          {averageRating.toFixed(1)}
-                        </div>
-                        <RatingStars rating={averageRating} size="md" showNumber={false} />
-                        <p className="text-sm text-gray-600 mt-2">
-                          {reviewTotal} total ratings
-                        </p>
-                      </div>
-                      <div className="space-y-3">
-                        {[5, 4, 3, 2, 1].map((stars) => (
-                          <div key={stars} className="flex items-center gap-3">
-                            <span className="text-sm w-12">{stars} star</span>
-                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-primary"
-                                style={{ width: `${getDistributionPercent(stars as 1 | 2 | 3 | 4 | 5)}%` }}
-                              />
-                            </div>
-                            <span className="text-sm text-gray-600 w-12 text-right">
-                              {getDistributionPercent(stars as 1 | 2 | 3 | 4 | 5)}%
-                            </span>
+                    {hasReviewStats ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="text-center">
+                          <div className="text-4xl font-bold text-gray-900 mb-2">
+                            {averageRating.toFixed(1)}
                           </div>
-                        ))}
+                          <RatingStars rating={averageRating} size="md" showNumber={false} />
+                          <p className="text-sm text-gray-600 mt-2">
+                            {reviewTotal} total ratings
+                          </p>
+                        </div>
+                        <div className="space-y-3">
+                          {[5, 4, 3, 2, 1].map((stars) => (
+                            <div key={stars} className="flex items-center gap-3">
+                              <span className="text-sm w-12">{stars} star</span>
+                              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-primary"
+                                  style={{ width: `${getDistributionPercent(stars as 1 | 2 | 3 | 4 | 5)}%` }}
+                                />
+                              </div>
+                              <span className="text-sm text-gray-600 w-12 text-right">
+                                {getDistributionPercent(stars as 1 | 2 | 3 | 4 | 5)}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-center text-sm text-gray-500">No stats available yet.</div>
+                    )}
                   </div>
 
                   <ReviewList reviews={reviews} loading={false} />

@@ -81,7 +81,17 @@ public sealed class ChatServiceTests
         var m = new Mock<IChatEvents>();
         m.Setup(x => x.MessageNewAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        m.Setup(x => x.MessagesReadAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        m.Setup(x => x.MessagesReadAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        m.Setup(x => x.MessageUpdatedAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        m.Setup(x => x.MessageDeletedAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         return m.Object;
     }
@@ -177,5 +187,25 @@ public sealed class ChatServiceTests
         Assert.True(n >= 2);
         var unread = await db.Messages.CountAsync(m => m.ChatId == chat.Id && m.ReceiverId == other && !m.IsRead);
         Assert.Equal(0, unread);
+    }
+
+    [Fact]
+    public async Task GetUnreadCountAsync_Returns_TotalUnread_ForUser()
+    {
+        using var db = NewDb();
+        var me = Guid.NewGuid();
+        var other = Guid.NewGuid();
+        var svc = CreateService(db, me);
+        var chat = await svc.OpenOrGetAsync(me, other, null, default);
+
+        await svc.SendAsync(chat.Id, me, "m1", default);
+        await svc.SendAsync(chat.Id, me, "m2", default);
+        await svc.SendAsync(chat.Id, other, "m3", default);
+
+        var unreadForOther = await svc.GetUnreadCountAsync(other, default);
+        var unreadForMe = await svc.GetUnreadCountAsync(me, default);
+
+        Assert.Equal(2, unreadForOther);
+        Assert.Equal(1, unreadForMe);
     }
 }

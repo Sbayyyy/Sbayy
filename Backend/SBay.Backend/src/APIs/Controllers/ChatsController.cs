@@ -38,6 +38,15 @@ public class ChatsController : ControllerBase
         return Ok(items);
     }
 
+    [HttpGet("summary")]
+    [Authorize(Policy = ScopePolicies.MessagesRead)]
+    public async Task<ActionResult<IReadOnlyList<ChatSummaryDto>>> InboxSummary([FromQuery] int take = 20, [FromQuery] int skip = 0, CancellationToken ct = default)
+    {
+        var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var items = await _svc.GetInboxSummaryAsync(me, take, skip, ct);
+        return Ok(items);
+    }
+
     [Authorize(Policy = "CanReadThread")]
     [Authorize(Policy = ScopePolicies.MessagesRead)]
     [HttpGet("{chatId:guid}/messages")]
