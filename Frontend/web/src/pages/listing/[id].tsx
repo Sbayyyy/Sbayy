@@ -193,7 +193,8 @@ export default function ListingDetail() {
   };
 
   const isAvailable = listing.stock === undefined || listing.stock > 0;
-  const isOwnListing = user?.id === (listing.sellerId || listing.seller?.id);
+  const sellerProfileId = listing.seller?.id || listing.sellerId;
+  const isOwnListing = user?.id === sellerProfileId;
 
   return (
     <>
@@ -366,10 +367,11 @@ export default function ListingDetail() {
                   {listing.seller && (
                     <div className="border-t pt-4 mb-6">
                       <h2 className="text-xl font-semibold mb-3">البائع</h2>
-                      {listing.seller.id ? (
-                        <Link
-                          href={`/seller/${listing.seller.id}`}
-                          className="flex items-center gap-4 rounded-lg border border-transparent hover:border-gray-200 hover:bg-gray-50 p-3 -m-3 transition-colors"
+                      {sellerProfileId ? (
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/seller/${sellerProfileId}`)}
+                          className="flex w-full items-center gap-4 rounded-lg border border-transparent hover:border-gray-200 hover:bg-gray-50 p-3 -m-3 transition-colors text-left"
                         >
                           <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
                             {listing.seller.avatar ? (
@@ -404,22 +406,22 @@ export default function ListingDetail() {
                               </p>
                             )}
                           </div>
-                        </Link>
+                        </button>
                       ) : (
                         <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
-                          {listing.seller.avatar ? (
-                            <img
-                              src={listing.seller.avatar}
-                              alt={listing.seller.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-primary-600 font-bold text-lg">
-                              {listing.seller.name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
+                          <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
+                            {listing.seller.avatar ? (
+                              <img
+                                src={listing.seller.avatar}
+                                alt={listing.seller.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-primary-600 font-bold text-lg">
+                                {listing.seller.name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
                           <div>
                             <p className="font-medium">{listing.seller.name}</p>
                             {listing.seller.rating !== undefined && (

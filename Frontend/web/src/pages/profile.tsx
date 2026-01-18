@@ -46,20 +46,20 @@ export default function ProfilePage() {
   };
 
   const cityOptions = [
-    { value: 'damascus', label: t('cities.damascus', 'Damascus', 'دمشق') },
-    { value: 'rif-damascus', label: t('cities.rifDamascus', 'Rif Dimashq', 'ريف دمشق') },
-    { value: 'aleppo', label: t('cities.aleppo', 'Aleppo', 'حلب') },
-    { value: 'homs', label: t('cities.homs', 'Homs', 'حمص') },
-    { value: 'hama', label: t('cities.hama', 'Hama', 'حماة') },
-    { value: 'latakia', label: t('cities.latakia', 'Latakia', 'اللاذقية') },
-    { value: 'tartus', label: t('cities.tartus', 'Tartus', 'طرطوس') },
-    { value: 'idlib', label: t('cities.idlib', 'Idlib', 'إدلب') },
-    { value: 'raqqa', label: t('cities.raqqa', 'Raqqa', 'الرقة') },
-    { value: 'deir-ez-zor', label: t('cities.deirEzZor', 'Deir ez-Zor', 'دير الزور') },
-    { value: 'al-hasakah', label: t('cities.alHasakah', 'Al-Hasakah', 'الحسكة') },
-    { value: 'daraa', label: t('cities.daraa', 'Daraa', 'درعا') },
-    { value: 'as-suwayda', label: t('cities.asSuwayda', 'As-Suwayda', 'السويداء') },
-    { value: 'quneitra', label: t('cities.quneitra', 'Quneitra', 'القنيطرة') }
+    { value: 'damascus', label: t('cities.damascus', { defaultValue: 'Damascus' }) },
+    { value: 'rif-damascus', label: t('cities.rifDamascus', { defaultValue: 'Rif Dimashq' }) },
+    { value: 'aleppo', label: t('cities.aleppo', { defaultValue: 'Aleppo' }) },
+    { value: 'homs', label: t('cities.homs', { defaultValue: 'Homs' }) },
+    { value: 'hama', label: t('cities.hama', { defaultValue: 'Hama' }) },
+    { value: 'latakia', label: t('cities.latakia', { defaultValue: 'Latakia' }) },
+    { value: 'tartus', label: t('cities.tartus', { defaultValue: 'Tartus' }) },
+    { value: 'idlib', label: t('cities.idlib', { defaultValue: 'Idlib' }) },
+    { value: 'raqqa', label: t('cities.raqqa', { defaultValue: 'Raqqa' }) },
+    { value: 'deir-ez-zor', label: t('cities.deirEzZor', { defaultValue: 'Deir ez-Zor' }) },
+    { value: 'al-hasakah', label: t('cities.alHasakah', { defaultValue: 'Al-Hasakah' }) },
+    { value: 'daraa', label: t('cities.daraa', { defaultValue: 'Daraa' }) },
+    { value: 'as-suwayda', label: t('cities.asSuwayda', { defaultValue: 'As-Suwayda' }) },
+    { value: 'quneitra', label: t('cities.quneitra', { defaultValue: 'Quneitra' }) }
   ];
 
   const cityAliasMap = new Map<string, string>([
@@ -97,7 +97,7 @@ export default function ProfilePage() {
     if (!value) return '';
     const fixed = fixMojibake(value).trim();
     const lower = fixed.toLowerCase();
-    return cityAliasMap.get(lower) ?? cityAliasMap.get(fixed) ?? '';
+    return cityAliasMap.get(lower) ?? cityAliasMap.get(fixed) ?? fixed;
   };
 
   const getCityLabel = (value?: string) => {
@@ -224,9 +224,9 @@ export default function ProfilePage() {
   const validateProfile = () => {
     const unsafeMessage = 'Input contains disallowed content';
     const nextErrors: typeof profileErrors = {};
-    const nameValue = sanitizeInput(formData.name);
-    const phoneValue = sanitizeInput(formData.phone);
-    const cityValue = sanitizeInput(formData.city);
+    const nameValue = formData.name;
+    const phoneValue = formData.phone;
+    const cityValue = formData.city;
 
     if (!defaultTextInputValidator.validate(nameValue).isValid) {
       nextErrors.name = defaultTextInputValidator.validate(nameValue).message ?? unsafeMessage;
@@ -247,9 +247,9 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
         const updateData: UpdateProfileRequest = {
-          displayName: formData.name,
-          phone: formData.phone,
-          city: formData.city,
+          displayName: sanitizeInput(formData.name),
+          phone: sanitizeInput(formData.phone),
+          city: sanitizeInput(formData.city),
           avatar: formData.avatar
         };
 

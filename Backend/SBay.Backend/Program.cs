@@ -98,11 +98,14 @@ builder.Services.AddScoped<IChatEvents, ChatEvents>();
 
 builder.Services.AddSingleton<IClock, SystemClock>();
 
-var filters = Path.Combine(builder.Environment.ContentRootPath, "Messaging", "Filters");
+var filters = Path.Combine(AppContext.BaseDirectory, "src", "Messaging", "Filters");
+
 builder.Services.AddSingleton<HtmlTextSanitizer>();
 builder.Services.AddSingleton(sp =>
     ProfanityTextSanitizer.FromSources(
-        standalonePath: Path.Combine(filters, "profanity-standalone.txt")
+        standalonePath: Path.Combine(filters, "profanity-standalone.txt"),
+        substringPath: Path.Combine(filters, "profanity-substring.txt"),
+        whitelistPath: Path.Combine(filters, "profanity-whitelist.txt")
     ));
 builder.Services.AddSingleton<ITextSanitizer>(sp =>
     new SanitizationPipeline(new ITextSanitizer[] {

@@ -68,6 +68,7 @@ public sealed class ChatService : IChatService
 
     public async Task<Message> SendAsync(Guid chatId, Guid senderId, string content, CancellationToken ct = default)
     {
+
         var trimmed = content?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(trimmed)) throw new InvalidOperationException("Empty message");
         if (trimmed.Length > MaxMessageLength) throw new InvalidOperationException("Message too long");
