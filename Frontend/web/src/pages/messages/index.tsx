@@ -117,7 +117,7 @@ export default function MessagesPage() {
             createdAt: ''
           },
           listingTitle: chat.listingId
-            ? listingMap.get(chat.listingId) ?? `?.?????? ${chat.listingId.substring(0, 8)}`
+            ? listingMap.get(chat.listingId) ?? `منتج ${chat.listingId.substring(0, 8)}`
             : undefined,
           lastMessage: lastMessage ? {
             id: lastMessage.id,

@@ -7,7 +7,8 @@ public sealed class HtmlTextSanitizer : ITextSanitizer
 {
     private static readonly Regex ScriptBlocks = new Regex(
         "<script\\b[^<]*(?:(?!</script>)<[^<]*)*</script>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(200));
 
     private readonly HtmlSanitizer _s;
 

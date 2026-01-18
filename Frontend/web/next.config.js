@@ -13,10 +13,6 @@ const nextConfig = {
     const apiProxyTarget = process.env.NEXT_PUBLIC_API_PROXY_TARGET || 'http://localhost:8080';
     // Proxy /api requests to backend API container
     return [
-      {
-        source: "/hubs/chat",
-        destination: `${apiProxyTarget}/hubs/chat`,
-      },
       { 
         source: "/api/:path*", 
         destination: `${apiProxyTarget}/api/:path*` 

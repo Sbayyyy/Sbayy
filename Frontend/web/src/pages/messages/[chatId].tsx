@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
@@ -18,7 +19,8 @@ import {
   AlertCircle,
   Check,
   CheckCheck,
-  MoreVertical
+  MoreVertical,
+  X
 } from 'lucide-react';
 import Head from 'next/head';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -56,6 +58,20 @@ export default function ChatPage() {
   const connectionRef = useRef<Awaited<ReturnType<typeof createChatConnection>> | null>(null);
   const lastMessageIdRef = useRef<string | null>(null);
   const messagesRef = useRef<Message[]>([]);
+
+  const menuStyle = useMemo(() => {
+    if (!menu || typeof window === 'undefined') return {};
+    const menuWidth = 176;
+    const menuHeight = 168;
+    const margin = 8;
+    const maxLeft = Math.max(margin, window.innerWidth - menuWidth - margin);
+    const left = Math.min(menu.x, maxLeft);
+    const top =
+      menu.y + menuHeight + margin > window.innerHeight
+        ? Math.max(margin, menu.y - menuHeight - margin)
+        : Math.max(margin, menu.y);
+    return { top, left };
+  }, [menu]);
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -607,7 +623,7 @@ export default function ChatPage() {
                 return (
                   <div
                     className="fixed z-50 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1"
-                    style={{ top: menu.y, left: menu.x }}
+                    style={menuStyle}
                   >
                     <button
                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
@@ -665,7 +681,7 @@ export default function ChatPage() {
                       setNewMessage('');
                     }}
                   >
-                    ?
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               )}

@@ -146,6 +146,7 @@ public sealed class ChatService : IChatService
         var chat = await _chats.GetByIdAsync(chatId, ct);
         var timestamp = latest.FirstOrDefault()?.CreatedAt ?? chat?.CreatedAt ?? _clock.UtcNow;
         await _chats.UpdateLastMessageTimestampAsync(chatId, timestamp, ct);
+        await _uow.SaveChangesAsync(ct);
 
         await _events.MessageDeletedAsync(message.Id, message.ChatId, message.SenderId, message.ReceiverId, message.IsRead, ct);
     }

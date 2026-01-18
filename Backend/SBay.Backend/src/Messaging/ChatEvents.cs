@@ -70,6 +70,8 @@ public class ChatEvents:IChatEvents
         {
             _hub.Clients.Group($"chat:{chatId}")
                 .SendAsync("message:read", new { chatId, readerId }, ct),
+            _hub.Clients.Group($"user:{readerId}")
+                .SendAsync("message:read", new { chatId, readerId }, ct),
         };
 
         if (otherUserId.HasValue)
