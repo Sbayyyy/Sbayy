@@ -13,6 +13,7 @@ using LoginRequest = SBay.Backend.APIs.Records.LoginRequest;
 using RegisterRequest=SBay.Backend.APIs.Records.RegisterRequest;
 using UserDto=SBay.Backend.APIs.Records.UserDto;
 using AuthResponse= SBay.Backend.APIs.Records.Responses.AuthResponse;
+using ChangePasswordRequest = SBay.Backend.APIs.Records.ChangePasswordRequest;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
@@ -119,6 +120,29 @@ public class AuthController : ControllerBase
         if (user is null) return NotFound();
 
         return Ok(user.ToDto());
+    }
+
+    [HttpPost("change-password")]
+    [Authorize(AuthenticationSchemes = "SBayJwt")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(req?.CurrentPassword) || string.IsNullOrWhiteSpace(req?.NewPassword))
+            return BadRequest("Current and new password are required.");
+
+        var sub = User.FindFirstValue("sub");
+        if (!Guid.TryParse(sub, out var id)) return Unauthorized();
+        var user = await _users.GetByIdAsync(id, ct);
+        if (user is null) return NotFound();
+
+        var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, req.CurrentPassword);
+        if (result == PasswordVerificationResult.Failed)
+            return Unauthorized("Invalid current password.");
+
+        user.PasswordHash = _hasher.HashPassword(user, req.NewPassword);
+        await _users.UpdateAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        return Ok();
     }
     
     private string GenerateJwt(User user)

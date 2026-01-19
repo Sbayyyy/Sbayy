@@ -192,26 +192,20 @@ export default function Header() {
                       >
                         {t('nav.profile')}
                       </Link>
-                      <Link
+
+                      {/* <Link
                         href="/dashboard"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         {t('nav.dashboard')}
-                      </Link>
+                      </Link> */}
                       <Link
                         href="/seller/my-listings"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         {t('nav.myListings')}
-                      </Link>
-                      <Link
-                        href="/dashboard/orders"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        {t('nav.orders')}
                       </Link>
                       <Link
                         href="/messages"
@@ -224,6 +218,13 @@ export default function Header() {
                             {unreadTotal > 99 ? '99+' : unreadTotal}
                           </span>
                         )}
+                      </Link>
+                                            <Link
+                        href="/profile/settings"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        {t('profile.accountSettings')}
                       </Link>
                       <hr className="my-2" />
                       <button
