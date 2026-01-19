@@ -56,7 +56,20 @@ namespace SBay.Backend.Services
                     }),
                     ct);
 
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (IsTransientStatus(response.StatusCode))
+                    {
+                        if (attempt >= 2)
+                        {
+                            response.EnsureSuccessStatusCode();
+                        }
+                        var delayMs = (int)Math.Pow(2, attempt) * 500;
+                        await Task.Delay(delayMs, ct);
+                        continue;
+                    }
+                    response.EnsureSuccessStatusCode();
+                }
                 var json = await response.Content.ReadAsStringAsync(ct);
                 var parsed = JsonSerializer.Deserialize<ExpoResponse>(json, JsonOptions);
 
@@ -117,6 +130,12 @@ namespace SBay.Backend.Services
                 || string.Equals(errorCode, "TooManyRequests", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(errorCode, "InternalError", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(errorCode, "ServerError", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsTransientStatus(System.Net.HttpStatusCode status)
+        {
+            var code = (int)status;
+            return code == 429 || code >= 500;
         }
 
         private sealed record PushPayload(
