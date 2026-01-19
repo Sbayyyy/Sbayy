@@ -20,12 +20,9 @@ import {
   MapPin,
   Package,
   ShoppingBag,
-  Settings,
   Star,
   Calendar,
   Edit2,
-  Shield,
-  Bell,
   ArrowLeft,
   Loader2,
   AlertCircle
@@ -582,25 +579,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  {t('profile.accountSettings')}
-                </h2>
-                <div className="space-y-3">
-                  <button className="w-full flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                    <Settings className="w-5 h-5" />
-                    {t('profile.settings.preferences')}
-                  </button>
-                  <button className="w-full flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                    <Shield className="w-5 h-5" />
-                    {t('profile.settings.privacy')}
-                  </button>
-                  <button className="w-full flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                    <Bell className="w-5 h-5" />
-                    {t('profile.settings.notifications')}
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
