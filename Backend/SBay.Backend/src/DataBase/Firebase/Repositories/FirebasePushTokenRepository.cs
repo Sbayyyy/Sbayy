@@ -7,17 +7,17 @@ namespace SBay.Backend.DataBase.Firebase
     {
         public Task<IReadOnlyList<PushToken>> GetTokensAsync(Guid userId, CancellationToken ct)
         {
-            return Task.FromResult<IReadOnlyList<PushToken>>(Array.Empty<PushToken>());
+            throw new NotImplementedException("Firestore push token storage is not implemented.");
         }
 
         public Task UpsertAsync(Guid userId, string token, string? platform, string? deviceId, DateTimeOffset now, CancellationToken ct)
         {
-            return Task.CompletedTask;
+            throw new NotImplementedException("Firestore push token storage is not implemented.");
         }
 
         public Task RemoveAsync(Guid userId, string token, CancellationToken ct)
         {
-            return Task.CompletedTask;
+            throw new NotImplementedException("Firestore push token storage is not implemented.");
         }
     }
 }

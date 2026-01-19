@@ -25,20 +25,32 @@ public class ChatEvents:IChatEvents
             m.IsRead
         };
 
+        _ = SafePushAsync(m, ct);
+
         var tasks = new List<Task>
         {
             _hub.Clients.Group($"chat:{m.ChatId}").SendAsync("message:new", payload, ct),
             _hub.Clients.Group($"user:{m.ReceiverId}").SendAsync("message:new", payload, ct),
             _hub.Clients.Group($"user:{m.SenderId}").SendAsync("message:new", payload, ct),
-            _push.SendAsync(
+        };
+
+        return Task.WhenAll(tasks);
+    }
+
+    private async Task SafePushAsync(Message m, CancellationToken ct)
+    {
+        try
+        {
+            await _push.SendAsync(
                 m.ReceiverId,
                 "New message",
                 m.Content.Length > 120 ? $"{m.Content[..120]}..." : m.Content,
                 new { chatId = m.ChatId, senderId = m.SenderId },
-                ct)
-        };
-
-        return Task.WhenAll(tasks);
+                ct);
+        }
+        catch
+        {
+        }
     }
 
     public Task MessageUpdatedAsync(Message m, CancellationToken ct)

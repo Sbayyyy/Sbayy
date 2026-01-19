@@ -26,7 +26,10 @@ public class NotificationsController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Token))
             return BadRequest(new { message = "Token is required." });
 
-        var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var rawId = User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(rawId) || !Guid.TryParse(rawId, out var me))
+            return Unauthorized();
+
         await _pushTokens.UpsertAsync(me, req.Token.Trim(), req.Platform, req.DeviceId, DateTimeOffset.UtcNow, ct);
         await _uow.SaveChangesAsync(ct);
         return Ok(new { ok = true });
@@ -38,7 +41,10 @@ public class NotificationsController : ControllerBase
         if (string.IsNullOrWhiteSpace(token))
             return BadRequest(new { message = "Token is required." });
 
-        var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var rawId = User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(rawId) || !Guid.TryParse(rawId, out var me))
+            return Unauthorized();
+
         await _pushTokens.RemoveAsync(me, token.Trim(), ct);
         await _uow.SaveChangesAsync(ct);
         return NoContent();
