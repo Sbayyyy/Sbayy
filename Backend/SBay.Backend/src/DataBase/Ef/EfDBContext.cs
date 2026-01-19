@@ -12,6 +12,7 @@ using Address = SBay.Domain.Entities.Address;
 using FavoriteListing = SBay.Domain.Entities.FavoriteListing;
 using Review = SBay.Domain.Entities.Review;
 using ReviewHelpful = SBay.Domain.Entities.ReviewHelpful;
+using PushToken = SBay.Domain.Entities.PushToken;
 
 namespace SBay.Domain.Database
 {
@@ -29,6 +30,7 @@ namespace SBay.Domain.Database
         public DbSet<FavoriteListing> Favorites => Set<FavoriteListing>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewHelpful> ReviewHelpfuls => Set<ReviewHelpful>();
+        public DbSet<PushToken> PushTokens => Set<PushToken>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -116,6 +118,20 @@ namespace SBay.Domain.Database
                     .HasForeignKey(m => m.ListingId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
+            modelBuilder.Entity<PushToken>(e =>
+            {
+                e.ToTable("push_tokens");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id");
+                e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+                e.Property(x => x.Token).HasColumnName("token").IsRequired();
+                e.Property(x => x.Platform).HasColumnName("platform");
+                e.Property(x => x.DeviceId).HasColumnName("device_id");
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
+                e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+                e.HasIndex(x => x.Token).IsUnique();
+                e.HasIndex(x => x.UserId);
+            });
             modelBuilder.Entity<Category>(e =>
             {
                 e.ToTable("categories");
@@ -170,6 +186,11 @@ namespace SBay.Domain.Database
                     }
                 );
             });
+
+            modelBuilder.Entity<PushToken>()
+                .Property(x => x.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .ValueGeneratedOnAdd();
             
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfiguration(new AddressConfiguration());
