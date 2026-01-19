@@ -224,10 +224,13 @@ export default function AccountSettingsPage() {
   };
 
   const handlePasswordSave = async () => {
+    const passwordRule = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}/;
     const nextErrors: typeof passwordErrors = {};
     if (!passwordForm.current.trim()) nextErrors.current = 'Current password is required';
     if (!passwordForm.next.trim()) nextErrors.next = 'New password is required';
-    if (passwordForm.next && passwordForm.next.length < 8) nextErrors.next = 'Password must be at least 8 characters';
+    if (passwordForm.next && !passwordRule.test(passwordForm.next)) {
+      nextErrors.next = 'Password must be at least 8 characters and include uppercase, lowercase, and a number';
+    }
     if (passwordForm.next !== passwordForm.confirm) nextErrors.confirm = 'Passwords do not match';
 
     setPasswordErrors(nextErrors);

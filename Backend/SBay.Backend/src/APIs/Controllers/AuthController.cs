@@ -1,6 +1,7 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -128,6 +129,9 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(req?.CurrentPassword) || string.IsNullOrWhiteSpace(req?.NewPassword))
             return BadRequest("Current and new password are required.");
+
+        if (!Regex.IsMatch(req.NewPassword, @"(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"))
+            return BadRequest("New password must be at least 8 characters and include uppercase, lowercase, and a number.");
 
         var sub = User.FindFirstValue("sub");
         if (!Guid.TryParse(sub, out var id)) return Unauthorized();
