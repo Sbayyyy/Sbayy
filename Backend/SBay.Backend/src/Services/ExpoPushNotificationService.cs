@@ -58,7 +58,7 @@ namespace SBay.Backend.Services
 
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(ct);
-                var parsed = JsonSerializer.Deserialize<ExpoResponse>(json);
+                var parsed = JsonSerializer.Deserialize<ExpoResponse>(json, JsonOptions);
 
                 if (parsed?.Data is null || parsed.Data.Length == 0)
                 {
@@ -126,6 +126,11 @@ namespace SBay.Backend.Services
             object? Data,
             string Sound,
             string Priority);
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         private sealed record ExpoResponse(ExpoResponseData[] Data);
 
