@@ -42,6 +42,7 @@ if (useEf)
     builder.Services.AddScoped<IChatRepository, EfChatRepository>();
     builder.Services.AddScoped<IMessageRepository, EfMessageRepository>();
     builder.Services.AddScoped<IAddressRepository, EfAddressRepository>();  // NEW
+    builder.Services.AddScoped<IPushTokenRepository, EfPushTokenRepository>();
     builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, EfUserAnalyticsService>();
 }
@@ -82,6 +83,7 @@ else
     builder.Services.AddScoped<IMessageRepository, FirebaseMessageRepository>();
     builder.Services.AddScoped<IAddressRepository, FirebaseAddressRepository>();
     builder.Services.AddScoped<IDataProvider, FirebaseDataProvider>();
+    builder.Services.AddScoped<IPushTokenRepository, FirebasePushTokenRepository>();
     builder.Services.AddScoped<IUnitOfWork, FirestoreUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();
 }
@@ -89,6 +91,7 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IUserOwnership, UserOwnership>();
+builder.Services.AddHttpClient<IPushNotificationService, ExpoPushNotificationService>();
 
 // NEW: Shipping Service
 builder.Services.AddScoped<IShippingService, DhlShippingService>();

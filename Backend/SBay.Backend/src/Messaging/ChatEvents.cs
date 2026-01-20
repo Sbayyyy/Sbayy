@@ -5,7 +5,12 @@ namespace SBay.Backend.Messaging;
 public class ChatEvents:IChatEvents
 {
     private readonly IHubContext<ChatHub> _hub;
-    public ChatEvents(IHubContext<ChatHub> hub) => _hub = hub;
+    private readonly IPushNotificationService _push;
+    public ChatEvents(IHubContext<ChatHub> hub, IPushNotificationService push)
+    {
+        _hub = hub;
+        _push = push;
+    }
 
     public Task MessageNewAsync(Message m, CancellationToken ct)
     {
@@ -20,6 +25,8 @@ public class ChatEvents:IChatEvents
             m.IsRead
         };
 
+        _ = SafePushAsync(m, ct);
+
         var tasks = new List<Task>
         {
             _hub.Clients.Group($"chat:{m.ChatId}").SendAsync("message:new", payload, ct),
@@ -28,6 +35,22 @@ public class ChatEvents:IChatEvents
         };
 
         return Task.WhenAll(tasks);
+    }
+
+    private async Task SafePushAsync(Message m, CancellationToken ct)
+    {
+        try
+        {
+            await _push.SendAsync(
+                m.ReceiverId,
+                "New message",
+                m.Content.Length > 120 ? $"{m.Content[..120]}..." : m.Content,
+                new { chatId = m.ChatId, senderId = m.SenderId },
+                ct);
+        }
+        catch
+        {
+        }
     }
 
     public Task MessageUpdatedAsync(Message m, CancellationToken ct)
