@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const { i18n } = require('./next-i18next.config');
+const { withSentryConfig } = require("@sentry/nextjs");
 
 const nextConfig = {
   reactStrictMode: true,
@@ -21,4 +22,8 @@ const nextConfig = {
   }
 };
 
-module.exports = nextConfig;
+const sentryOptions = {
+  silent: true,
+};
+
+module.exports = withSentryConfig(nextConfig, sentryOptions);
