@@ -52,6 +52,8 @@ if (useEf)
     builder.Services.AddScoped<IMessageRepository, EfMessageRepository>();
     builder.Services.AddScoped<IAddressRepository, EfAddressRepository>();  // NEW
     builder.Services.AddScoped<IPushTokenRepository, EfPushTokenRepository>();
+    builder.Services.AddScoped<IReportRepository, EfReportRepository>();
+    builder.Services.AddScoped<IUserBlockRepository, EfUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, EfUserAnalyticsService>();
 }
@@ -93,6 +95,8 @@ else
     builder.Services.AddScoped<IAddressRepository, FirebaseAddressRepository>();
     builder.Services.AddScoped<IDataProvider, FirebaseDataProvider>();
     builder.Services.AddScoped<IPushTokenRepository, FirebasePushTokenRepository>();
+    builder.Services.AddScoped<IReportRepository, FirebaseReportRepository>();
+    builder.Services.AddScoped<IUserBlockRepository, FirebaseUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, FirestoreUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();
 }

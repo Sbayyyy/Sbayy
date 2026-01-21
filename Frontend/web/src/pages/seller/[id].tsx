@@ -23,6 +23,7 @@ import {
 import type { Review, ReviewStats, Product } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import ReportDialog from '@/components/ReportDialog';
 
 export default function SellerProfilePage() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function SellerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'products' | 'reviews'>('products');
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (sellerId) {
@@ -182,16 +184,26 @@ export default function SellerProfilePage() {
                 <div className="flex flex-wrap gap-3 mt-4">
 
                   <button
-                    onClick={() => toast.info('Reporting sellers is not available yet.')}
+                    onClick={() => setReportOpen(true)}
                     className="flex items-center gap-2 border border-red-300 text-red-700 px-5 py-2.5 rounded-lg hover:bg-red-50 transition-colors"
                   >
                     <AlertCircle className="w-5 h-5" />
-                    Report
+                    {t('report.actions.report', { defaultValue: 'Report' })}
                   </button>
                 </div>
               </div>
             </div>
           </div>
+
+          {seller?.id ? (
+            <ReportDialog
+              isOpen={reportOpen}
+              onClose={() => setReportOpen(false)}
+              targetType="UserProfile"
+              targetId={seller.id}
+              onSubmitted={() => toast.success(t('report.success', { defaultValue: 'Report submitted.' }))}
+            />
+          ) : null}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-2xl shadow-sm p-5">
