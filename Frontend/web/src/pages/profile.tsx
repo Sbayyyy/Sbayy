@@ -292,8 +292,8 @@ export default function ProfilePage() {
     setAvatarUploading(true);
     try {
       const formDataUpload = new FormData();
-      formDataUpload.append('files', file);
-      const response = await api.post<{ urls: string[] }>('/uploads/images', formDataUpload);
+      formDataUpload.append('file', file);
+      const response = await api.post<{ urls: string[] }>('/uploads/avatar', formDataUpload);
       const url = response.data.urls?.[0];
       if (!url) throw new Error('Upload failed');
       setFormData((prev) => ({ ...prev, avatar: url }));
