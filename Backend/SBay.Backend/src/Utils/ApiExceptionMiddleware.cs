@@ -42,7 +42,7 @@ public class ApiExceptionMiddleware
             return (401, "unauthorized", ex.Message, ex.InnerException?.Message);
 
         if (ex is ArgumentException or ArgumentOutOfRangeException or FormatException)
-            return (402, "invalid_input", ex.Message, ex.InnerException?.Message);
+            return (400, "invalid_input", ex.Message, ex.InnerException?.Message);
 
         if (ex is KeyNotFoundException)
             return (404, "not_found", ex.Message, ex.InnerException?.Message);
@@ -54,10 +54,10 @@ public class ApiExceptionMiddleware
             return (409, "conflict", ex.Message, ex.InnerException?.Message);
 
         if (ex is NotImplementedException)
-            return (405, "method_not_allowed", ex.Message, ex.InnerException?.Message);
+            return (501, "method_not_allowed", ex.Message, ex.InnerException?.Message);
 
         if (ex is NotSupportedException)
-            return (406, "not_acceptable", ex.Message, ex.InnerException?.Message);
+            return (400, "not_acceptable", ex.Message, ex.InnerException?.Message);
 
         if (ex is InvalidOperationException invalidOp)
         {
