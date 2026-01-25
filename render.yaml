@@ -26,10 +26,7 @@ services:
           name: sbay-redis
           property: port
       - key: App__PublicBaseUrl
-        fromService:
-          type: web
-          name: sbay-backend
-          property: url
+        sync: false
       - key: Storage__Provider
         value: s3
       - key: Storage__S3__Endpoint
@@ -63,10 +60,7 @@ services:
       - key: PORT
         value: "3000"
       - key: RUNTIME_API_URL
-        fromService:
-          type: web
-          name: sbay-backend
-          property: url
+        sync: false
       - key: NEXT_PUBLIC_SENTRY_DSN
         sync: false
 
