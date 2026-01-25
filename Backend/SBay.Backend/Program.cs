@@ -12,6 +12,7 @@ using SBay.Domain.Authentication;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 using SBay.Domain.ValueObjects;
+using Sentry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,14 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
+
+builder.WebHost.UseSentry(options =>
+{
+    options.Dsn = builder.Configuration["Sentry:Dsn"];
+    options.Debug = builder.Environment.IsDevelopment();
+    if (double.TryParse(builder.Configuration["Sentry:TracesSampleRate"], out var sampleRate))
+        options.TracesSampleRate = sampleRate;
+});
 
 var providerName = builder.Configuration.GetValue<string>("Database:Provider") ?? "ef";
 var useEf = !string.Equals(providerName, "firestore", StringComparison.OrdinalIgnoreCase);
@@ -196,6 +205,8 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseRouting();
+app.UseMiddleware<ApiExceptionMiddleware>();
+app.UseSentryTracing();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
