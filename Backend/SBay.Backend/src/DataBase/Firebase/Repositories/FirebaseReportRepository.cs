@@ -7,17 +7,17 @@ namespace SBay.Backend.DataBase.Firebase
     {
         public Task AddAsync(Report report, CancellationToken ct)
         {
-            throw new NotImplementedException("Firestore report storage is not implemented.");
+            throw new InvalidOperationException("Firestore report storage is not implemented.");
         }
 
         public Task<Report?> GetByIdAsync(Guid id, CancellationToken ct)
         {
-            throw new NotImplementedException("Firestore report storage is not implemented.");
+            throw new InvalidOperationException("Firestore report storage is not implemented.");
         }
 
         public Task UpdateAsync(Report report, CancellationToken ct)
         {
-            throw new NotImplementedException("Firestore report storage is not implemented.");
+            throw new InvalidOperationException("Firestore report storage is not implemented.");
         }
 
         public Task<IReadOnlyList<Report>> GetAdminReportsAsync(
@@ -29,7 +29,7 @@ namespace SBay.Backend.DataBase.Firebase
             int skip,
             CancellationToken ct)
         {
-            throw new NotImplementedException("Firestore report storage is not implemented.");
+            throw new InvalidOperationException("Firestore report storage is not implemented.");
         }
     }
 }

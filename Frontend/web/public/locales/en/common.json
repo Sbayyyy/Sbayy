@@ -257,6 +257,7 @@
     },
     "errors": {
       "upload": "Failed to upload evidence.",
+      "maxImages": "You can upload up to 5 images.",
       "submit": "Failed to submit report.",
       "description": "Please add details."
     }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SBay.Domain.Entities;
 
 namespace SBay.Domain.Database
@@ -21,10 +22,6 @@ namespace SBay.Domain.Database
 
         public async Task AddAsync(Guid blockerId, Guid blockedUserId, DateTimeOffset createdAt, CancellationToken ct)
         {
-            var exists = await _db.Set<UserBlock>()
-                .AnyAsync(x => x.BlockerId == blockerId && x.BlockedUserId == blockedUserId, ct);
-            if (exists) return;
-
             var entity = new UserBlock
             {
                 Id = Guid.NewGuid(),
@@ -32,7 +29,27 @@ namespace SBay.Domain.Database
                 BlockedUserId = blockedUserId,
                 CreatedAt = createdAt
             };
+
             await _db.Set<UserBlock>().AddAsync(entity, ct);
+
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+            {
+                _db.Entry(entity).State = EntityState.Detached;
+            }
+        }
+
+        private static bool IsUniqueViolation(DbUpdateException ex)
+        {
+            if (ex.InnerException is Npgsql.PostgresException pg)
+            {
+                return string.Equals(pg.SqlState, Npgsql.PostgresErrorCodes.UniqueViolation, StringComparison.Ordinal);
+            }
+
+            return false;
         }
     }
 }

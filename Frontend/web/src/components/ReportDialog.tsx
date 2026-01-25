@@ -60,6 +60,18 @@ export default function ReportDialog({
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const total = (files?.length ?? 0) + evidence.length;
+    if (total > 5) {
+      setError(
+        t('report.errors.maxImages', {
+          defaultValue: 'You can upload up to 5 images.'
+        })
+      );
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
     setUploading(true);
     setError('');
     try {

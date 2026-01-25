@@ -493,7 +493,10 @@ export default function ListingDetail() {
                         {contactLoading ? t('listing.actions.openChatLoading', 'Opening chat...') : t('listing.actions.contactSeller', 'Message seller')}
                       </button>
                       <button
-                        onClick={() => setReportOpen(true)}
+                        onClick={() => {
+                          if (!requireAuth()) return;
+                          setReportOpen(true);
+                        }}
                         className="w-full flex items-center justify-center gap-2 border border-red-300 text-red-700 px-6 py-3 rounded-lg hover:bg-red-50 font-medium transition-colors"
                       >
                         {t('report.actions.reportListing', { defaultValue: 'Report listing' })}
@@ -542,14 +545,15 @@ export default function ListingDetail() {
         </div>
       </div>
 
-      {listing?.id ? (
-        <ReportDialog
-          isOpen={reportOpen}
-          onClose={() => setReportOpen(false)}
-          targetType="Listing"
-          targetId={listing.id}
-        />
-      ) : null}
+          {listing?.id ? (
+            <ReportDialog
+              isOpen={reportOpen}
+              onClose={() => setReportOpen(false)}
+              onSubmitted={() => setReportOpen(false)}
+              targetType="Listing"
+              targetId={listing.id}
+            />
+          ) : null}
     </>
   );
 }

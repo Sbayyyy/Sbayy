@@ -23,11 +23,13 @@ import {
 import type { Review, ReviewStats, Product } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
 import ReportDialog from '@/components/ReportDialog';
 
 export default function SellerProfilePage() {
   const router = useRouter();
   const { id: sellerId } = router.query;
+  const { t } = useTranslation('common');
 
   const [seller, setSeller] = useState<Awaited<ReturnType<typeof getSellerProfile>> | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -201,7 +203,6 @@ export default function SellerProfilePage() {
               onClose={() => setReportOpen(false)}
               targetType="UserProfile"
               targetId={seller.id}
-              onSubmitted={() => toast.success(t('report.success', { defaultValue: 'Report submitted.' }))}
             />
           ) : null}
 
