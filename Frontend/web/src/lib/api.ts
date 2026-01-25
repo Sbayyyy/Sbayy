@@ -69,7 +69,7 @@ if (typeof window !== 'undefined') {
 
         if (refreshToken) {
           try {
-            const response = await axios.post('/api/auth/refresh', { refreshToken });
+            const response = await axios.post(`${config.apiUrl}/auth/refresh`, { refreshToken });
             const { token } = response.data;
 
             localStorage.setItem('token', token);
