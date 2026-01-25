@@ -13,6 +13,8 @@ using FavoriteListing = SBay.Domain.Entities.FavoriteListing;
 using Review = SBay.Domain.Entities.Review;
 using ReviewHelpful = SBay.Domain.Entities.ReviewHelpful;
 using PushToken = SBay.Domain.Entities.PushToken;
+using Report = SBay.Domain.Entities.Report;
+using UserBlock = SBay.Domain.Entities.UserBlock;
 
 namespace SBay.Domain.Database
 {
@@ -31,6 +33,8 @@ namespace SBay.Domain.Database
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewHelpful> ReviewHelpfuls => Set<ReviewHelpful>();
         public DbSet<PushToken> PushTokens => Set<PushToken>();
+        public DbSet<Report> Reports => Set<Report>();
+        public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -132,6 +136,40 @@ namespace SBay.Domain.Database
                 e.HasIndex(x => x.Token).IsUnique();
                 e.HasIndex(x => x.UserId);
             });
+            modelBuilder.Entity<Report>(e =>
+            {
+                e.ToTable("reports");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id");
+                e.Property(x => x.ReporterId).HasColumnName("reporter_id").IsRequired();
+                e.Property(x => x.ReportedUserId).HasColumnName("reported_user_id");
+                e.Property(x => x.TargetType).HasColumnName("target_type").HasConversion<string>();
+                e.Property(x => x.TargetId).HasColumnName("target_id").IsRequired();
+                e.Property(x => x.Reason).HasColumnName("reason").HasConversion<string>();
+                e.Property(x => x.Description).HasColumnName("description");
+                e.Property(x => x.EvidenceUrls).HasColumnName("evidence_urls").HasColumnType("text[]");
+                e.Property(x => x.BlockRequested).HasColumnName("block_requested");
+                e.Property(x => x.Status).HasColumnName("status").HasConversion<string>();
+                e.Property(x => x.Action).HasColumnName("action").HasConversion<string>();
+                e.Property(x => x.ReviewedById).HasColumnName("reviewed_by_id");
+                e.Property(x => x.ReviewedAt).HasColumnName("reviewed_at");
+                e.Property(x => x.AdminNotes).HasColumnName("admin_notes");
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
+                e.HasIndex(x => x.ReportedUserId);
+                e.HasIndex(x => x.TargetId);
+                e.HasIndex(x => x.Status);
+            });
+            modelBuilder.Entity<UserBlock>(e =>
+            {
+                e.ToTable("user_blocks");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id");
+                e.Property(x => x.BlockerId).HasColumnName("blocker_id").IsRequired();
+                e.Property(x => x.BlockedUserId).HasColumnName("blocked_user_id").IsRequired();
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
+                e.HasIndex(x => new { x.BlockerId, x.BlockedUserId }).IsUnique();
+                e.HasIndex(x => x.BlockedUserId);
+            });
             modelBuilder.Entity<Category>(e =>
             {
                 e.ToTable("categories");
@@ -188,6 +226,14 @@ namespace SBay.Domain.Database
             });
 
             modelBuilder.Entity<PushToken>()
+                .Property(x => x.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .ValueGeneratedOnAdd();
+            modelBuilder.Entity<Report>()
+                .Property(x => x.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .ValueGeneratedOnAdd();
+            modelBuilder.Entity<UserBlock>()
                 .Property(x => x.Id)
                 .HasDefaultValueSql("gen_random_uuid()")
                 .ValueGeneratedOnAdd();

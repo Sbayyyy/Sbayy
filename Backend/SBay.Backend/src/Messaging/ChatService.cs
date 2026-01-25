@@ -1,4 +1,5 @@
 using SBay.Backend.APIs.Records;
+using SBay.Backend.Exceptions;
 using SBay.Backend.Utils;
 using SBay.Domain.Database;
 
@@ -18,6 +19,7 @@ public sealed class ChatService : IChatService
     private readonly IUserOwnership _ownership;
     private readonly IChatEvents _events;
     private readonly IUnitOfWork _uow;
+    private readonly IUserBlockRepository _blocks;
 
     public ChatService(
         IChatRepository chats,
@@ -26,7 +28,8 @@ public sealed class ChatService : IChatService
         IClock clock,
         IUserOwnership ownership,
         IChatEvents events,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        IUserBlockRepository blocks)
     {
         _chats = chats;
         _messages = messages;
@@ -35,6 +38,7 @@ public sealed class ChatService : IChatService
         _ownership = ownership;
         _events = events;
         _uow = uow;
+        _blocks = blocks;
     }
 
     public async Task<Chat> OpenOrGetAsync(Guid me, Guid otherUserId, Guid? listingId, CancellationToken ct = default)
@@ -58,6 +62,9 @@ public sealed class ChatService : IChatService
             buyerId = me;
             sellerId = otherUserId;
         }
+
+        if (await IsBlockedAsync(buyerId, sellerId, ct))
+            throw new ForbiddenException("Blocked");
 
         var chat = await _chats.FindByParticipantsAsync(buyerId, sellerId, listingId, ct);
         if (chat is not null) return chat;
@@ -85,6 +92,8 @@ public sealed class ChatService : IChatService
         if (senderId != chat.BuyerId && senderId != chat.SellerId) throw new InvalidOperationException("Forbidden");
 
         var receiverId = senderId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
+        if (await IsBlockedAsync(senderId, receiverId, ct))
+            throw new ForbiddenException("Blocked");
         var clean = _sanitizer.Sanitize(trimmed);
 
         var msg = new Message(chat.Id, clean, senderId, receiverId, chat.ListingId) { CreatedAt = now };
@@ -154,6 +163,12 @@ public sealed class ChatService : IChatService
     public async Task<int> GetUnreadCountAsync(Guid userId, CancellationToken ct = default)
     {
         return await _messages.CountUnreadAsync(userId, ct);
+    }
+
+    private async Task<bool> IsBlockedAsync(Guid userId, Guid otherUserId, CancellationToken ct)
+    {
+        return await _blocks.IsBlockedAsync(userId, otherUserId, ct)
+               || await _blocks.IsBlockedAsync(otherUserId, userId, ct);
     }
 
     public async Task<IReadOnlyList<ChatSummaryDto>> GetInboxSummaryAsync(Guid me, int take = 20, int skip = 0, CancellationToken ct = default)

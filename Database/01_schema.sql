@@ -200,6 +200,41 @@ CREATE TRIGGER trg_update_chat_on_message
 AFTER INSERT ON messages
 FOR EACH ROW EXECUTE FUNCTION update_chat_last_message_at();
 
+-- Reports & User Blocks
+CREATE TABLE IF NOT EXISTS user_blocks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  blocker_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  blocked_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ix_user_blocks_blocker_id_blocked_user_id
+  ON user_blocks (blocker_id, blocked_user_id);
+CREATE INDEX IF NOT EXISTS ix_user_blocks_blocked_user_id
+  ON user_blocks (blocked_user_id);
+
+CREATE TABLE IF NOT EXISTS reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reported_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  target_type TEXT NOT NULL,
+  target_id UUID NOT NULL,
+  reason TEXT NOT NULL,
+  description TEXT,
+  evidence_urls TEXT[],
+  block_requested BOOLEAN NOT NULL DEFAULT FALSE,
+  status TEXT,
+  action TEXT,
+  reviewed_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ix_reports_reported_user_id ON reports (reported_user_id);
+CREATE INDEX IF NOT EXISTS ix_reports_target_id ON reports (target_id);
+CREATE INDEX IF NOT EXISTS ix_reports_status ON reports (status);
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Carts
 -- ─────────────────────────────────────────────────────────────────────────────

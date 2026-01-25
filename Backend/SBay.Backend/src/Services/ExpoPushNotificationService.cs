@@ -116,8 +116,8 @@ namespace SBay.Backend.Services
 
                 if (nextRetry.Count == 0) return;
 
-                var delayMs = (int)Math.Pow(2, attempt) * 500;
-                await Task.Delay(delayMs, ct);
+                var retryDelayMs = (int)Math.Pow(2, attempt) * 500;
+                await Task.Delay(retryDelayMs, ct);
                 pending = nextRetry;
             }
         }

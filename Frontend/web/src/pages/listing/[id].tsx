@@ -21,6 +21,7 @@ import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import ReportDialog from '@/components/ReportDialog';
 
 export default function ListingDetail() {
   const router = useRouter();
@@ -37,6 +38,7 @@ export default function ListingDetail() {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (id && typeof id === 'string') {
@@ -481,14 +483,25 @@ export default function ListingDetail() {
                   ) : null}
 
                   {!isOwnListing && (
-                    <button
-                      onClick={handleContactSeller}
-                      disabled={contactLoading}
-                      className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-70"
-                    >
-                      <MessageCircle size={20} />
-                      {contactLoading ? t('listing.actions.openChatLoading', 'Opening chat...') : t('listing.actions.contactSeller', 'Message seller')}
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={handleContactSeller}
+                        disabled={contactLoading}
+                        className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-70"
+                      >
+                        <MessageCircle size={20} />
+                        {contactLoading ? t('listing.actions.openChatLoading', 'Opening chat...') : t('listing.actions.contactSeller', 'Message seller')}
                       </button>
+                      <button
+                        onClick={() => {
+                          if (!requireAuth()) return;
+                          setReportOpen(true);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 border border-red-300 text-red-700 px-6 py-3 rounded-lg hover:bg-red-50 font-medium transition-colors"
+                      >
+                        {t('report.actions.reportListing', { defaultValue: 'Report listing' })}
+                      </button>
+                    </div>
                   )}
 
                   {isOwnListing && (
@@ -531,6 +544,16 @@ export default function ListingDetail() {
           </div>
         </div>
       </div>
+
+          {listing?.id ? (
+            <ReportDialog
+              isOpen={reportOpen}
+              onClose={() => setReportOpen(false)}
+              onSubmitted={() => setReportOpen(false)}
+              targetType="Listing"
+              targetId={listing.id}
+            />
+          ) : null}
     </>
   );
 }

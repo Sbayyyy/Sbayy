@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
+using SBay.Backend.Services;
 
 namespace SBay.Backend.Messaging;
 
@@ -108,3 +109,4 @@ public class ChatEvents:IChatEvents
         return Task.WhenAll(tasks);
     }
 }
+

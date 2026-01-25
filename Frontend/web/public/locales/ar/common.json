@@ -227,5 +227,39 @@
     "meta": {
       "title": "{{title}} - سباي"
     }
+  },
+  "report": {
+    "title": "إبلاغ",
+    "success": "تم إرسال البلاغ.",
+    "fields": {
+      "reason": "السبب",
+      "description": "التفاصيل (اختياري)",
+      "descriptionPlaceholder": "أخبرنا ماذا حدث",
+      "evidence": "الأدلة (اختياري)",
+      "evidenceHint": "حتى 5 صور.",
+      "blockUser": "حظر هذا المستخدم بعد الإرسال"
+    },
+    "actions": {
+      "addEvidence": "إضافة صور",
+      "uploading": "جارٍ الرفع...",
+      "submit": "إرسال البلاغ",
+      "submitting": "جارٍ الإرسال...",
+      "cancel": "إلغاء",
+      "report": "إبلاغ",
+      "reportListing": "الإبلاغ عن الإعلان"
+    },
+    "reasons": {
+      "spam": "رسائل مزعجة",
+      "harassment": "تحرش",
+      "scam": "احتيال",
+      "inappropriate": "محتوى غير لائق",
+      "other": "أخرى"
+    },
+    "errors": {
+      "upload": "فشل رفع الأدلة.",
+      "maxImages": "يمكنك رفع حتى 5 صور.",
+      "submit": "فشل إرسال البلاغ.",
+      "description": "يرجى إضافة تفاصيل."
+    }
   }
 }

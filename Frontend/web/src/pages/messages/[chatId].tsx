@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import ReportDialog from '@/components/ReportDialog';
 import { getMessages, sendMessage, markAsRead, getChats, updateMessage, deleteMessage } from '@/lib/api/messages';
 import { getListingById } from '@/lib/api/listings';
 import { getSellerProfile } from '@/lib/api/users';
@@ -52,6 +53,7 @@ export default function ChatPage() {
   const [otherUserName, setOtherUserName] = useState('');
   const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [listingTitle, setListingTitle] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -346,6 +348,11 @@ export default function ChatPage() {
     } finally {
       setMenu(null);
     }
+  };
+
+  const handleReport = (message: Message) => {
+    setMenu(null);
+    setReportTarget(message.id);
   };
 
   const canEdit = (message: Message) => {
@@ -651,9 +658,25 @@ export default function ChatPage() {
                     >
                       Delete
                     </button>
+                    {selected.senderId !== user?.id && (
+                      <button
+                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                        onClick={() => handleReport(selected)}
+                      >
+                        Report
+                      </button>
+                    )}
                   </div>
                 );
               })()}
+              {reportTarget ? (
+                <ReportDialog
+                  isOpen={Boolean(reportTarget)}
+                  onClose={() => setReportTarget(null)}
+                  targetType="Message"
+                  targetId={reportTarget}
+                />
+              ) : null}
               <div ref={messagesEndRef} />
             </div>
           )}

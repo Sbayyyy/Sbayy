@@ -7,6 +7,8 @@ using SBay.Backend.DataBase.Firebase;
 using SBay.Backend.DataBase.Interfaces;
 using SBay.Backend.Messaging;
 using SBay.Backend.Services;
+using Amazon.Runtime;
+using Amazon.S3;
 using SBay.Backend.Utils;
 using SBay.Domain.Authentication;
 using SBay.Domain.Database;
@@ -52,11 +54,21 @@ if (useEf)
     builder.Services.AddScoped<IMessageRepository, EfMessageRepository>();
     builder.Services.AddScoped<IAddressRepository, EfAddressRepository>();  // NEW
     builder.Services.AddScoped<IPushTokenRepository, EfPushTokenRepository>();
+    builder.Services.AddScoped<IReportRepository, EfReportRepository>();
+    builder.Services.AddScoped<IUserBlockRepository, EfUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, EfUserAnalyticsService>();
 }
 else
 {
+    var firestoreReportsEnabled = builder.Configuration.GetValue<bool>("EnableFirestoreReports");
+    var firestoreBlocksEnabled = builder.Configuration.GetValue<bool>("EnableFirestoreUserBlocks");
+    if (!firestoreReportsEnabled || !firestoreBlocksEnabled)
+    {
+        throw new InvalidOperationException(
+            "Firestore provider selected but reports/user blocks are not supported. EnableFirestoreReports and EnableFirestoreUserBlocks must be true only if FirebaseReportRepository/FirebaseUserBlockRepository are fully implemented.");
+    }
+
     builder.Services.AddSingleton(sp =>
     {
         var projectId = builder.Configuration["Firebase:ProjectId"];
@@ -93,6 +105,7 @@ else
     builder.Services.AddScoped<IAddressRepository, FirebaseAddressRepository>();
     builder.Services.AddScoped<IDataProvider, FirebaseDataProvider>();
     builder.Services.AddScoped<IPushTokenRepository, FirebasePushTokenRepository>();
+    builder.Services.AddScoped<IUserBlockRepository, FirebaseUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, FirestoreUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();
 }
@@ -101,6 +114,38 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IUserOwnership, UserOwnership>();
 builder.Services.AddHttpClient<IPushNotificationService, ExpoPushNotificationService>();
+builder.Services.AddScoped<IImageStorageProvider>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var provider = config.GetValue<string>("Storage:Provider") ?? "local";
+    var env = sp.GetRequiredService<IWebHostEnvironment>();
+
+    if (string.Equals(provider, "s3", StringComparison.OrdinalIgnoreCase))
+    {
+        var accessKey = config["Storage:S3:AccessKey"];
+        var secretKey = config["Storage:S3:SecretKey"];
+        var endpoint = config["Storage:S3:Endpoint"];
+        var region = config["Storage:S3:Region"] ?? "us-east-1";
+        var forcePathStyle = config.GetValue("Storage:S3:ForcePathStyle", true);
+
+        if (string.IsNullOrWhiteSpace(accessKey) || string.IsNullOrWhiteSpace(secretKey))
+            throw new InvalidOperationException("Storage:S3:AccessKey and Storage:S3:SecretKey are required.");
+        if (string.IsNullOrWhiteSpace(endpoint))
+            throw new InvalidOperationException("Storage:S3:Endpoint is required.");
+
+        var s3Config = new AmazonS3Config
+        {
+            ServiceURL = endpoint,
+            ForcePathStyle = forcePathStyle,
+            RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(region)
+        };
+
+        var client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), s3Config);
+        return new S3ImageStorageProvider(client, config);
+    }
+
+    return new LocalImageStorageProvider(env, config);
+});
 
 // NEW: Shipping Service
 builder.Services.AddScoped<IShippingService, DhlShippingService>();
@@ -176,12 +221,12 @@ app.Use(async (ctx, next) =>
     }
 });
 
-if (useEf && !app.Environment.IsEnvironment("Testing"))
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
-    db.Database.EnsureCreated();
-}
+// if (useEf && !app.Environment.IsEnvironment("Testing"))
+// {
+//     using var scope = app.Services.CreateScope();
+//     var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+//     db.Database.EnsureCreated();
+// }
 
 if (app.Environment.IsDevelopment())
 {

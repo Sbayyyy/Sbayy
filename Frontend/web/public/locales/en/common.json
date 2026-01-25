@@ -227,5 +227,39 @@
     "meta": {
       "title": "{{title}} - SBay"
     }
+  },
+  "report": {
+    "title": "Report",
+    "success": "Report submitted.",
+    "fields": {
+      "reason": "Reason",
+      "description": "Details (optional)",
+      "descriptionPlaceholder": "Tell us what happened",
+      "evidence": "Evidence (optional)",
+      "evidenceHint": "Up to 5 images.",
+      "blockUser": "Block this user after submitting"
+    },
+    "actions": {
+      "addEvidence": "Add images",
+      "uploading": "Uploading...",
+      "submit": "Submit report",
+      "submitting": "Submitting...",
+      "cancel": "Cancel",
+      "report": "Report",
+      "reportListing": "Report listing"
+    },
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Harassment",
+      "scam": "Scam",
+      "inappropriate": "Inappropriate",
+      "other": "Other"
+    },
+    "errors": {
+      "upload": "Failed to upload evidence.",
+      "maxImages": "You can upload up to 5 images.",
+      "submit": "Failed to submit report.",
+      "description": "Please add details."
+    }
   }
 }
