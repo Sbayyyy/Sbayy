@@ -24,7 +24,9 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 var sentryDsn = builder.Configuration["Sentry:Dsn"];
-var useSentry = !string.IsNullOrWhiteSpace(sentryDsn);
+var useSentry = !string.IsNullOrWhiteSpace(sentryDsn)
+                && Uri.TryCreate(sentryDsn, UriKind.Absolute, out _)
+                && sentryDsn.Contains('@');
 if (useSentry)
 {
     builder.WebHost.UseSentry(options =>
