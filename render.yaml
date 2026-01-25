@@ -1,0 +1,117 @@
+services:
+  - type: web
+    name: sbay-backend
+    env: docker
+    dockerfilePath: Backend/SBay.Backend/Dockerfile
+    dockerContext: Backend/SBay.Backend
+    plan: free
+    healthCheckPath: /health/live
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: Database__Provider
+        value: ef
+      - key: ConnectionStrings__Default
+        value: Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      - key: Redis__Host
+        value: ${REDIS_HOST}
+      - key: Redis__Port
+        value: ${REDIS_PORT}
+      - key: App__PublicBaseUrl
+        fromService:
+          type: web
+          name: sbay-backend
+          property: url
+      - key: Storage__Provider
+        value: s3
+      - key: Storage__S3__Endpoint
+        value: https://jfbajkvedcvkionsjbkl.storage.supabase.co/storage/v1/s3
+      - key: Storage__S3__Region
+        value: us-east-1
+      - key: Storage__S3__Bucket
+        value: Images
+      - key: Storage__S3__PublicBaseUrl
+        value: https://jfbajkvedcvkionsjbkl.supabase.co/storage/v1/object/public
+      - key: Storage__S3__Prefix
+        value: uploads
+      - key: Storage__S3__ForcePathStyle
+        value: "true"
+      - key: Storage__S3__AccessKey
+        sync: false
+      - key: Storage__S3__SecretKey
+        sync: false
+      - key: Sentry__Dsn
+        sync: false
+    envVarGroups:
+      - name: sbay-db
+      - name: sbay-redis
+
+  - type: web
+    name: sbay-web
+    env: docker
+    dockerfilePath: Frontend/web/Dockerfile
+    dockerContext: Frontend
+    plan: free
+    dockerBuildArgs:
+      NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_API_PROXY_TARGET: http://localhost:8080
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: RUNTIME_API_URL
+        fromService:
+          type: web
+          name: sbay-backend
+          property: url
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+
+  - type: redis
+    name: sbay-redis
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: sbay-postgres
+    plan: free
+    databaseName: sbay
+    user: sbay
+
+envVarGroups:
+  - name: sbay-db
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: sbay-postgres
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: sbay-postgres
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: sbay-postgres
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: sbay-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: sbay-postgres
+          property: password
+
+  - name: sbay-redis
+    envVars:
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: sbay-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: sbay-redis
+          property: port

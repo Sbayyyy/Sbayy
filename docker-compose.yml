@@ -47,7 +47,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      ConnectionStrings__Default: ${ConnectionStrings__Default}
       Redis__Host: redis
       Redis__Port: 6379
       App__PublicBaseUrl: ${App__PublicBaseUrl}

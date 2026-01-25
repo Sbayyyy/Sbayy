@@ -13,12 +13,23 @@ interface Config {
   enableLogging: boolean;
 }
 
+const normalizeApiUrl = (url: string) => {
+  if (url.startsWith('/')) return url;
+  const trimmed = url.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
 const getConfig = (): Config => {
   const isDev = process.env.NODE_ENV === 'development';
+  const runtimeApiUrl =
+    typeof window !== 'undefined'
+      ? (window as any).__RUNTIME_CONFIG__?.apiUrl
+      : process.env.RUNTIME_API_URL;
+  const rawApiUrl = runtimeApiUrl || process.env.NEXT_PUBLIC_API_URL || '/api';
   
   return {
     // API Configuration
-    apiUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
+    apiUrl: normalizeApiUrl(rawApiUrl),
     apiTimeout: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000', 10),
     maxRetries: parseInt(process.env.NEXT_PUBLIC_MAX_RETRIES || '3', 10),
     
