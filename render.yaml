@@ -12,11 +12,19 @@ services:
       - key: Database__Provider
         value: ef
       - key: ConnectionStrings__Default
-        value: Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+        fromDatabase:
+          name: sbay-postgres
+          property: connectionString
       - key: Redis__Host
-        value: ${REDIS_HOST}
+        fromService:
+          type: redis
+          name: sbay-redis
+          property: host
       - key: Redis__Port
-        value: ${REDIS_PORT}
+        fromService:
+          type: redis
+          name: sbay-redis
+          property: port
       - key: App__PublicBaseUrl
         fromService:
           type: web
@@ -42,9 +50,6 @@ services:
         sync: false
       - key: Sentry__Dsn
         sync: false
-    envVarGroups:
-      - name: sbay-db
-      - name: sbay-redis
 
   - type: web
     name: sbay-web
@@ -52,9 +57,6 @@ services:
     dockerfilePath: Frontend/web/Dockerfile
     dockerContext: Frontend
     plan: free
-    dockerBuildArgs:
-      NEXT_PUBLIC_API_URL: /api
-      NEXT_PUBLIC_API_PROXY_TARGET: http://localhost:8080
     envVars:
       - key: NODE_ENV
         value: production
@@ -78,40 +80,3 @@ databases:
     plan: free
     databaseName: sbay
     user: sbay
-
-envVarGroups:
-  - name: sbay-db
-    envVars:
-      - key: DB_HOST
-        fromDatabase:
-          name: sbay-postgres
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: sbay-postgres
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: sbay-postgres
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: sbay-postgres
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: sbay-postgres
-          property: password
-
-  - name: sbay-redis
-    envVars:
-      - key: REDIS_HOST
-        fromService:
-          type: redis
-          name: sbay-redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          type: redis
-          name: sbay-redis
-          property: port
