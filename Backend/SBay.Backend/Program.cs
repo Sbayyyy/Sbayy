@@ -23,13 +23,18 @@ builder.Configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-builder.WebHost.UseSentry(options =>
+var sentryDsn = builder.Configuration["Sentry:Dsn"];
+var useSentry = !string.IsNullOrWhiteSpace(sentryDsn);
+if (useSentry)
 {
-    options.Dsn = builder.Configuration["Sentry:Dsn"];
-    options.Debug = builder.Environment.IsDevelopment();
-    if (double.TryParse(builder.Configuration["Sentry:TracesSampleRate"], out var sampleRate))
-        options.TracesSampleRate = sampleRate;
-});
+    builder.WebHost.UseSentry(options =>
+    {
+        options.Dsn = sentryDsn;
+        options.Debug = builder.Environment.IsDevelopment();
+        if (double.TryParse(builder.Configuration["Sentry:TracesSampleRate"], out var sampleRate))
+            options.TracesSampleRate = sampleRate;
+    });
+}
 
 var providerName = builder.Configuration.GetValue<string>("Database:Provider") ?? "ef";
 var useEf = !string.Equals(providerName, "firestore", StringComparison.OrdinalIgnoreCase);
@@ -251,7 +256,10 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseRouting();
 app.UseMiddleware<ApiExceptionMiddleware>();
-app.UseSentryTracing();
+if (useSentry)
+{
+    app.UseSentryTracing();
+}
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
