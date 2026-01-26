@@ -152,7 +152,8 @@ builder.Services.AddScoped<IImageStorageProvider>(sp =>
         };
 
         var client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), s3Config);
-        return new S3ImageStorageProvider(client, config);
+        var logger = sp.GetRequiredService<ILogger<S3ImageStorageProvider>>();
+        return new S3ImageStorageProvider(client, config, logger);
     }
 
     return new LocalImageStorageProvider(env, config);
