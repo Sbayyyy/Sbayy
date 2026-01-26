@@ -140,6 +140,16 @@ builder.Services.AddScoped<IImageStorageProvider>(sp =>
         if (string.IsNullOrWhiteSpace(endpoint))
             throw new InvalidOperationException("Storage:S3:Endpoint is required.");
 
+        var accessKeyMask = accessKey.Length <= 4 ? accessKey : $"{accessKey[..4]}****";
+        var endpointMask = endpoint.Length <= 32 ? endpoint : $"{endpoint[..32]}...";
+        builder.Logging.AddFilter("SBay.Backend.S3Config", LogLevel.Information);
+        builder.Logging.AddConsole();
+        builder.Services.AddSingleton(new Action(() =>
+        {
+            var logger = LoggerFactory.Create(b => b.AddConsole()).CreateLogger("SBay.Backend.S3Config");
+            logger.LogInformation("S3 config loaded. AccessKeyPrefix={AccessKeyPrefix}, Endpoint={Endpoint}", accessKeyMask, endpointMask);
+        }));
+
         var s3Config = new AmazonS3Config
         {
             ServiceURL = endpoint,
