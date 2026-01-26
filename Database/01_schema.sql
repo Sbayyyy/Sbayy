@@ -139,7 +139,9 @@ CREATE TABLE IF NOT EXISTS listing_images (
   width INT
 );
 
-CREATE INDEX IF NOT EXISTS idx_listing_images_listing_pos ON listing_images(listing_id, position);
+DROP INDEX IF EXISTS idx_listing_images_listing_pos;
+CREATE INDEX IF NOT EXISTS idx_listing_images_listing ON listing_images(listing_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_listing_images_listing_pos ON listing_images(listing_id, position);
 
 -- Favorites
 CREATE TABLE IF NOT EXISTS favorites (

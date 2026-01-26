@@ -98,8 +98,8 @@ export default function ListingDetail() {
     }
     setContactLoading(true);
     openChat({ otherUserId, listingId: listing.id })
-      .then(({ chatId }) => {
-        router.push(`/messages/${chatId}`);
+      .then(({ id }) => {
+        router.push(`/messages/${id}`);
       })
       .catch((err) => {
         console.error('Error opening chat:', err);

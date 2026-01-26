@@ -61,4 +61,33 @@ public sealed class UploadsController : ControllerBase
 
         return Ok(new UploadImagesResponse(urls));
     }
+
+    [HttpPost("avatar")]
+    [Authorize]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<ActionResult<UploadImagesResponse>> UploadAvatar(
+        [FromForm] IFormFile file,
+        CancellationToken ct)
+    {
+        if (file == null || file.Length <= 0)
+            return BadRequest("No file uploaded.");
+
+        var ext = Path.GetExtension(file.FileName);
+        if (string.IsNullOrWhiteSpace(ext) || !AllowedExtensions.Contains(ext))
+            return BadRequest("Unsupported image type.");
+
+        try
+        {
+            var fileName = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+            await using var stream = file.OpenReadStream();
+            var url = await _storage.UploadAsync(stream, fileName, file.ContentType, ct);
+            return Ok(new UploadImagesResponse(new List<string> { url }));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Avatar upload failed.");
+            return BadRequest("An error occurred while uploading the image.");
+        }
+    }
 }
