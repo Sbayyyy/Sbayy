@@ -1,8 +1,14 @@
 /**
  * Environment Configuration
- * 
+ *
  * Centralized configuration for the application
  */
+
+declare global {
+  interface Window {
+    __RUNTIME_CONFIG__?: { apiUrl?: string };
+  }
+}
 
 interface Config {
   apiUrl: string;
@@ -23,7 +29,7 @@ const getConfig = (): Config => {
   const isDev = process.env.NODE_ENV === 'development';
   const runtimeApiUrl =
     typeof window !== 'undefined'
-      ? (window as any).__RUNTIME_CONFIG__?.apiUrl
+      ? window.__RUNTIME_CONFIG__?.apiUrl
       : process.env.RUNTIME_API_URL;
   const rawApiUrl = runtimeApiUrl || process.env.NEXT_PUBLIC_API_URL || '/api';
   

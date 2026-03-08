@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import Head from 'next/head';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
 
 const parseReplyContent = (content: string) => {
   const match = content.match(/^\[\[reply:([^\]]+)\]\]\n?/);
@@ -39,7 +40,7 @@ export default function ChatPage() {
     typeof chatId === 'string' ? chatId : Array.isArray(chatId) ? chatId[0] : undefined;
   const { user } = useAuthStore();
   const isAuthed = useRequireAuth();
-  
+  const { t, i18n } = useTranslation('common');
   const [messages, setMessages] = useState<Message[]>([]);
   const [chat, setChat] = useState<Chat | null>(null);
   const [loading, setLoading] = useState(true);
@@ -245,7 +246,7 @@ export default function ChatPage() {
         if (listing) {
           setListingTitle(listing.title ?? null);
         } else if (foundChat.listingId) {
-          setListingTitle(`منتج ${foundChat.listingId.substring(0, 8)}`);
+          setListingTitle(t('messages.productFallback', { id: foundChat.listingId.substring(0, 8) }));
         } else {
           setListingTitle(null);
         }
@@ -267,22 +268,20 @@ export default function ChatPage() {
       setError('');
     } catch (err) {
       console.error('Error loading chat:', err);
-      setError('حدث خطأ في تحميل المحادثة');
+      setError(t('chat.loadError'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const doSend = async () => {
     if (!newMessage.trim() || sending) return;
     
     try {
       const trimmed = newMessage.trim();
       const validation = defaultTextInputValidator.validate(trimmed);
       if (!validation.isValid) {
-        alert(validation.message ?? 'Input contains disallowed content');
+        alert(validation.message ?? t('chat.disallowedContent'));
         return;
       }
 
@@ -306,10 +305,15 @@ export default function ChatPage() {
       inputRef.current?.focus();
     } catch (err) {
       console.error('Error sending message:', err);
-      alert('حدث خطأ في إرسال الرسالة');
+      alert(t('chat.sendError'));
     } finally {
       setSending(false);
     }
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doSend();
   };
 
   const handleCopy = async (message: Message) => {
@@ -368,7 +372,7 @@ export default function ChatPage() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend(e as any);
+      doSend();
     }
   };
 
@@ -378,9 +382,9 @@ export default function ChatPage() {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('ar-SY', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleTimeString(i18n.language === 'ar' ? 'ar-SY' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -391,13 +395,13 @@ export default function ChatPage() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return 'اليوم';
+      return t('chat.today');
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'أمس';
+      return t('chat.yesterday');
     } else {
-      return date.toLocaleDateString('ar-SY', { 
-        month: 'long', 
-        day: 'numeric' 
+      return date.toLocaleDateString(i18n.language === 'ar' ? 'ar-SY' : 'en-US', {
+        month: 'long',
+        day: 'numeric'
       });
     }
   };
@@ -439,10 +443,10 @@ export default function ChatPage() {
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {error || 'المحادثة غير موجودة'}
+              {error || t('chat.notFound')}
             </h2>
             <Link href="/messages" className="btn-primary mt-4">
-              العودة للرسائل
+              {t('chat.backToMessages')}
             </Link>
           </div>
         </div>
@@ -453,7 +457,7 @@ export default function ChatPage() {
   return (
     <Layout hideHeader hideFooter>
       <Head>
-        <title>محادثة مع {getOtherUserName()} - Sbay سباي</title>
+        <title>{t('chat.title', { name: getOtherUserName() })}</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -523,8 +527,8 @@ export default function ChatPage() {
           <div className="max-w-4xl mx-auto px-4 py-6">
           {messages.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">لا توجد رسائل بعد</p>
-              <p className="text-sm text-gray-400 mt-1">ابدأ المحادثة الآن</p>
+              <p className="text-gray-500">{t('chat.emptyMessages')}</p>
+              <p className="text-sm text-gray-400 mt-1">{t('chat.startConversation')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -592,10 +596,10 @@ export default function ChatPage() {
                                   <div className={`text-[11px] font-semibold ${
                                     isOwn ? 'text-white/90' : 'text-blue-600'
                                   }`}>
-                                    Reply
+                                    {t('chat.replyLabel')}
                                   </div>
                                   <div className="mt-0.5 whitespace-pre-wrap break-words">
-                                    {replyBody ?? 'Original message unavailable'}
+                                    {replyBody ?? t('chat.originalUnavailable')}
                                   </div>
                                 </div>
                               )}
@@ -636,34 +640,34 @@ export default function ChatPage() {
                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
                       onClick={() => handleCopy(selected)}
                     >
-                      Copy
+                      {t('chat.copy')}
                     </button>
                     <button
                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
                       onClick={() => handleReply(selected)}
                     >
-                      Reply
+                      {t('chat.replyLabel')}
                     </button>
                     <button
                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 disabled:text-gray-400"
                       onClick={() => handleEdit(selected)}
                       disabled={!canEdit(selected)}
                     >
-                      Edit
+                      {t('chat.edit')}
                     </button>
                     <button
                       className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100 disabled:text-gray-400"
                       onClick={() => handleDelete(selected)}
                       disabled={!canDelete(selected)}
                     >
-                      Delete
+                      {t('chat.delete')}
                     </button>
                     {selected.senderId !== user?.id && (
                       <button
                         className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
                         onClick={() => handleReport(selected)}
                       >
-                        Report
+                        {t('chat.report')}
                       </button>
                     )}
                   </div>
@@ -691,8 +695,8 @@ export default function ChatPage() {
                 <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
                   <span>
                     {editingMessageId
-                      ? 'Editing message'
-                      : `Replying to: ${replyTo ? parseReplyContent(replyTo.content).body.slice(0, 60) : ''}`}
+                      ? t('chat.editingMessage')
+                      : t('chat.replyingTo', { text: replyTo ? parseReplyContent(replyTo.content).body.slice(0, 60) : '' })}
                   </span>
                   <button
                     type="button"
@@ -714,7 +718,7 @@ export default function ChatPage() {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="اكتب رسالة..."
+                placeholder={t('chat.placeholder')}
                 className="flex-1 resize-none rounded-2xl border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-h-32"
                 rows={1}
               />

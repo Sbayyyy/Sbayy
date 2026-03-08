@@ -1,28 +1,23 @@
-import { useState, useEffect, useCallback, type ChangeEvent } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
+import FilterSidebar from '@/components/FilterSidebar';
 import { getAllListings } from '@/lib/api/listings';
 import { Product, SearchFilters } from '@sbay/shared';
-import { Loader2, AlertCircle, Filter, X, Home, ChevronRight } from 'lucide-react';
+import { Loader2, AlertCircle, Filter, Home, ChevronRight } from 'lucide-react';
 import Head from 'next/head';
-
-// Hardcoded Categories (später aus Backend)
-const CATEGORIES = [
-  { id: 'electronics', slug: 'electronics', name: 'إلكترونيات', nameEn: 'Electronics', icon: '📱', description: 'هواتف، أجهزة كمبيوتر، أجهزة منزلية إلكترونية' },
-  { id: 'fashion', slug: 'fashion', name: 'أزياء', nameEn: 'Fashion', icon: '👔', description: 'ملابس، أحذية، إكسسوارات' },
-  { id: 'home', slug: 'home', name: 'منزل وحديقة', nameEn: 'Home & Garden', icon: '🏠', description: 'أثاث، ديكور، أدوات منزلية' },
-  { id: 'cars', slug: 'cars', name: 'سيارات', nameEn: 'Cars', icon: '🚗', description: 'سيارات، دراجات، قطع غيار' },
-  { id: 'real-estate', slug: 'real-estate', name: 'عقارات', nameEn: 'Real Estate', icon: '🏢', description: 'شقق، منازل، مكاتب للبيع أو الإيجار' },
-  { id: 'other', slug: 'other', name: 'أخرى', nameEn: 'Other', icon: '📦', description: 'منتجات متنوعة' }
-];
+import { CATEGORIES } from '@/lib/constants';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function CategoryPage() {
   const router = useRouter();
   const { slug } = router.query;
   const slugValue = Array.isArray(slug) ? slug[0] : slug;
-  
+  const { t } = useTranslation('common');
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,7 +27,7 @@ export default function CategoryPage() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [priceError, setPriceError] = useState('');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  
+
   // Find current category
   const currentCategory = CATEGORIES.find(cat => cat.slug === slugValue);
 
@@ -64,7 +59,7 @@ export default function CategoryPage() {
         maxPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : (filters.maxPrice === 0 ? undefined : filters.maxPrice)
       };
       const data = await getAllListings(currentPage, 20, normalizedFilters);
-      
+
       if (data.items) {
         setProducts(prev => (reset ? data.items : [...prev, ...data.items]));
         setHasMore(data.total > currentPage * 20);
@@ -76,12 +71,12 @@ export default function CategoryPage() {
       setError('');
     } catch (err) {
       console.error('Error loading products:', err);
-      setError('حدث خطأ في تحميل المنتجات');
+      setError(t('category.loadError'));
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filters, page]);
+  }, [filters, page, t]);
 
   // Effect for slug change
   useEffect(() => {
@@ -95,7 +90,7 @@ export default function CategoryPage() {
   // Effect for filters change
   useEffect(() => {
     if (filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice) {
-      setPriceError('Minimum price must be less than or equal to maximum price.');
+      setPriceError(t('category.priceError'));
       setError('');
     } else if (priceError) {
       setPriceError('');
@@ -103,7 +98,7 @@ export default function CategoryPage() {
     if (filters.category) {
       loadProducts(true);
     }
-  }, [filters, loadProducts]);
+  }, [filters, loadProducts, t]);
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {
@@ -121,33 +116,9 @@ export default function CategoryPage() {
     );
   };
 
-  const handleFilterChange = (newFilters: Partial<SearchFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+  const handleFilterChange = (update: Partial<SearchFilters>) => {
+    setFilters(prev => ({ ...prev, ...update }));
   };
-
-  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'];
-    if (allowedKeys.includes(e.key)) return;
-    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return;
-    if (!/^[0-9]$/.test(e.key)) {
-      e.preventDefault();
-    }
-  };
-
-const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      const cleaned = raw.replace(/[^0-9]/g, '');
-      let value = cleaned === '' ? undefined : Number(cleaned);
-
-      if (key === 'minPrice') {
-        value = value !== undefined ? value : 0;
-      } else if (value === 0) {
-        value = undefined;
-      }
-
-      handleFilterChange({ [key]: Number.isFinite(value) ? value : undefined } as Partial<SearchFilters>);
-    };
 
   const clearFilters = () => {
     setFilters({
@@ -165,10 +136,10 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">الفئة غير موجودة</h1>
-          <p className="text-gray-600 mb-6">عذراً، هذه الفئة غير متوفرة</p>
+          <h1 className="text-2xl font-bold mb-2">{t('category.notFound')}</h1>
+          <p className="text-gray-600 mb-6">{t('category.notFoundMessage')}</p>
           <Link href="/" className="btn-primary">
-            العودة للرئيسية
+            {t('category.backHome')}
           </Link>
         </div>
       </Layout>
@@ -178,7 +149,7 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
   return (
     <Layout>
       <Head>
-        <title>{currentCategory?.name} - Sbay سباي</title>
+        <title>{t('category.title', { name: currentCategory?.name })}</title>
         <meta name="description" content={currentCategory?.description} />
       </Head>
 
@@ -188,7 +159,7 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
           <nav className="flex items-center gap-2 text-sm text-gray-600 mb-4">
             <Link href="/" className="hover:text-primary flex items-center gap-1">
               <Home className="w-4 h-4" />
-              الرئيسية
+              {t('category.breadcrumbHome')}
             </Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-gray-900 font-medium">{currentCategory?.name}</span>
@@ -205,108 +176,36 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
 
           {/* Product Count */}
           <p className="text-sm text-gray-500">
-            {loading ? 'جاري التحميل...' : `${products.length} منتج متوفر`}
+            {loading ? t('category.loadingProducts') : t('category.productCount', { count: products.length })}
           </p>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar - Desktop */}
-          <aside className="hidden lg:block w-64 flex-shrink-0">
-            <div className="card sticky top-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg">تصفية النتائج</h3>
-                <button
-                  onClick={clearFilters}
-                  className="text-sm text-primary hover:underline"
-                >
-                  مسح الكل
-                </button>
-              </div>
-
-              {/* Sort */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">الترتيب</label>
-                <select
-                  value={`${filters.sortBy}-${filters.sortOrder}`}
-                  onChange={(e) => {
-                    const [sortBy, sortOrder] = e.target.value.split('-');
-                    handleFilterChange({ sortBy: sortBy as any, sortOrder: sortOrder as any });
-                  }}
-                  className="input w-full"
-                >
-                  <option value="date-desc">الأحدث</option>
-                  <option value="date-asc">الأقدم</option>
-                  <option value="price-asc">السعر: من الأقل للأعلى</option>
-                  <option value="price-desc">السعر: من الأعلى للأقل</option>
-                </select>
-              </div>
-
-              {/* Price Range */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">السعر (ل.س)</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="من"
-                    value={filters.minPrice || ''}
-                    onKeyDown={handlePriceKeyDown}
-                      onChange={handlePriceChange('minPrice')}
-                    className="input w-full"
-                  />
-                  {priceError && (
-                    <p className="text-xs text-red-600">{priceError}</p>
-                  )}
-                  <input
-                    type="number"
-                    placeholder="إلى"
-                    value={filters.maxPrice || ''}
-                    onKeyDown={handlePriceKeyDown}
-                      onChange={handlePriceChange('maxPrice')}
-                    className="input w-full"
-                  />
-                  {priceError && (
-                    <p className="text-xs text-red-600">{priceError}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Condition */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">الحالة</label>
-                <div className="space-y-2">
-                  {['new', 'used', 'refurbished'].map(cond => (
-                    <label key={cond} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={filters.condition === cond}
-                        onChange={(e) => handleFilterChange({ condition: e.target.checked ? cond as any : undefined })}
-                        className="rounded border-gray-300"
-                      />
-                      <span className="text-sm">
-                        {cond === 'new' ? 'جديد' : cond === 'used' ? 'مستعمل' : 'مجدد'}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </aside>
+          {/* Desktop Filter Sidebar */}
+          <FilterSidebar
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onClearFilters={clearFilters}
+            showCategories={false}
+            showSort
+            priceError={priceError}
+          />
 
           {/* Main Content */}
           <div className="flex-1">
             {/* Mobile Filter Button */}
             <div className="lg:hidden mb-4 flex justify-between items-center">
               <p className="text-sm text-gray-600">
-                {loading ? 'جاري التحميل...' : `${products.length} منتج`}
+                {loading ? t('category.loadingProducts') : t('category.productCountShort', { count: products.length })}
               </p>
               <button
                 onClick={() => setShowMobileFilters(true)}
                 className="btn-outline flex items-center gap-2"
               >
                 <Filter className="w-4 h-4" />
-                تصفية
+                {t('category.filter')}
               </button>
             </div>
 
@@ -349,7 +248,7 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
                       {loadingMore ? (
                         <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                       ) : (
-                        'تحميل المزيد'
+                        t('category.loadMore')
                       )}
                     </button>
                   </div>
@@ -358,10 +257,10 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
             ) : (
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">📦</div>
-                <h3 className="text-xl font-bold mb-2">لا توجد منتجات في هذه الفئة</h3>
-                <p className="text-gray-600 mb-6">جرب تعديل الفلاتر أو العودة للتصفح</p>
+                <h3 className="text-xl font-bold mb-2">{t('category.emptyTitle')}</h3>
+                <p className="text-gray-600 mb-6">{t('category.emptyMessage')}</p>
                 <Link href="/browse" className="btn-primary">
-                  تصفح جميع المنتجات
+                  {t('category.browseAll')}
                 </Link>
               </div>
             )}
@@ -371,85 +270,25 @@ const handlePriceChange = (key: 'minPrice' | 'maxPrice') =>
 
       {/* Mobile Filters Modal */}
       {showMobileFilters && (
-        <div className="fixed inset-0 bg-black/50 z-50 lg:hidden">
-          <div className="absolute inset-y-0 right-0 w-full max-w-sm bg-white shadow-xl">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="font-bold text-lg">تصفية النتائج</h3>
-              <button onClick={() => setShowMobileFilters(false)}>
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
-              {/* Same filters as desktop */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">الترتيب</label>
-                <select
-                  value={`${filters.sortBy}-${filters.sortOrder}`}
-                  onChange={(e) => {
-                    const [sortBy, sortOrder] = e.target.value.split('-');
-                    handleFilterChange({ sortBy: sortBy as any, sortOrder: sortOrder as any });
-                  }}
-                  className="input w-full"
-                >
-                  <option value="date-desc">الأحدث</option>
-                  <option value="date-asc">الأقدم</option>
-                  <option value="price-asc">السعر: من الأقل للأعلى</option>
-                  <option value="price-desc">السعر: من الأعلى للأقل</option>
-                </select>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">السعر (ل.س)</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="من"
-                    value={filters.minPrice || ''}
-                    onKeyDown={handlePriceKeyDown}
-                      onChange={handlePriceChange('minPrice')}
-                    className="input w-full"
-                  />
-                  <input
-                    type="number"
-                    placeholder="إلى"
-                    value={filters.maxPrice || ''}
-                    onKeyDown={handlePriceKeyDown}
-                      onChange={handlePriceChange('maxPrice')}
-                    className="input w-full"
-                  />
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">الحالة</label>
-                <div className="space-y-2">
-                  {['new', 'used', 'refurbished'].map(cond => (
-                    <label key={cond} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={filters.condition === cond}
-                        onChange={(e) => handleFilterChange({ condition: e.target.checked ? cond as any : undefined })}
-                        className="rounded border-gray-300"
-                      />
-                      <span className="text-sm">
-                        {cond === 'new' ? 'جديد' : cond === 'used' ? 'مستعمل' : 'مجدد'}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="p-4 border-t flex gap-2">
-              <button onClick={clearFilters} className="btn-outline flex-1">
-                مسح الكل
-              </button>
-              <button onClick={() => setShowMobileFilters(false)} className="btn-primary flex-1">
-                تطبيق
-              </button>
-            </div>
-          </div>
-        </div>
+        <FilterSidebar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={clearFilters}
+          showCategories={false}
+          showSort
+          priceError={priceError}
+          isMobile
+          onClose={() => setShowMobileFilters(false)}
+        />
       )}
     </Layout>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+    }
+  };
 }

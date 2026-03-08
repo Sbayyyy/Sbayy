@@ -5,6 +5,9 @@ import { Heart, MapPin, Package } from 'lucide-react';
 import { Product } from '@sbay/shared';
 import { addFavorite, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store';
+import { CONDITION_I18N_MAP } from '@/lib/constants';
+import { formatPrice } from '@/lib/formatters';
+import { useTranslation } from 'next-i18next';
 
 interface ProductCardProps {
   product: Product;
@@ -14,6 +17,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onFavorite, isFavorite = false }: ProductCardProps) {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const { isAuthenticated } = useAuthStore();
   const [isLiked, setIsLiked] = useState(isFavorite);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
@@ -54,18 +58,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
     }
   };
 
-  const conditionLabels: Record<string, string> = {
-    'New': 'جديد',
-    'Used': 'مستعمل',
-    'Refurbished': 'مجدد',
-    'LikeNew': 'كالجديد',
-    'Good': 'جيد',
-    'Fair': 'مقبول',
-    'Poor': 'سيئ'
-  };
-
   const imageUrl = product.thumbnailUrl || product.imageUrls?.[0] || null;
-  const formattedPrice = product.priceAmount.toLocaleString('ar-SY');
   const isAvailable = product.stock === undefined || product.stock > 0;
 
   return (
@@ -81,14 +74,14 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <Package size={64} className="text-gray-300" />
+              <Package size={64} className="text-gray-300" data-testid="package-icon" />
             </div>
           )}
 
           {/* Condition Badge */}
           {product.condition && (
             <span className="absolute top-2 left-2 px-2 py-1 bg-white/90 rounded-full text-xs">
-              {conditionLabels[product.condition]}
+              {t(CONDITION_I18N_MAP[product.condition])}
             </span>
           )}
 
@@ -97,7 +90,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
             onClick={handleFavoriteClick}
             disabled={isTogglingFavorite}
             className="absolute top-2 right-2 p-2 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-            title={isLiked ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+            title={isLiked ? t('productCard.removeFromFavorites') : t('productCard.addToFavorites')}
           >
             <Heart 
               size={20} 
@@ -109,7 +102,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
 
           {!isAvailable && (
             <span className="absolute bottom-2 left-2 px-2 py-1 bg-red-500 text-white text-xs rounded">
-              غير متوفر
+              {t('productCard.unavailable')}
             </span>
           )}
         </div>
@@ -131,10 +124,10 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
 
           <div className="flex items-center justify-between mt-auto">
             <span className="text-2xl font-bold text-primary-600">
-              {formattedPrice} ل.س
+              {formatPrice(product.priceAmount)}
             </span>
             <button className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-              عرض
+              {t('productCard.view')}
             </button>
           </div>
         </div>

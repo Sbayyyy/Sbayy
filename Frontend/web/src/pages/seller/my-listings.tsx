@@ -6,10 +6,13 @@ import { Product } from '@sbay/shared';
 import { Loader2, AlertCircle, Plus, Edit, Trash2, Eye, Package } from 'lucide-react';
 import { formatPrice } from '@/lib/cartStore';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function MyListingsPage() {
   const router = useRouter();
   const isAuthed = useRequireAuth();
+  const { t } = useTranslation('common');
   const [listings, setListings] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -27,16 +30,16 @@ export default function MyListingsPage() {
       setLoading(true);
       const data = await getMyListings();
       setListings(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading listings:', err);
-      setError('فشل تحميل المنتجات');
+      setError(t('myListings.loadError'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
+    if (!confirm(t('myListings.deleteConfirm'))) return;
 
     try {
       setDeleting(true);
@@ -44,7 +47,7 @@ export default function MyListingsPage() {
       await deleteListing(id);
       setListings(prev => prev.filter(l => l.id !== id));
     } catch (err) {
-      alert('فشل حذف المنتج');
+      alert(t('myListings.deleteError'));
     } finally {
       setDeleting(false);
       setDeleteId(null);
@@ -58,11 +61,11 @@ export default function MyListingsPage() {
 
   if (loading) {
     return (
-      <Layout title="منتجاتي - سباي">
+      <Layout title={t('myListings.title')}>
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">جارٍ التحميل...</p>
+            <p className="text-gray-600">{t('myListings.loading')}</p>
           </div>
         </div>
       </Layout>
@@ -70,16 +73,16 @@ export default function MyListingsPage() {
   }
 
   return (
-    <Layout title="منتجاتي - سباي">
+    <Layout title={t('myListings.title')}>
       <div className="bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">منتجاتي</h1>
+                <h1 className="text-3xl font-bold text-gray-900">{t('myListings.heading')}</h1>
                 <p className="text-gray-600 mt-1">
-                  {filteredListings.length} منتج
+                  {t('myListings.productCount', { count: filteredListings.length })}
                 </p>
               </div>
               <button
@@ -87,7 +90,7 @@ export default function MyListingsPage() {
                 className="btn btn-primary flex items-center gap-2"
               >
                 <Plus size={20} />
-                إضافة منتج جديد
+                {t('myListings.addNew')}
               </button>
             </div>
 
@@ -101,7 +104,7 @@ export default function MyListingsPage() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                الكل ({listings.length})
+                {t('myListings.filterAll', { count: listings.length })}
               </button>
               <button
                 onClick={() => setFilter('active')}
@@ -111,7 +114,7 @@ export default function MyListingsPage() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                نشط ({listings.filter(l => l.status === 'active').length})
+                {t('myListings.filterActive', { count: listings.filter(l => l.status === 'active').length })}
               </button>
               <button
                 onClick={() => setFilter('sold')}
@@ -121,7 +124,7 @@ export default function MyListingsPage() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                مباع ({listings.filter(l => l.status === 'sold').length})
+                {t('myListings.filterSold', { count: listings.filter(l => l.status === 'sold').length })}
               </button>
             </div>
           </div>
@@ -140,19 +143,21 @@ export default function MyListingsPage() {
                 <Package className="w-12 h-12 text-gray-400" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                لا توجد منتجات
+                {t('myListings.emptyTitle')}
               </h2>
               <p className="text-gray-600 mb-6">
-                {filter === 'all' 
-                  ? 'ابدأ بإضافة منتجك الأول'
-                  : `لا توجد منتجات ${filter === 'active' ? 'نشطة' : 'مباعة'}`
+                {filter === 'all'
+                  ? t('myListings.emptyAllMessage')
+                  : filter === 'active'
+                    ? t('myListings.emptyActiveMessage')
+                    : t('myListings.emptySoldMessage')
                 }
               </p>
               <button
                 onClick={() => router.push('/listing/sell')}
                 className="btn btn-primary"
               >
-                أضف منتج الآن
+                {t('myListings.addNow')}
               </button>
             </div>
           ) : (
@@ -184,7 +189,7 @@ export default function MyListingsPage() {
                             : 'bg-gray-100 text-gray-800'
                         }`}
                       >
-                        {listing.status === 'active' ? 'نشط' : 'مباع'}
+                        {listing.status === 'active' ? t('myListings.statusActive') : t('myListings.statusSold')}
                       </span>
                     </div>
                   </div>
@@ -198,8 +203,8 @@ export default function MyListingsPage() {
                       {formatPrice(listing.priceAmount, listing.priceCurrency)}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                      <span>المخزون: {listing.stock}</span>
-                      <span>المشاهدات: {listing.views || 0}</span>
+                      <span>{t('myListings.stock', { count: listing.stock })}</span>
+                      <span>{t('myListings.views', { count: listing.views || 0 })}</span>
                     </div>
 
                     {/* Actions */}
@@ -209,14 +214,14 @@ export default function MyListingsPage() {
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                       >
                         <Eye size={16} />
-                        عرض
+                        {t('myListings.view')}
                       </button>
                       <button
                         onClick={() => router.push(`/seller/listings/${listing.id}/edit`)}
                         className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
                       >
                         <Edit size={16} />
-                        تعديل
+                        {t('myListings.edit')}
                       </button>
                       <button
                         onClick={() => handleDelete(listing.id)}
@@ -239,4 +244,8 @@ export default function MyListingsPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return { props: { ...(await serverSideTranslations(locale ?? 'ar', ['common'])) } };
 }

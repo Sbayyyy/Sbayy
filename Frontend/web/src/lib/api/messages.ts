@@ -29,7 +29,7 @@ export const getMessages = async (
   before?: Date
 ): Promise<Message[]> => {
   try {
-    const params: any = { take };
+    const params: Record<string, string | number> = { take };
     if (before) {
       params.before = before.toISOString();
     }
@@ -86,7 +86,7 @@ export const openChat = async (data: OpenChatRequest): Promise<OpenChatResponse>
  */
 export const markAsRead = async (chatId: string, upToMessageId?: string): Promise<number> => {
   try {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (upToMessageId) {
       params.upToMessageId = upToMessageId;
     }

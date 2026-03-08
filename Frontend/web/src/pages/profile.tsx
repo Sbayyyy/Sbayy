@@ -11,109 +11,39 @@ import { getMyListings } from '@/lib/api/listings';
 import { getPurchases } from '@/lib/api/orders';
 import { getFavorites, removeFavorite } from '@/lib/api/favorites';
 import { api } from '@/lib/api';
-import ProductCard from '@/components/ProductCard';
 import type { Product, OrderResponse } from '@sbay/shared';
 import { defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
+import { ArrowLeft } from 'lucide-react';
+import { CITIES, normalizeCityValue } from '@/lib/constants';
 import {
-  Mail,
-  Phone,
-  MapPin,
-  Package,
-  ShoppingBag,
-  Star,
-  Calendar,
-  Edit2,
-  ArrowLeft,
-  Loader2,
-  AlertCircle
-} from 'lucide-react';
+  ProfileHeader,
+  ProfileOverviewTab,
+  ProfileListingsTab,
+  ProfilePurchasesTab,
+  ProfileWatchlistTab,
+} from '@/components/profile';
+import type { ProfileFormData, ProfileErrors } from '@/components/profile';
 
 export default function ProfilePage() {
   const { t } = useTranslation('common');
   const { user, isAuthenticated, setUser } = useAuthStore();
   const isAuthed = useRequireAuth();
 
-  const fixMojibake = (value: string) => {
-    try {
-      const bytes = Uint8Array.from(value, (char) => char.charCodeAt(0));
-      return new TextDecoder('utf-8').decode(bytes);
-    } catch {
-      return value;
-    }
-  };
-
-  const cityOptions = [
-    { value: 'damascus', label: t('cities.damascus', { defaultValue: 'Damascus' }) },
-    { value: 'rif-damascus', label: t('cities.rifDamascus', { defaultValue: 'Rif Dimashq' }) },
-    { value: 'aleppo', label: t('cities.aleppo', { defaultValue: 'Aleppo' }) },
-    { value: 'homs', label: t('cities.homs', { defaultValue: 'Homs' }) },
-    { value: 'hama', label: t('cities.hama', { defaultValue: 'Hama' }) },
-    { value: 'latakia', label: t('cities.latakia', { defaultValue: 'Latakia' }) },
-    { value: 'tartus', label: t('cities.tartus', { defaultValue: 'Tartus' }) },
-    { value: 'idlib', label: t('cities.idlib', { defaultValue: 'Idlib' }) },
-    { value: 'raqqa', label: t('cities.raqqa', { defaultValue: 'Raqqa' }) },
-    { value: 'deir-ez-zor', label: t('cities.deirEzZor', { defaultValue: 'Deir ez-Zor' }) },
-    { value: 'al-hasakah', label: t('cities.alHasakah', { defaultValue: 'Al-Hasakah' }) },
-    { value: 'daraa', label: t('cities.daraa', { defaultValue: 'Daraa' }) },
-    { value: 'as-suwayda', label: t('cities.asSuwayda', { defaultValue: 'As-Suwayda' }) },
-    { value: 'quneitra', label: t('cities.quneitra', { defaultValue: 'Quneitra' }) }
-  ];
-
-  const cityAliasMap = new Map<string, string>([
-    ['damascus', 'damascus'],
-    ['دمشق', 'damascus'],
-    ['rif dimashq', 'rif-damascus'],
-    ['ريف دمشق', 'rif-damascus'],
-    ['aleppo', 'aleppo'],
-    ['حلب', 'aleppo'],
-    ['homs', 'homs'],
-    ['حمص', 'homs'],
-    ['hama', 'hama'],
-    ['حماة', 'hama'],
-    ['latakia', 'latakia'],
-    ['اللاذقية', 'latakia'],
-    ['tartus', 'tartus'],
-    ['طرطوس', 'tartus'],
-    ['idlib', 'idlib'],
-    ['إدلب', 'idlib'],
-    ['raqqa', 'raqqa'],
-    ['الرقة', 'raqqa'],
-    ['deir ez-zor', 'deir-ez-zor'],
-    ['دير الزور', 'deir-ez-zor'],
-    ['al-hasakah', 'al-hasakah'],
-    ['الحسكة', 'al-hasakah'],
-    ['daraa', 'daraa'],
-    ['درعا', 'daraa'],
-    ['as-suwayda', 'as-suwayda'],
-    ['السويداء', 'as-suwayda'],
-    ['quneitra', 'quneitra'],
-    ['القنيطرة', 'quneitra']
-  ]);
-
-  const normalizeCityValue = (value?: string) => {
-    if (!value) return '';
-    const fixed = fixMojibake(value).trim();
-    const lower = fixed.toLowerCase();
-    return cityAliasMap.get(lower) ?? cityAliasMap.get(fixed) ?? fixed;
-  };
-
-  const getCityLabel = (value?: string) => {
-    if (!value) return '';
-    const normalized = normalizeCityValue(value);
-    if (normalized) return cityOptions.find((opt) => opt.value === normalized)?.label ?? fixMojibake(value);
-    return fixMojibake(value);
-  };
+  const cityOptions = CITIES.map(c => ({
+    value: c.value,
+    label: t(c.i18nKey, { defaultValue: c.i18nDefault })
+  }));
 
   const [activeTab, setActiveTab] = useState<'overview' | 'listings' | 'purchases' | 'watchlist'>('overview');
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProfileFormData>({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
     city: normalizeCityValue(user?.city || ''),
     avatar: user?.avatar || ''
   });
-  const [profileErrors, setProfileErrors] = useState<{ name?: string; phone?: string; city?: string }>({});
+  const [profileErrors, setProfileErrors] = useState<ProfileErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -210,7 +140,7 @@ export default function ProfilePage() {
       loadWatchlist();
     }
   }, [activeTab, isAuthenticated, loadWatchlist, watchlist.length, watchlistLoading, watchlistLoaded]);
-  
+
   useEffect(() => {
     if (isAuthenticated) return;
     setWatchlistLoaded(false);
@@ -220,7 +150,7 @@ export default function ProfilePage() {
 
   const validateProfile = () => {
     const unsafeMessage = 'Input contains disallowed content';
-    const nextErrors: typeof profileErrors = {};
+    const nextErrors: ProfileErrors = {};
     const nameValue = formData.name;
     const phoneValue = formData.phone;
     const cityValue = formData.city;
@@ -307,6 +237,11 @@ export default function ProfilePage() {
     }
   };
 
+  const handleRemoveFavorite = (id: string) => {
+    removeFavorite(id).catch(() => undefined);
+    setWatchlist(prev => prev.filter(item => item.id !== id));
+  };
+
   if (!isAuthed) return null;
 
   if (isLoading) {
@@ -334,7 +269,7 @@ export default function ProfilePage() {
   const activities = [
     recentListing
       ? {
-          type: 'listing',
+          type: 'listing' as const,
           title: t('profile.activity.listingTitle'),
           description: recentListing.title,
           date: recentListing.createdAt
@@ -342,7 +277,7 @@ export default function ProfilePage() {
       : null,
     recentPurchase
       ? {
-          type: 'purchase',
+          type: 'purchase' as const,
           title: t('profile.activity.purchaseTitle'),
           description: t('profile.activity.purchaseBody', { id: recentPurchase.id.slice(0, 8) }),
           date: recentPurchase.createdAt
@@ -359,170 +294,27 @@ export default function ProfilePage() {
             {t('profile.backToHome')}
           </Link>
 
-          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex items-start gap-4 flex-1">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-24 h-24 bg-primary-100 rounded-full overflow-hidden flex items-center justify-center">
-                    {formData.avatar || user?.avatar ? (
-                      <img
-                        src={formData.avatar || user?.avatar}
-                        alt={user?.name || t('nav.user')}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-primary-600 font-bold text-3xl">
-                        {user?.name?.charAt(0).toUpperCase() || 'U'}
-                      </span>
-                    )}
-                  </div>
-                  {isEditing && (
-                    <>
-                      <input
-                        id="avatarUpload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarChange}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor="avatarUpload"
-                        className="text-xs text-primary-600 hover:text-primary-700 cursor-pointer"
-                      >
-                        {avatarUploading ? t('profile.avatarUploading') : t('profile.avatarChange')}
-                      </label>
-                    </>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) => handleProfileFieldChange('name', e.target.value)}
-                          className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-lg font-semibold text-gray-900"
-                        />
-                      ) : (
-                        <h1 className="text-2xl font-bold text-gray-900">{user?.name || t('nav.user')}</h1>
-                      )}
-                      {isEditing && profileErrors.name && (
-                        <p className="text-xs text-red-500 mt-1">{profileErrors.name}</p>
-                      )}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
-                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        <span>{t('profile.sellerRating', { rating: (user?.rating ?? 0).toFixed(1) })}</span>
-                        <span className="text-gray-400">·</span>
-                        <span>{t('profile.reviewCount', { count: reviewCount })}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{t('profile.memberSince', { date: memberSince })}</span>
-                      </div>
-                    </div>
-                    {!isEditing ? (
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        {t('profile.editProfile')}
-                      </button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleSave}
-                          disabled={isSaving}
-                          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                        >
-                          {isSaving ? t('profile.saving') : t('profile.save')}
-                        </button>
-                        <button
-                          onClick={handleCancel}
-                          disabled={isSaving}
-                          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                        >
-                          {t('profile.cancel')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-                    <div className="flex items-center gap-3 text-sm text-gray-700">
-                      <Mail className="w-5 h-5 text-gray-400" />
-                      <span>{user?.email || '-'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-700">
-                      <Phone className="w-5 h-5 text-gray-400" />
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => handleProfileFieldChange('phone', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder={t('profile.phonePlaceholder')}
-                        />
-                      ) : (
-                        <span>{user?.phone || t('profile.phoneNotSet')}</span>
-                      )}
-                      {isEditing && profileErrors.phone && (
-                        <p className="text-xs text-red-500 mt-1">{profileErrors.phone}</p>
-                      )}
-                    </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-700">
-                        <MapPin className="w-5 h-5 text-gray-400" />
-                        {isEditing ? (
-                          <select
-                            value={formData.city}
-                            onChange={(e) => handleProfileFieldChange('city', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          >
-                            <option value="">{t('profile.cityPlaceholder')}</option>
-                            {cityOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span>{user?.city ? getCityLabel(user.city) : t('profile.cityNotSet')}</span>
-                        )}
-                        {isEditing && profileErrors.city && (
-                          <p className="text-xs text-red-500 mt-1">{profileErrors.city}</p>
-                        )}
-                      </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-700">
-                      <Package className="w-5 h-5 text-gray-400" />
-                      <span>{t('profile.itemsSold', { count: totalOrders })}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 lg:w-64">
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <p className="text-xs text-gray-500">{t('profile.totalRevenue')}</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {totalRevenue.toLocaleString('en-US')} {t('profile.currency')}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <p className="text-xs text-gray-500">{t('profile.totalOrders')}</p>
-                  <p className="text-lg font-semibold text-gray-900">{totalOrders}</p>
-                </div>
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <p className="text-xs text-gray-500">{t('profile.pendingOrders')}</p>
-                  <p className="text-lg font-semibold text-gray-900">{pendingOrders}</p>
-                </div>
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <p className="text-xs text-gray-500">{t('profile.reviews')}</p>
-                  <p className="text-lg font-semibold text-gray-900">{reviewCount}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProfileHeader
+            user={user}
+            formData={formData}
+            setFormData={setFormData}
+            isEditing={isEditing}
+            setIsEditing={setIsEditing}
+            handleSave={handleSave}
+            handleCancel={handleCancel}
+            handleProfileFieldChange={handleProfileFieldChange}
+            handleAvatarChange={handleAvatarChange}
+            profileErrors={profileErrors}
+            isSaving={isSaving}
+            avatarUploading={avatarUploading}
+            cityOptions={cityOptions}
+            totalRevenue={totalRevenue}
+            totalOrders={totalOrders}
+            pendingOrders={pendingOrders}
+            reviewCount={reviewCount}
+            memberSince={memberSince}
+            t={t}
+          />
 
           <div className="mt-8 flex flex-wrap gap-2">
             {['overview', 'listings', 'purchases', 'watchlist'].map(tab => (
@@ -541,170 +333,35 @@ export default function ProfilePage() {
           </div>
 
           {activeTab === 'overview' && (
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  {t('profile.recentActivity')}
-                </h2>
-                {activities.length === 0 ? (
-                  <div className="border border-dashed border-gray-200 rounded-lg p-6 text-center text-sm text-gray-500">
-                    {t('profile.activityEmpty')}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {activities.map((activity, index) => (
-                      <div
-                        key={`${activity.type}-${index}`}
-                        className={`flex items-start gap-4 ${index < activities.length - 1 ? 'pb-4 border-b' : ''}`}
-                      >
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                          activity.type === 'listing' ? 'bg-blue-100' : 'bg-green-100'
-                        }`}>
-                          {activity.type === 'listing' ? (
-                            <Package className="w-6 h-6 text-blue-600" />
-                          ) : (
-                            <ShoppingBag className="w-6 h-6 text-green-600" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-900">{activity.title}</p>
-                          <p className="text-xs text-gray-500">{activity.description}</p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(activity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-            </div>
+            <ProfileOverviewTab activities={activities} t={t} />
           )}
 
           {activeTab === 'listings' && (
-            <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">{t('profile.listingsTitle')}</h2>
-                <Link
-                  href="/listing/sell"
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  {t('profile.createListing')}
-                </Link>
-              </div>
-              {listingsLoading ? (
-                <div className="flex items-center justify-center py-12 text-gray-500">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  {t('profile.loadingListings')}
-                </div>
-              ) : listingsError ? (
-                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <AlertCircle className="w-4 h-4" />
-                  {listingsError}
-                </div>
-              ) : listings.length === 0 ? (
-                <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center text-sm text-gray-500">
-                  {t('profile.listingsEmpty')}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {listings.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              )}
-            </div>
+            <ProfileListingsTab
+              listings={listings}
+              listingsLoading={listingsLoading}
+              listingsError={listingsError}
+              t={t}
+            />
           )}
 
           {activeTab === 'purchases' && (
-            <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.purchasesTitle')}</h2>
-              {purchasesLoading ? (
-                <div className="flex items-center justify-center py-12 text-gray-500">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  {t('profile.loadingPurchases')}
-                </div>
-              ) : purchasesError ? (
-                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <AlertCircle className="w-4 h-4" />
-                  {purchasesError}
-                </div>
-              ) : purchases.length === 0 ? (
-                <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center text-sm text-gray-500">
-                  {t('profile.purchasesEmpty')}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {purchases.map(order => (
-                    <div
-                      key={order.id}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border border-gray-200 rounded-lg p-4"
-                    >
-                      <div>
-                        <p className="text-sm text-gray-500">{t('profile.orderId', { id: order.id.slice(0, 8) })}</p>
-                        <p className="text-sm text-gray-700">
-                          {t(`profile.orderStatus.${order.status}`)}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                        </p>
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        {t('profile.orderItems', { count: order.items.length })}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">{t('profile.total')}</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                          {order.total.toLocaleString('en-US')} {t('profile.currency')}
-                        </p>
-                      </div>
-                      <Link
-                        href={`/dashboard/orders/${order.id}`}
-                        className="text-sm text-primary-600 hover:underline"
-                      >
-                        {t('profile.viewOrder')}
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ProfilePurchasesTab
+              purchases={purchases}
+              purchasesLoading={purchasesLoading}
+              purchasesError={purchasesError}
+              t={t}
+            />
           )}
 
           {activeTab === 'watchlist' && (
-            <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.watchlistTitle')}</h2>
-              {watchlistLoading ? (
-                <div className="flex items-center justify-center py-12 text-gray-500">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  {t('profile.loadingWatchlist')}
-                </div>
-              ) : watchlistError ? (
-                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <AlertCircle className="w-4 h-4" />
-                  {watchlistError}
-                </div>
-              ) : watchlist.length === 0 ? (
-                <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center text-sm text-gray-500">
-                  {t('profile.watchlistEmpty')}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {watchlist.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      isFavorite={true}
-                      onFavorite={(id) => {
-                        removeFavorite(id).catch(() => undefined);
-                        setWatchlist(prev => prev.filter(item => item.id !== id));
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <ProfileWatchlistTab
+              watchlist={watchlist}
+              watchlistLoading={watchlistLoading}
+              watchlistError={watchlistError}
+              onRemoveFavorite={handleRemoveFavorite}
+              t={t}
+            />
           )}
         </div>
       </div>

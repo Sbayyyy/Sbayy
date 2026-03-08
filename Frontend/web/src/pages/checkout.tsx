@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '@/components/Layout';
 import AddressForm from '@/components/checkout/AddressForm';
 import PaymentMethod from '@/components/checkout/PaymentMethod';
@@ -39,6 +41,7 @@ interface CheckoutState {
  * - Trust badges
  */
 export default function CheckoutPage() {
+  const { t } = useTranslation('common');
   const router = useRouter();
   const { items, clearCart } = useCartStore();
   const isAuthed = useRequireAuth();
@@ -109,7 +112,7 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (!state.agreedToTerms) {
-      alert('يرجى الموافقة على الشروط والأحكام');
+      alert(t('checkout.pleaseAgreeTerms'));
       return;
     }
 
@@ -138,7 +141,7 @@ export default function CheckoutPage() {
       console.error('Error creating order:', error);
       setState(prev => ({ 
         ...prev, 
-        orderError: 'حدث خطأ أثناء إنشاء الطلب. يرجى المحاولة مرة أخرى.'
+        orderError: t('checkout.orderError')
       }));
     } finally {
       setIsSubmitting(false);
@@ -156,9 +159,9 @@ export default function CheckoutPage() {
   const isReviewValid = isDeliveryValid && isPaymentValid && state.agreedToTerms;
 
   const steps = [
-    { id: 'review' as CheckoutStep, label: 'المراجعة', icon: Package, isComplete: false },
-    { id: 'payment' as CheckoutStep, label: 'الدفع', icon: CreditCard, isComplete: currentStep === 'review' },
-    { id: 'delivery' as CheckoutStep, label: 'التوصيل', icon: MapPin, isComplete: currentStep === 'payment' || currentStep === 'review' }
+    { id: 'review' as CheckoutStep, label: t('checkout.steps.review'), icon: Package, isComplete: false },
+    { id: 'payment' as CheckoutStep, label: t('checkout.steps.payment'), icon: CreditCard, isComplete: currentStep === 'review' },
+    { id: 'delivery' as CheckoutStep, label: t('checkout.steps.delivery'), icon: MapPin, isComplete: currentStep === 'payment' || currentStep === 'review' }
   ];
 
   if (items.length === 0) {
@@ -169,14 +172,14 @@ export default function CheckoutPage() {
   }
 
   return (
-    <Layout title="إتمام الطلب">
+    <Layout title={t('checkout.pageTitle')}>
       <div className="bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
             <Link href="/cart" className="inline-flex items-center text-gray-600 hover:text-gray-900">
               <ChevronLeft size={20} />
-              <span className="ml-1">إتمام الطلب</span>
+              <span className="ml-1">{t('checkout.pageTitle')}</span>
             </Link>
           </div>
         </div>
@@ -220,13 +223,13 @@ export default function CheckoutPage() {
               {/* DELIVERY STEP */}
               {currentStep === 'delivery' && (
                 <div className="bg-white rounded-lg shadow-sm border p-6">
-                  <h2 className="text-xl font-bold mb-6">معلومات التوصيل</h2>
+                  <h2 className="text-xl font-bold mb-6">{t('checkout.address.title')}</h2>
                   
                   {/* Saved Addresses Dropdown */}
                   {state.savedAddresses.length > 0 && (
                     <div className="mb-6">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        اختر عنوان محفوظ
+                        {t('checkout.address.selectSaved')}
                       </label>
                       <select
                         value={state.selectedAddressId}
@@ -244,7 +247,7 @@ export default function CheckoutPage() {
                         }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="">عنوان جديد</option>
+                        <option value="">{t('checkout.address.newAddress')}</option>
                         {state.savedAddresses.map(addr => (
                           <option key={addr.id} value={addr.id}>
                             {addr.name} - {addr.city}, {addr.street}
@@ -297,7 +300,7 @@ export default function CheckoutPage() {
                     disabled={!isDeliveryValid}
                     className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    التالي: طريقة الدفع
+                    {t('checkout.nextPayment')}
                     <ChevronLeft className="rotate-180" size={20} />
                   </button>
                 </div>
@@ -316,14 +319,14 @@ export default function CheckoutPage() {
                       onClick={() => setCurrentStep('delivery')}
                       className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200"
                     >
-                      رجوع
+                      {t('checkout.back')}
                     </button>
                     <button
                       onClick={() => setCurrentStep('review')}
                       disabled={!isPaymentValid}
                       className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      مراجعة الطلب
+                      {t('checkout.reviewOrder')}
                       <ChevronLeft className="rotate-180" size={20} />
                     </button>
                   </div>
@@ -355,7 +358,7 @@ export default function CheckoutPage() {
                       disabled={isSubmitting}
                       className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 disabled:opacity-50"
                     >
-                      رجوع
+                      {t('checkout.back')}
                     </button>
                     <button
                       onClick={handlePlaceOrder}
@@ -365,10 +368,10 @@ export default function CheckoutPage() {
                       {isSubmitting ? (
                         <>
                           <Loader2 className="animate-spin" size={20} />
-                          جارٍ الطلب...
+                          {t('checkout.placingOrder')}
                         </>
                       ) : (
-                        'تأكيد الطلب'
+                        t('checkout.confirmOrder')
                       )}
                     </button>
                   </div>
@@ -379,19 +382,19 @@ export default function CheckoutPage() {
             {/* Right Column - Order Summary (Sticky) */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-24">
-                <h3 className="text-lg font-bold mb-4">ملخص الطلب</h3>
+                <h3 className="text-lg font-bold mb-4">{t('checkout.orderSummary')}</h3>
                 
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-gray-700">
-                    <span>المجموع الفرعي ({items.length} منتجات)</span>
+                    <span>{t('checkout.review.subtotal')} ({items.length} {t('checkout.products')})</span>
                     <span>{subtotal.toLocaleString()} ل.س</span>
                   </div>
                   <div className="flex justify-between text-gray-700">
-                    <span>رسوم التوصيل</span>
+                    <span>{t('checkout.deliveryFees')}</span>
                     <span>{state.shippingCost.toLocaleString()} ل.س</span>
                   </div>
                   <div className="pt-3 border-t flex justify-between text-lg font-bold">
-                    <span>الإجمالي</span>
+                    <span>{t('checkout.review.total')}</span>
                     <span className="text-blue-600">{total.toLocaleString()} ل.س</span>
                   </div>
                 </div>
@@ -403,8 +406,8 @@ export default function CheckoutPage() {
                       <Shield size={20} className="text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">معاملات آمنة</p>
-                      <p className="text-gray-600">معلوماتك محمية</p>
+                      <p className="font-medium text-gray-900">{t('checkout.trust.secureTransactions')}</p>
+                      <p className="text-gray-600">{t('checkout.trust.infoProtected')}</p>
                     </div>
                   </div>
                   
@@ -413,8 +416,8 @@ export default function CheckoutPage() {
                       <Award size={20} className="text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">جودة مضمونة</p>
-                      <p className="text-gray-600">جميع المنتجات موثقة</p>
+                      <p className="font-medium text-gray-900">{t('checkout.trust.guaranteedQuality')}</p>
+                      <p className="text-gray-600">{t('checkout.trust.verifiedProducts')}</p>
                     </div>
                   </div>
                   
@@ -423,8 +426,8 @@ export default function CheckoutPage() {
                       <Truck size={20} className="text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">توصيل محلي</p>
-                      <p className="text-gray-600">توصيل سريع في منطقتك</p>
+                      <p className="font-medium text-gray-900">{t('checkout.trust.localDelivery')}</p>
+                      <p className="text-gray-600">{t('checkout.trust.fastDelivery')}</p>
                     </div>
                   </div>
                 </div>
@@ -435,4 +438,8 @@ export default function CheckoutPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getStaticProps({ locale }: { locale?: string }) {
+  return { props: { ...(await serverSideTranslations(locale ?? 'ar', ['common'])) } };
 }

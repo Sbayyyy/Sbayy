@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { Upload, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { useTranslation } from 'next-i18next';
 
 interface ImageUploadProps {
   images: string[];
@@ -12,6 +13,8 @@ interface ImageUploadProps {
 export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  const { t } = useTranslation('common');
 
   const mergeUniqueImages = (current: string[], next: string[]) => {
     const seen = new Set<string>();
@@ -28,7 +31,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
     const fileArray = Array.from(files);
 
     if (images.length + fileArray.length > maxImages) {
-      alert(`يمكنك رفع ${maxImages} صور كحد أقصى`);
+      alert(t('imageUpload.maxAlert', { max: maxImages }));
       return;
     }
 
@@ -40,7 +43,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
       onChange(mergeUniqueImages(images, data.urls));
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert('حدث خطأ أثناء رفع الصور');
+      alert(t('imageUpload.uploadError'));
     } finally {
       setUploading(false);
     }
@@ -83,7 +86,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
   return (
     <div>
       <label className="block text-sm font-medium mb-2">
-        صور المنتج ({images.length}/{maxImages})
+        {t('imageUpload.label', { current: images.length, max: maxImages })}
       </label>
 
       <div
@@ -107,9 +110,9 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
         <label htmlFor="file-upload" className={images.length >= maxImages ? 'cursor-not-allowed' : 'cursor-pointer'}>
           <Upload className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-600">
-            اسحب الصور هنا أو <span className="text-primary-600 font-semibold">اختر من الجهاز</span>
+            {t('imageUpload.dragText')} <span className="text-primary-600 font-semibold">{t('imageUpload.chooseFile')}</span>
           </p>
-          <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF حتى 10MB</p>
+          <p className="mt-1 text-xs text-gray-500">{t('imageUpload.fileTypes')}</p>
         </label>
       </div>
 
@@ -127,7 +130,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
               </button>
               {index === 0 && (
                 <span className="absolute bottom-1 left-1 bg-primary-600 text-white text-xs px-2 py-1 rounded">
-                  رئيسية
+                  {t('imageUpload.primaryBadge')}
                 </span>
               )}
             </div>
@@ -138,7 +141,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
       {uploading && (
         <div className="mt-4 text-center">
           <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-          <p className="text-sm text-gray-600 mt-2">جارٍ رفع الصور...</p>
+          <p className="text-sm text-gray-600 mt-2">{t('imageUpload.uploading')}</p>
         </div>
       )}
     </div>

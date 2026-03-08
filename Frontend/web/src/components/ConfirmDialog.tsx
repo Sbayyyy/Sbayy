@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
 
 /**
  * Props for the ConfirmDialog component.
@@ -8,8 +9,8 @@ import { X, AlertTriangle } from 'lucide-react';
  * @property {() => void} onConfirm - Called when the user confirms the action.
  * @property {string} title - Dialog title text.
  * @property {string} message - Dialog body text.
- * @property {string} [confirmText] - Confirm button label (default "تأكيد").
- * @property {string} [cancelText] - Cancel button label (default "إلغاء").
+ * @property {string} [confirmText] - Confirm button label (default from i18n).
+ * @property {string} [cancelText] - Cancel button label (default from i18n).
  * @property {boolean} [danger] - When true, renders the dialog in a destructive style.
  */
 interface ConfirmDialogProps {
@@ -34,10 +35,15 @@ export default function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'تأكيد',
-  cancelText = 'إلغاء',
+  confirmText,
+  cancelText,
   danger = false
 }: ConfirmDialogProps) {
+  const { t } = useTranslation('common');
+
+  const resolvedConfirmText = confirmText || t('confirmDialog.confirm');
+  const resolvedCancelText = cancelText || t('confirmDialog.cancel');
+
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const titleId = useId();
@@ -106,11 +112,11 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50"
         onClick={danger ? undefined : onClose}
       />
-      
+
       {/* Dialog */}
       <div
         ref={dialogRef}
@@ -135,7 +141,7 @@ export default function ConfirmDialog({
               <AlertTriangle className="w-6 h-6 text-red-600" />
             </div>
           )}
-          
+
           <div className="flex-1">
             <h3 id={titleId} className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
             <p id={descId} className="text-gray-600 mb-6">{message}</p>
@@ -145,7 +151,7 @@ export default function ConfirmDialog({
                 onClick={onClose}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                {cancelText}
+                {resolvedCancelText}
               </button>
               <button
                 onClick={handleConfirm}
@@ -155,7 +161,7 @@ export default function ConfirmDialog({
                     : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
-                {confirmText}
+                {resolvedConfirmText}
               </button>
             </div>
           </div>

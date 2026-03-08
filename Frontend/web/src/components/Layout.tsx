@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import Head from 'next/head';
 import Header from './Header';
 import Footer from './Footer';
+import { useTranslation } from 'next-i18next';
 
 interface LayoutProps {
   children: ReactNode;
@@ -11,18 +12,23 @@ interface LayoutProps {
   hideFooter?: boolean;
 }
 
-export default function Layout({ 
-  children, 
-  title = 'سباي - سوق سوريا الإلكتروني',
-  description = 'منصة تجارة إلكترونية مثل eBay مصممة خصيصاً لسوريا',
+export default function Layout({
+  children,
+  title,
+  description,
   hideHeader = false,
   hideFooter = false,
 }: LayoutProps) {
+  const { t } = useTranslation('common');
+
+  const resolvedTitle = title || t('layout.defaultTitle');
+  const resolvedDescription = description || t('layout.defaultDescription');
+
   return (
     <>
       <Head>
-        <title>{title}</title>
-        <meta name="description" content={description} />
+        <title>{resolvedTitle}</title>
+        <meta name="description" content={resolvedDescription} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>

@@ -1,22 +1,11 @@
 import { api } from '../api';
-import type { User, UserLogin, UserRegistration } from '@sbay/shared';
-
-type BackendUserDto = Omit<User, 'name'> & {
-  displayName?: string;
-  name?: string;
-  avatarUrl?: string;
-};
+import type { UserLogin, UserRegistration } from '@sbay/shared';
+import { toUser, type BackendUserDto } from './transforms';
 
 type AuthResponse = {
   user: BackendUserDto;
   token: string;
 };
-
-const toUser = (dto: BackendUserDto): User => ({
-  ...dto,
-  name: dto.displayName ?? dto.name ?? '',
-  avatar: dto.avatar ?? dto.avatarUrl
-});
 
 /**
  * Login

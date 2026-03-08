@@ -3,7 +3,7 @@ import { useTranslation } from 'next-i18next';
 import { Facebook, Instagram, Twitter, Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
-  const { i18n } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const currentLocale = i18n?.language ?? 'en';
   const setLocaleCookie = (locale: string) => {
     document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
@@ -35,9 +35,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About */}
           <div>
-            <h4 className="text-xl font-bold mb-4">سباي</h4>
+            <h4 className="text-xl font-bold mb-4">{t('footer.brandName')}</h4>
             <p className="text-gray-400 text-sm leading-relaxed">
-              منصة التجارة الإلكترونية الرائدة في سوريا. اشترِ وبع بسهولة وأمان.
+              {t('footer.about')}
             </p>
             <div className="flex gap-3 mt-4">
               <a href="#" className="p-2 bg-gray-800 hover:bg-primary-600 rounded-lg transition-colors">
@@ -54,36 +54,36 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h5 className="font-semibold mb-4">روابط سريعة</h5>
+            <h5 className="font-semibold mb-4">{t('footer.quickLinks')}</h5>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
-                  عن سباي
+                  {t('footer.aboutSbay')}
                 </Link>
               </li>
               <li>
                 <Link href="/how-it-works" className="text-gray-400 hover:text-white transition-colors">
-                  كيف يعمل الموقع
+                  {t('footer.howItWorks')}
                 </Link>
               </li>
               <li>
                 <Link href="/help" className="text-gray-400 hover:text-white transition-colors">
-                  مركز المساعدة
+                  {t('footer.helpCenter')}
                 </Link>
               </li>
               <li>
                 <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
-                  اتصل بنا
+                  {t('footer.contactUs')}
                 </Link>
               </li>
               <li>
                 <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
-                  سياسة الخصوصية
+                  {t('footer.privacyPolicy')}
                 </Link>
               </li>
               <li>
                 <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
-                  الشروط والأحكام
+                  {t('footer.termsAndConditions')}
                 </Link>
               </li>
             </ul>
@@ -91,31 +91,31 @@ export default function Footer() {
 
           {/* For Sellers */}
           <div>
-            <h5 className="font-semibold mb-4">للبائعين</h5>
+            <h5 className="font-semibold mb-4">{t('footer.forSellers')}</h5>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/listing/sell" className="text-gray-400 hover:text-white transition-colors">
-                  ابدأ البيع الآن
+                  {t('footer.startSelling')}
                 </Link>
               </li>
               <li>
                 <Link href="/seller-guide" className="text-gray-400 hover:text-white transition-colors">
-                  دليل البائع
+                  {t('footer.sellerGuide')}
                 </Link>
               </li>
               <li>
                 <Link href="/fees" className="text-gray-400 hover:text-white transition-colors">
-                  الرسوم والعمولات
+                  {t('footer.feesAndCommissions')}
                 </Link>
               </li>
               <li>
                 <Link href="/seller-protection" className="text-gray-400 hover:text-white transition-colors">
-                  حماية البائع
+                  {t('footer.sellerProtection')}
                 </Link>
               </li>
               <li>
                 <Link href="/seller-tips" className="text-gray-400 hover:text-white transition-colors">
-                  نصائح للبيع
+                  {t('footer.sellingTips')}
                 </Link>
               </li>
             </ul>
@@ -123,7 +123,7 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h5 className="font-semibold mb-4">تواصل معنا</h5>
+            <h5 className="font-semibold mb-4">{t('footer.contactHeading')}</h5>
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-gray-400">
                 <Mail size={16} />
@@ -138,9 +138,9 @@ export default function Footer() {
                 </a>
               </li>
               <li className="text-gray-400 mt-4">
-                <p className="font-medium text-white mb-1">ساعات العمل:</p>
-                <p>السبت - الخميس: 9:00 ص - 6:00 م</p>
-                <p>الجمعة: مغلق</p>
+                <p className="font-medium text-white mb-1">{t('footer.workingHours')}</p>
+                <p>{t('footer.weekdayHours')}</p>
+                <p>{t('footer.fridayClosed')}</p>
               </li>
             </ul>
           </div>
@@ -149,18 +149,18 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-400 text-sm text-center md:text-right">
-            &copy; 2025 سباي. جميع الحقوق محفوظة.
+            {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
           <div className="flex flex-col md:flex-row items-center gap-4 text-sm">
             <div className="flex gap-6">
               <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
-                الخصوصية
+                {t('footer.privacy')}
               </Link>
               <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
-                الشروط
+                {t('footer.terms')}
               </Link>
               <Link href="/sitemap" className="text-gray-400 hover:text-white transition-colors">
-                خريطة الموقع
+                {t('footer.sitemap')}
               </Link>
             </div>
             <div className="flex items-center gap-2 text-gray-400">

@@ -15,10 +15,13 @@ import {
 import type { ProductCreate } from '@sbay/shared';
 import { createListing } from '../../lib/api/listings';
 import { getCurrentUser } from '@/lib/api/users';
+import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '../../lib/store';
 import ImageUpload from '../../components/imageUpload';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { SELL_CATEGORIES, FILTER_CONDITIONS } from '@/lib/constants';
 
 // Extended type for form state to allow empty strings for numeric fields
 interface ProductFormData {
@@ -37,6 +40,7 @@ export default function SellPage() {
   const router = useRouter();
   const { isAuthenticated, setUser } = useAuthStore();
   const isAuthed = useRequireAuth();
+  const { t } = useTranslation('common');
   
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
@@ -50,7 +54,7 @@ export default function SellPage() {
     stock: ''
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof ProductCreate, string>>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
@@ -70,8 +74,8 @@ export default function SellPage() {
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof ProductCreate, string>> = {};
-    const unsafeMessage = 'Input contains disallowed content';
+    const newErrors: Record<string, string> = {};
+    const unsafeMessage = t('sell.validation.unsafeContent');
 
     const titleError = getListingTitleValidationMessage(sanitizeInput(formData.title));
     if (titleError) newErrors.title = titleError;
@@ -90,17 +94,17 @@ export default function SellPage() {
     const priceError = getListingPriceValidationMessage(
       formData.priceAmount === '' ? NaN : formData.priceAmount
     );
-    if (priceError) newErrors.priceAmount = priceError as any;
+    if (priceError) newErrors.priceAmount = priceError;
 
     const categoryError = getListingCategoryValidationMessage(formData.categoryPath);
-    if (categoryError) newErrors.categoryPath = categoryError as any;
+    if (categoryError) newErrors.categoryPath = categoryError;
     if (!newErrors.categoryPath && fieldValidators.categoryPath) {
       const result = fieldValidators.categoryPath.validate(formData.categoryPath);
       if (!result.isValid) newErrors.categoryPath = result.message ?? unsafeMessage;
     }
 
     const locationError = getListingLocationValidationMessage(sanitizeInput(formData.region));
-    if (locationError) newErrors.region = locationError as any;
+    if (locationError) newErrors.region = locationError;
     if (!newErrors.region && fieldValidators.region) {
       const result = fieldValidators.region.validate(sanitizeInput(formData.region));
       if (!result.isValid) newErrors.region = result.message ?? unsafeMessage;
@@ -108,23 +112,23 @@ export default function SellPage() {
 
     // Validate stock
     if (formData.stock === '' || formData.stock === undefined) {
-      newErrors.stock = 'الكمية مطلوبة' as any;
+      newErrors.stock = t('sell.validation.stockRequired');
     } else {
-      const quantity = typeof formData.stock === 'string' 
-        ? parseInt(formData.stock, 10) 
+      const quantity = typeof formData.stock === 'string'
+        ? parseInt(formData.stock, 10)
         : formData.stock;
-      
+
       if (isNaN(quantity)) {
-        newErrors.stock = 'الكمية يجب أن تكون رقماً صحيحاً' as any;
+        newErrors.stock = t('sell.validation.stockInteger');
       } else if (!Number.isInteger(quantity)) {
-        newErrors.stock = 'الكمية يجب أن تكون رقماً صحيحاً' as any;
+        newErrors.stock = t('sell.validation.stockInteger');
       } else if (quantity < 1) {
-        newErrors.stock = 'الكمية يجب أن تكون 1 على الأقل' as any;
+        newErrors.stock = t('sell.validation.stockMin');
       }
     }
 
     if (formData.imageUrls && formData.imageUrls.length === 0) {
-      newErrors.imageUrls = 'يجب إضافة صورة واحدة على الأقل' as any;
+      newErrors.imageUrls = t('sell.validation.imageRequired');
     }
 
     setErrors(newErrors);
@@ -148,17 +152,26 @@ export default function SellPage() {
         ? sanitizeInput(value)
         : value;
       const result = validator.validate(inputValue);
-      setErrors(prev => ({
-        ...prev,
-        [name]: result.isValid ? undefined : result.message ?? 'Input contains disallowed content'
-      }));
+      if (result.isValid) {
+        setErrors(prev => {
+          const next = { ...prev };
+          delete next[name];
+          return next;
+        });
+      } else {
+        setErrors(prev => ({
+          ...prev,
+          [name]: result.message ?? t('sell.validation.unsafeContent')
+        }));
+      }
       return;
     }
 
-    setErrors(prev => ({
-      ...prev,
-      [name]: undefined
-    }));
+    setErrors(prev => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,19 +208,19 @@ export default function SellPage() {
       }
       // Redirect to the created listing
       router.push(`/listing/${response.id}`);
-    } catch (error: any) {
-      setApiError(error.response?.data?.message || 'حدث خطأ أثناء نشر المنتج');
+    } catch (error: unknown) {
+      setApiError(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Layout title="بيع منتج - سباي">
+    <Layout title={t('sell.title')}>
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="bg-white rounded-lg shadow-sm p-8">
-            <h1 className="text-3xl font-bold mb-8">بيع منتج جديد</h1>
+            <h1 className="text-3xl font-bold mb-8">{t('sell.heading')}</h1>
 
             {apiError && (
               <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -219,7 +232,7 @@ export default function SellPage() {
               {/* Title */}
               <div>
                 <label htmlFor="title" className="block text-sm font-medium mb-2">
-                  عنوان المنتج *
+                  {t('sell.fields.title')}
                 </label>
                 <input
                   type="text"
@@ -229,7 +242,7 @@ export default function SellPage() {
                   onChange={handleChange}
                   disabled={isLoading}
                   className={`w-full input ${errors.title ? 'border-2 border-red-500' : ''}`}
-                  placeholder="مثال: هاتف iPhone 15 Pro Max 256GB"
+                  placeholder={t('sell.fields.titlePlaceholder')}
                 />
                 {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
               </div>
@@ -237,7 +250,7 @@ export default function SellPage() {
               {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium mb-2">
-                  وصف المنتج *
+                  {t('sell.fields.description')}
                 </label>
                 <textarea
                   id="description"
@@ -247,7 +260,7 @@ export default function SellPage() {
                   disabled={isLoading}
                   rows={6}
                   className={`w-full input ${errors.description ? 'border-2 border-red-500' : ''}`}
-                  placeholder="اكتب وصفاً تفصيلياً للمنتج..."
+                  placeholder={t('sell.fields.descriptionPlaceholder')}
                 />
                 {errors.description && (
                   <p className="mt-1 text-sm text-red-500">{errors.description}</p>
@@ -267,7 +280,7 @@ export default function SellPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="priceAmount" className="block text-sm font-medium mb-2">
-                    السعر (ل.س) *
+                    {t('sell.fields.price')}
                   </label>
                   <input
                     type="number"
@@ -279,14 +292,14 @@ export default function SellPage() {
                     min="0"
                     step="1000"
                     className={`w-full input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
-                    placeholder="100000"
+                    placeholder={t('sell.fields.pricePlaceholder')}
                   />
                   {errors.priceAmount && <p className="mt-1 text-sm text-red-500">{errors.priceAmount}</p>}
                 </div>
 
                 <div>
                   <label htmlFor="stock" className="block text-sm font-medium mb-2">
-                    الكمية المتوفرة *
+                    {t('sell.fields.stock')}
                   </label>
                   <input
                     type="number"
@@ -298,7 +311,7 @@ export default function SellPage() {
                     min="1"
                     step="1"
                     className={`w-full input ${errors.stock ? 'border-2 border-red-500' : ''}`}
-                    placeholder="1"
+                    placeholder={t('sell.fields.stockPlaceholder')}
                   />
                   {errors.stock && (
                     <p className="mt-1 text-sm text-red-500">{errors.stock}</p>
@@ -310,7 +323,7 @@ export default function SellPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="categoryPath" className="block text-sm font-medium mb-2">
-                    الفئة *
+                    {t('sell.fields.category')}
                   </label>
                   <select
                     id="categoryPath"
@@ -320,13 +333,10 @@ export default function SellPage() {
                     disabled={isLoading}
                     className={`w-full input ${errors.categoryPath ? 'border-2 border-red-500' : ''}`}
                   >
-                    <option value="">اختر الفئة</option>
-                    <option value="electronics">إلكترونيات</option>
-                    <option value="fashion">أزياء</option>
-                    <option value="home">منزل وحديقة</option>
-                    <option value="cars">سيارات</option>
-                    <option value="real-estate">عقارات</option>
-                    <option value="other">أخرى</option>
+                    <option value="">{t('sell.fields.categoryPlaceholder')}</option>
+                    {SELL_CATEGORIES.map(cat => (
+                      <option key={cat.slug} value={cat.slug}>{cat.name}</option>
+                    ))}
                   </select>
                   {errors.categoryPath && (
                     <p className="mt-1 text-sm text-red-500">{errors.categoryPath}</p>
@@ -335,7 +345,7 @@ export default function SellPage() {
 
                 <div>
                   <label htmlFor="condition" className="block text-sm font-medium mb-2">
-                    حالة المنتج *
+                    {t('sell.fields.condition')}
                   </label>
                   <select
                     id="condition"
@@ -345,10 +355,9 @@ export default function SellPage() {
                     disabled={isLoading}
                     className="w-full input"
                   >
-                    <option value="New">جديد</option>
-                    <option value="Used">مستعمل</option>
-                    <option value="Refurbished">مجدد</option>
-                    <option value="LikeNew">كالجديد</option>
+                    {FILTER_CONDITIONS.map(cond => (
+                      <option key={cond.value} value={cond.value}>{t(cond.i18nKey)}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -356,7 +365,7 @@ export default function SellPage() {
               {/* Location */}
               <div>
                 <label htmlFor="region" className="block text-sm font-medium mb-2">
-                  الموقع *
+                  {t('sell.fields.location')}
                 </label>
                 <input
                   type="text"
@@ -366,7 +375,7 @@ export default function SellPage() {
                   onChange={handleChange}
                   disabled={isLoading}
                   className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
-                  placeholder="مثال: دمشق - المزة"
+                  placeholder={t('sell.fields.locationPlaceholder')}
                 />
                 {errors.region && (
                   <p className="mt-1 text-sm text-red-500">{errors.region}</p>
@@ -382,7 +391,7 @@ export default function SellPage() {
                     isLoading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  {isLoading ? 'جارٍ النشر...' : 'نشر المنتج'}
+                  {isLoading ? t('sell.submitting') : t('sell.submit')}
                 </button>
                 <button
                   type="button"
@@ -390,7 +399,7 @@ export default function SellPage() {
                   disabled={isLoading}
                   className="btn btn-outline"
                 >
-                  إلغاء
+                  {t('sell.cancel')}
                 </button>
               </div>
             </form>

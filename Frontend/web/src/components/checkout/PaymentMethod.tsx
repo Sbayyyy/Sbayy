@@ -1,3 +1,4 @@
+import { useTranslation } from 'next-i18next';
 import { CreditCard, Banknote, Users } from 'lucide-react';
 
 interface PaymentMethodProps {
@@ -17,9 +18,11 @@ interface PaymentMethodProps {
  * GET /api/payment-methods - returns payment config
  */
 export default function PaymentMethod({ value, onChange }: PaymentMethodProps) {
+  const { t } = useTranslation('common');
+
   return (
     <div>
-      <h3 className="text-xl font-bold mb-6">طريقة الدفع</h3>
+      <h3 className="text-xl font-bold mb-6">{t('checkout.payment.title')}</h3>
 
       <div className="space-y-3">
         {/* COD - Cash on Delivery */}
@@ -42,9 +45,9 @@ export default function PaymentMethod({ value, onChange }: PaymentMethodProps) {
             <Banknote size={24} className="text-green-600" />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-gray-900 mb-1">نقداً عند الاستلام</h4>
+            <h4 className="font-semibold text-gray-900 mb-1">{t('checkout.payment.cod')}</h4>
             <p className="text-sm text-gray-600">
-              ادفع نقداً عند استلام الطلب
+              {t('checkout.payment.codDesc')}
             </p>
           </div>
         </label>
@@ -69,9 +72,9 @@ export default function PaymentMethod({ value, onChange }: PaymentMethodProps) {
             <CreditCard size={24} className="text-blue-600" />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-gray-900 mb-1">تحويل بنكي</h4>
+            <h4 className="font-semibold text-gray-900 mb-1">{t('checkout.payment.bankTransfer')}</h4>
             <p className="text-sm text-gray-600">
-              حول المبلغ إلى حسابنا البنكي
+              {t('checkout.payment.bankTransferDesc')}
             </p>
           </div>
         </label>
@@ -96,9 +99,9 @@ export default function PaymentMethod({ value, onChange }: PaymentMethodProps) {
             <Users size={24} className="text-purple-600" />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-gray-900 mb-1">اللقاء شخصياً</h4>
+            <h4 className="font-semibold text-gray-900 mb-1">{t('checkout.payment.meetInPerson')}</h4>
             <p className="text-sm text-gray-600">
-              التسليم والدفع عند اللقاء
+              {t('checkout.payment.meetInPersonDesc')}
             </p>
           </div>
         </label>

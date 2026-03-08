@@ -1,3 +1,4 @@
+import { useTranslation } from 'next-i18next';
 import { CartItem, formatPrice } from '@/lib/cartStore';
 import { Package } from 'lucide-react';
 
@@ -27,13 +28,14 @@ export default function OrderSummary({
   onAgreed,
   agreedToTerms = false 
 }: OrderSummaryProps) {
-  
+  const { t } = useTranslation('common');
+
   const subtotal = items.reduce((sum, item) => sum + item.product.priceAmount * item.quantity, 0);
   const total = subtotal + (shippingCost || 0);
 
   return (
     <div>
-      <h3 className="text-xl font-bold mb-6">مراجعة الطلب</h3>
+      <h3 className="text-xl font-bold mb-6">{t('checkout.review.title')}</h3>
 
       {/* Items List - Compact View */}
       <div className="space-y-3 mb-6">
@@ -53,7 +55,7 @@ export default function OrderSummary({
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-gray-900 truncate">{item.product.title}</h4>
               <p className="text-sm text-gray-600 mt-1">
-                الكمية: {item.quantity}
+                {t('checkout.review.quantity', { count: item.quantity })}
               </p>
               <p className="text-sm font-semibold text-blue-600 mt-1">
                 {formatPrice(item.product.priceAmount * item.quantity)}
@@ -67,19 +69,19 @@ export default function OrderSummary({
       <div className="space-y-3 mb-6">
         {/* Subtotal */}
         <div className="flex justify-between text-gray-600">
-          <span>المجموع الفرعي</span>
+          <span>{t('checkout.review.subtotal')}</span>
           <span className="font-semibold text-gray-900">{formatPrice(subtotal)}</span>
         </div>
 
         {/* Shipping */}
         <div className="flex justify-between text-gray-600">
-          <span>رسوم الشحن</span>
+          <span>{t('checkout.review.shipping')}</span>
           <span className="font-semibold text-gray-900">{formatPrice(shippingCost)}</span>
         </div>
 
         <div className="border-t pt-3">
           <div className="flex justify-between">
-            <span className="text-lg font-bold text-gray-900">الإجمالي</span>
+            <span className="text-lg font-bold text-gray-900">{t('checkout.review.total')}</span>
             <span className="text-2xl font-bold text-blue-600">
               {formatPrice(total)}
             </span>
@@ -97,7 +99,7 @@ export default function OrderSummary({
             className="w-5 h-5 mt-0.5 text-blue-600 rounded focus:ring-blue-500"
           />
           <span className="text-sm text-gray-700">
-            أوافق على <a href="#" className="text-blue-600 hover:underline">شروط الاستخدام</a> و<a href="#" className="text-blue-600 hover:underline">سياسة الخصوصية</a>
+            {t('checkout.review.termsAgree')} <a href="#" className="text-blue-600 hover:underline">{t('checkout.review.termsOfUse')}</a> {t('checkout.review.and')} <a href="#" className="text-blue-600 hover:underline">{t('checkout.review.privacyPolicy')}</a>
           </span>
         </label>
       </div>

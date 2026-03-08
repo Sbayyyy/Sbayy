@@ -1,19 +1,6 @@
 import { api } from './index';
 import { User } from '@sbay/shared';
-
-type BackendUserDto = Omit<User, 'name'> & {
-  displayName?: string;
-  name?: string;
-  avatarUrl?: string;
-};
-
-function toUser(dto: BackendUserDto): User {
-  return {
-    ...dto,
-    name: dto.displayName ?? dto.name ?? '',
-    avatar: dto.avatar ?? dto.avatarUrl,
-  };
-}
+import { toUser, type BackendUserDto } from './transforms';
 
 /**
  * Profile update payload for the current user.

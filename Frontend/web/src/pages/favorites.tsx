@@ -6,8 +6,11 @@ import { useRequireAuth } from '@/lib/useRequireAuth';
 import { Product } from '@sbay/shared';
 import { Loader2, Heart, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function FavoritesPage() {
+  const { t } = useTranslation('common');
   const isAuthed = useRequireAuth();
   const [favorites, setFavorites] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,9 +27,9 @@ export default function FavoritesPage() {
       setError('');
       const data = await getFavorites();
       setFavorites(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading favorites:', err);
-      setError('فشل تحميل المفضلات');
+      setError(t('favorites.loadError'));
     } finally {
       setLoading(false);
     }
@@ -37,20 +40,20 @@ export default function FavoritesPage() {
       await removeFavorite(productId);
       // Update local state
       setFavorites(prev => prev.filter(p => p.id !== productId));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error removing favorite:', err);
-      setError('فشل إزالة المنتج من المفضلة');
+      setError(t('favorites.removeError'));
     }
   };
 
   // Loading State
   if (loading) {
     return (
-      <Layout title="مفضلاتي - سباي">
+      <Layout title={t('favorites.title')}>
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">جارٍ تحميل المفضلات...</p>
+            <p className="text-gray-600">{t('favorites.loading')}</p>
           </div>
         </div>
       </Layout>
@@ -58,19 +61,19 @@ export default function FavoritesPage() {
   }
 
   return (
-    <Layout title="مفضلاتي - سباي">
+    <Layout title={t('favorites.title')}>
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
               <Heart className="text-red-500" size={32} />
-              <h1 className="text-3xl font-bold">مفضلاتي</h1>
+              <h1 className="text-3xl font-bold">{t('favorites.heading')}</h1>
             </div>
             <p className="text-gray-600">
-              {favorites.length > 0 
-                ? `لديك ${favorites.length} منتج في المفضلة`
-                : 'لا توجد منتجات في المفضلة'
+              {favorites.length > 0
+                ? t('favorites.itemCount', { count: favorites.length })
+                : t('favorites.emptyCount')
               }
             </p>
           </div>
@@ -102,17 +105,17 @@ export default function FavoritesPage() {
                   <Heart className="text-gray-400" size={48} />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  لا توجد مفضلات بعد
+                  {t('favorites.emptyTitle')}
                 </h3>
                 <p className="text-gray-600 mb-8">
-                  ابدأ بإضافة منتجات إلى المفضلة عن طريق النقر على أيقونة القلب
+                  {t('favorites.emptyMessage')}
                 </p>
                 <Link
                   href="/browse"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
                 >
                   <ShoppingBag size={20} />
-                  تصفح المنتجات
+                  {t('favorites.browseProducts')}
                 </Link>
               </div>
             </div>
@@ -121,4 +124,8 @@ export default function FavoritesPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getStaticProps({ locale }: { locale?: string }) {
+  return { props: { ...(await serverSideTranslations(locale ?? 'ar', ['common'])) } };
 }

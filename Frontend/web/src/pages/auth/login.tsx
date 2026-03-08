@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { defaultTextInputValidator, IValidator, loadProfanityListFromUrl, isValidEmail } from '@sbay/shared';
 import { login } from '../../lib/api/auth';
+import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -20,13 +21,6 @@ export default function Login() {
     };
 
     const currentLocale = i18n?.language ?? 'ar';
-    const tr = (key: string, fallbackEn: string, fallbackAr: string) => {
-        const value = t(key);
-        if (value === key) {
-            return currentLocale === 'ar' ? fallbackAr : fallbackEn;
-        }
-        return value;
-    };
     const setLocaleCookie = (locale: string) => {
         document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
     };
@@ -95,20 +89,16 @@ export default function Login() {
   
     const validateForm = (): boolean => {
         const newErrors = { email: '', password: '' };
-        const unsafeMessage = tr(
-            'auth.errors.inputUnsafe',
-            'Input contains disallowed content',
-            'Input contains disallowed content'
-        );
+        const unsafeMessage = t('auth.errors.inputUnsafe');
         if(!email){
-            newErrors.email = tr('auth.errors.emailRequired', 'Email is required', 'عنوان البريد الإلكتروني مطلوب');
+            newErrors.email = t('auth.errors.emailRequired');
         } else if (!isValidEmail(email)) {
-            newErrors.email = tr('auth.errors.emailInvalid', 'Email is invalid', 'عنوان البريد الإلكتروني غير صالح');
+            newErrors.email = t('auth.errors.emailInvalid');
         } else if (fieldValidators.email && !fieldValidators.email.validate(email).isValid) {
             newErrors.email = fieldValidators.email.validate(email).message ?? unsafeMessage;
         }
         if(!password || password.length < 6){
-            newErrors.password = tr('auth.errors.passwordMinLogin', 'Password must be at least 6 characters', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+            newErrors.password = t('auth.errors.passwordMinLogin');
         } else if (fieldValidators.password && !fieldValidators.password.validate(password).isValid) {
             newErrors.password = fieldValidators.password.validate(password).message ?? unsafeMessage;
         }
@@ -119,11 +109,7 @@ export default function Login() {
 
     const handleFieldChange = (name: 'email' | 'password', value: string) => {
         const validator = fieldValidators[name];
-        const unsafeMessage = tr(
-            'auth.errors.inputUnsafe',
-            'Input contains disallowed content',
-            'Input contains disallowed content'
-        );
+        const unsafeMessage = t('auth.errors.inputUnsafe');
         const result = validator ? validator.validate(value) : { isValid: true };
         setErrors(prev => ({
             ...prev,
@@ -167,8 +153,8 @@ export default function Login() {
               window.sessionStorage.removeItem('authRedirect');
             }
             router.push(redirect);
-        } catch (error: any) {
-            setApiError(error.response?.data?.message || tr('auth.errors.server', 'Server error', 'خطأ في الاتصال بالخادم'));
+        } catch (error: unknown) {
+            setApiError(getErrorMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -210,7 +196,7 @@ export default function Login() {
             className="mx-auto h-10 w-auto"
           />
           <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
-            {tr('auth.login.title', 'Sign in to your account', 'تسجيل الدخول إلى حسابك')}
+            {t('auth.login.title')}
           </h2>
         </div>
 
@@ -223,7 +209,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm/6 font-medium text-black-100">
-                {tr('auth.login.emailLabel', 'Email address', 'عنوان البريد الإلكتروني')}
+                {t('auth.login.emailLabel')}
               </label>
               <div className="mt-2">
                 <input
@@ -238,7 +224,7 @@ export default function Login() {
                   disabled={isLoading}
                   required
                   autoComplete="email"
-                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 ${
+                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
                   errors.email ? 'border-2 border-red-500' : ''
                 }`}
               />
@@ -251,11 +237,11 @@ export default function Login() {
             <div>
               <div className="flex items-center justify-between">
                 <label htmlFor="password" className="block text-sm/6 font-medium text-black-100">
-                  {tr('auth.login.passwordLabel', 'Password', 'كلمة المرور')}
+                  {t('auth.login.passwordLabel')}
                 </label>
                 <div className="text-sm">
-                  <a href="forgetPassword" className="font-semibold text-indigo-400 hover:text-indigo-300">
-                    {tr('auth.login.forgot', 'Forgot your password?', 'نسيت كلمة المرور؟')}
+                  <a href="forgetPassword" className="font-semibold text-primary-500 hover:text-primary-400">
+                    {t('auth.login.forgot')}
                   </a>
                 </div>
               </div>
@@ -272,7 +258,7 @@ export default function Login() {
                   disabled={isLoading}
                   required
                   autoComplete="current-password"
-                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 ${
+                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
                     errors.password ? 'border-2 border-red-500' : ''
                 }`}
                 />
@@ -285,20 +271,20 @@ export default function Login() {
             <div>
               <button
                 type="submit"
-                className={`flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                className={`flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${
                     isLoading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 {isLoading
-                  ? tr('auth.login.submitting', 'Signing in...', 'جارٍ تسجيل الدخول...')
-                  : tr('auth.login.submit', 'Sign in', 'تسجيل الدخول')}
+                  ? t('auth.login.submitting')
+                  : t('auth.login.submit')}
               </button>
             </div>
           </form>
 
             <div className="mt-4 text-center text-sm">
-                <a href={registerHref} className="font-semibold text-indigo-400 hover:text-indigo-300">
-                    {tr('auth.login.registerLink', "Don't have an account? Register", 'ليس لديك حساب؟ سجل الآن')}
+                <a href={registerHref} className="font-semibold text-primary-500 hover:text-primary-400">
+                    {t('auth.login.registerLink')}
                   </a>
             </div>
         </div>

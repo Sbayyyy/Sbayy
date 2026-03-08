@@ -4,17 +4,20 @@ import { useCartStore, formatPrice } from '@/lib/cartStore';
 import CartItem from '@/components/CartItem';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { useTranslation } from 'next-i18next';
 
 export default function CartSidebar() {
-  const { 
-    items, 
-    isOpen, 
-    closeCart, 
-    total, 
+  const {
+    items,
+    isOpen,
+    closeCart,
+    total,
     itemCount,
-    updateQuantity, 
-    removeItem 
+    updateQuantity,
+    removeItem
   } = useCartStore();
+
+  const { t } = useTranslation('common');
 
   // Close on ESC key
   useEffect(() => {
@@ -23,7 +26,7 @@ export default function CartSidebar() {
         closeCart();
       }
     };
-    
+
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, closeCart]);
@@ -35,7 +38,7 @@ export default function CartSidebar() {
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -46,7 +49,7 @@ export default function CartSidebar() {
   return (
     <>
       {/* Overlay */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 z-40 transition-opacity"
         onClick={closeCart}
         aria-hidden="true"
@@ -58,18 +61,18 @@ export default function CartSidebar() {
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <ShoppingBag size={24} className="text-primary-600" />
-            <h2 className="text-xl font-bold">سلة التسوق</h2>
+            <h2 className="text-xl font-bold">{t('cartSidebar.title')}</h2>
             {itemCount > 0 && (
               <span className="bg-primary-100 text-primary-600 text-sm font-semibold px-2 py-1 rounded-full">
                 {itemCount}
               </span>
             )}
           </div>
-          
+
           <button
             onClick={closeCart}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="إغلاق السلة"
+            aria-label={t('cartSidebar.closeLabel')}
           >
             <X size={24} />
           </button>
@@ -83,16 +86,16 @@ export default function CartSidebar() {
               <ShoppingBag size={48} className="text-gray-300" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              السلة فارغة
+              {t('cartSidebar.emptyTitle')}
             </h3>
             <p className="text-gray-600 mb-6">
-              لم تقم بإضافة أي منتجات بعد
+              {t('cartSidebar.emptyMessage')}
             </p>
             <button
               onClick={closeCart}
               className="btn btn-primary"
             >
-              تصفح المنتجات
+              {t('cartSidebar.browseProducts')}
             </button>
           </div>
         ) : (
@@ -114,7 +117,7 @@ export default function CartSidebar() {
             <div className="border-t bg-gray-50 p-4 space-y-4">
               {/* Total */}
               <div className="flex items-center justify-between text-lg">
-                <span className="font-semibold">المجموع الكلي:</span>
+                <span className="font-semibold">{t('cartSidebar.total')}</span>
                 <span className="text-2xl font-bold text-primary-600">
                   {formatPrice(total)}
                 </span>
@@ -127,16 +130,16 @@ export default function CartSidebar() {
                   className="block w-full btn btn-primary text-center"
                   onClick={closeCart}
                 >
-                  <span>إتمام الشراء</span>
+                  <span>{t('cartSidebar.checkout')}</span>
                   <ArrowRight size={20} className="inline mr-2" />
                 </Link>
-                
+
                 <Link
                   href="/cart"
                   className="block w-full text-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
                   onClick={closeCart}
                 >
-                  عرض السلة
+                  {t('cartSidebar.viewCart')}
                 </Link>
               </div>
 
@@ -145,7 +148,7 @@ export default function CartSidebar() {
                 onClick={closeCart}
                 className="w-full text-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
               >
-                ← متابعة التسوق
+                {t('cartSidebar.continueShopping')}
               </button>
             </div>
           </>

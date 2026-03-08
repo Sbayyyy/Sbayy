@@ -10,6 +10,7 @@ import {
   sanitizeInput
 } from '@sbay/shared';
 import { register } from '../../lib/api/auth';
+import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
@@ -42,13 +43,6 @@ export default function Register() {
     const [apiError, setApiError] = useState('');
 
     const currentLocale = i18n?.language ?? 'ar';
-    const tr = (key: string, fallbackEn: string, fallbackAr: string) => {
-        const value = t(key);
-        if (value === key) {
-            return currentLocale === 'ar' ? fallbackAr : fallbackEn;
-        }
-        return value;
-    };
     const setLocaleCookie = (locale: string) => {
         document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
     };
@@ -120,28 +114,24 @@ export default function Register() {
         const newErrors: typeof errors = {};
         const username = sanitizeInput(formData.username);
         const email = sanitizeInput(formData.email);
-        const unsafeMessage = tr(
-            'auth.errors.inputUnsafe',
-            'Input contains disallowed content',
-            'Input contains disallowed content'
-        );
+        const unsafeMessage = t('auth.errors.inputUnsafe');
 
         if (!username) {
-            newErrors.username = tr('auth.errors.usernameRequired', 'Username is required', 'اسم المستخدم مطلوب');
+            newErrors.username = t('auth.errors.usernameRequired');
         } else if (username.length < 3) {
-            newErrors.username = tr('auth.errors.usernameMin', 'Username must be at least 3 characters', 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل');
+            newErrors.username = t('auth.errors.usernameMin');
         } else if (username.length > 20) {
-            newErrors.username = tr('auth.errors.usernameMax', 'Username must be 20 characters or less', 'اسم المستخدم يجب ألا يتجاوز 20 حرفًا');
+            newErrors.username = t('auth.errors.usernameMax');
         } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-            newErrors.username = tr('auth.errors.usernamePattern', 'Username can only contain letters, numbers, and underscores', 'اسم المستخدم يجب أن يحتوي على حروف وأرقام فقط');
+            newErrors.username = t('auth.errors.usernamePattern');
         } else if (fieldValidators.username && !fieldValidators.username.validate(username).isValid) {
             newErrors.username = fieldValidators.username.validate(username).message ?? unsafeMessage;
         }
 
         if (!email) {
-            newErrors.email = tr('auth.errors.emailRequired', 'Email is required', 'عنوان البريد الإلكتروني مطلوب');
+            newErrors.email = t('auth.errors.emailRequired');
         } else if (!isValidEmail(email)) {
-            newErrors.email = tr('auth.errors.emailInvalid', 'Email is invalid', 'عنوان البريد الإلكتروني غير صالح');
+            newErrors.email = t('auth.errors.emailInvalid');
         } else if (fieldValidators.email && !fieldValidators.email.validate(email).isValid) {
             newErrors.email = fieldValidators.email.validate(email).message ?? unsafeMessage;
         }
@@ -149,28 +139,28 @@ export default function Register() {
         if (formData.phone) {
             const phone = sanitizeInput(formData.phone);
             if (!isValidPhone(phone)) {
-                newErrors.phone = tr('auth.errors.phoneInvalid', 'Phone number is invalid (e.g. 0912345678)', 'رقم الهاتف غير صالح (مثال: 0912345678)');
+                newErrors.phone = t('auth.errors.phoneInvalid');
             } else if (fieldValidators.phone && !fieldValidators.phone.validate(phone).isValid) {
                 newErrors.phone = fieldValidators.phone.validate(phone).message ?? unsafeMessage;
             }
         }
 
         if (!formData.password) {
-            newErrors.password = tr('auth.errors.passwordRequired', 'Password is required', 'كلمة المرور مطلوبة');
+            newErrors.password = t('auth.errors.passwordRequired');
         } else if (formData.password.length < 8) {
-            newErrors.password = tr('auth.errors.passwordMin', 'Password must be at least 8 characters', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+            newErrors.password = t('auth.errors.passwordMin');
         } else if (!/[A-Z]/.test(formData.password)) {
-            newErrors.password = tr('auth.errors.passwordUpper', 'Password must include an uppercase letter', 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل');
+            newErrors.password = t('auth.errors.passwordUpper');
         } else if (!/[a-z]/.test(formData.password)) {
-            newErrors.password = tr('auth.errors.passwordLower', 'Password must include a lowercase letter', 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل');
+            newErrors.password = t('auth.errors.passwordLower');
         } else if (!/[0-9]/.test(formData.password)) {
-            newErrors.password = tr('auth.errors.passwordNumber', 'Password must include a number', 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل');
+            newErrors.password = t('auth.errors.passwordNumber');
         }
 
         if (!formData.confirmPassword) {
-            newErrors.confirmPassword = tr('auth.errors.confirmRequired', 'Confirm password is required', 'تأكيد كلمة المرور مطلوب');
+            newErrors.confirmPassword = t('auth.errors.confirmRequired');
         } else if (!passwordsMatch(formData.password, formData.confirmPassword)) {
-            newErrors.confirmPassword = tr('auth.errors.confirmMismatch', 'Passwords do not match', 'كلمات المرور غير متطابقة');
+            newErrors.confirmPassword = t('auth.errors.confirmMismatch');
         }
 
         setErrors(newErrors);
@@ -186,11 +176,7 @@ export default function Register() {
 
         const validator = fieldValidators[name as keyof typeof formData];
         const validation = validator ? validator.validate(value) : { isValid: true };
-        const unsafeMessage = tr(
-            'auth.errors.inputUnsafe',
-            'Input contains disallowed content',
-            'Input contains disallowed content'
-        );
+        const unsafeMessage = t('auth.errors.inputUnsafe');
         setErrors(prev => ({
             ...prev,
             [name]: validation.isValid ? undefined : validation.message ?? unsafeMessage
@@ -217,8 +203,8 @@ export default function Register() {
               ? `&redirect=${encodeURIComponent(redirectParam)}`
               : '';
             router.push(`/auth/login?registered=true${redirectSuffix}`);
-        } catch (error: any) {
-            setApiError(error.response?.data?.message || tr('auth.errors.server', 'Server error', 'خطأ في الاتصال بالخادم'));
+        } catch (error: unknown) {
+            setApiError(getErrorMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -250,7 +236,7 @@ export default function Register() {
             className="mx-auto h-10 w-auto"
           />
         <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
-          {tr('auth.register.title', 'Create a new account', 'إنشاء حساب جديد')}
+          {t('auth.register.title')}
         </h2>
       </div>
 
@@ -265,7 +251,7 @@ export default function Register() {
           {/* Username Field */}
           <div>
             <label htmlFor="username" className="block text-sm/6 font-medium text-black-100">
-              {tr('auth.register.usernameLabel', 'Username *', 'اسم المستخدم *')}
+              {t('auth.register.usernameLabel')}
             </label>
             <div className="mt-2">
               <input
@@ -277,7 +263,7 @@ export default function Register() {
                 disabled={isLoading}
                 required
                 autoComplete="username"
-                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 ${
+                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
                   errors.username ? 'border-2 border-red-500' : ''
                 }`}
               />
@@ -290,7 +276,7 @@ export default function Register() {
           {/* Email Field */}
           <div>
             <label htmlFor="email" className="block text-sm/6 font-medium text-black-100">
-              {tr('auth.register.emailLabel', 'Email address *', 'عنوان البريد الإلكتروني *')}
+              {t('auth.register.emailLabel')}
             </label>
             <div className="mt-2">
               <input
@@ -302,7 +288,7 @@ export default function Register() {
                 disabled={isLoading}
                 required
                 autoComplete="email"
-                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 ${
+                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
                   errors.email ? 'border-2 border-red-500' : ''
                 }`}
               />
@@ -315,7 +301,7 @@ export default function Register() {
           {/* Phone Field */}
           <div>
             <label htmlFor="phone" className="block text-sm/6 font-medium text-black-100">
-              {tr('auth.register.phoneLabel', 'Phone number', 'رقم الهاتف')}
+              {t('auth.register.phoneLabel')}
             </label>
             <div className="mt-2">
               <input
@@ -326,8 +312,8 @@ export default function Register() {
                 onChange={handleChange}
                 disabled={isLoading}
                 autoComplete="tel"
-                placeholder={tr('auth.register.phonePlaceholder', 'e.g. 0912345678', 'مثال: 0912345678')}
-                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 ${
+                placeholder={t('auth.register.phonePlaceholder')}
+                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
                   errors.phone ? 'border-2 border-red-500' : ''
                 }`}
               />
@@ -340,7 +326,7 @@ export default function Register() {
           {/* City Field */}
           <div>
             <label htmlFor="city" className="block text-sm/6 font-medium text-black-100">
-              {tr('auth.register.cityLabel', 'City', 'المدينة')}
+              {t('auth.register.cityLabel')}
             </label>
             <div className="mt-2">
               <select
@@ -349,25 +335,25 @@ export default function Register() {
                 value={formData.city}
                 onChange={handleChange}
                 disabled={isLoading}
-                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 ${
+                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
                   errors.city ? 'border-2 border-red-500' : ''
                 }`}
               >
-                <option value="">{tr('auth.register.cityPlaceholder', 'Select a city', 'اختر المدينة')}</option>
-                <option value="دمشق">{tr('cities.damascus', 'Damascus', 'دمشق')}</option>
-                <option value="ريف دمشق">{tr('cities.rifDamascus', 'Rif Dimashq', 'ريف دمشق')}</option>
-                <option value="حلب">{tr('cities.aleppo', 'Aleppo', 'حلب')}</option>
-                <option value="حمص">{tr('cities.homs', 'Homs', 'حمص')}</option>
-                <option value="حماة">{tr('cities.hama', 'Hama', 'حماة')}</option>
-                <option value="اللاذقية">{tr('cities.latakia', 'Latakia', 'اللاذقية')}</option>
-                <option value="طرطوس">{tr('cities.tartus', 'Tartus', 'طرطوس')}</option>
-                <option value="إدلب">{tr('cities.idlib', 'Idlib', 'إدلب')}</option>
-                <option value="الرقة">{tr('cities.raqqa', 'Raqqa', 'الرقة')}</option>
-                <option value="دير الزور">{tr('cities.deirEzZor', 'Deir ez-Zor', 'دير الزور')}</option>
-                <option value="الحسكة">{tr('cities.alHasakah', 'Al-Hasakah', 'الحسكة')}</option>
-                <option value="درعا">{tr('cities.daraa', 'Daraa', 'درعا')}</option>
-                <option value="السويداء">{tr('cities.asSuwayda', 'As-Suwayda', 'السويداء')}</option>
-                <option value="القنيطرة">{tr('cities.quneitra', 'Quneitra', 'القنيطرة')}</option>
+                <option value="">{t('auth.register.cityPlaceholder')}</option>
+                <option value="دمشق">{t('cities.damascus')}</option>
+                <option value="ريف دمشق">{t('cities.rifDamascus')}</option>
+                <option value="حلب">{t('cities.aleppo')}</option>
+                <option value="حمص">{t('cities.homs')}</option>
+                <option value="حماة">{t('cities.hama')}</option>
+                <option value="اللاذقية">{t('cities.latakia')}</option>
+                <option value="طرطوس">{t('cities.tartus')}</option>
+                <option value="إدلب">{t('cities.idlib')}</option>
+                <option value="الرقة">{t('cities.raqqa')}</option>
+                <option value="دير الزور">{t('cities.deirEzZor')}</option>
+                <option value="الحسكة">{t('cities.alHasakah')}</option>
+                <option value="درعا">{t('cities.daraa')}</option>
+                <option value="السويداء">{t('cities.asSuwayda')}</option>
+                <option value="القنيطرة">{t('cities.quneitra')}</option>
               </select>
               {errors.city && (
                 <p className="mt-1 text-sm text-red-500">{errors.city}</p>
@@ -378,7 +364,7 @@ export default function Register() {
           {/* Password Field */}
           <div>
             <label htmlFor="password" className="block text-sm/6 font-medium text-black-100">
-              {tr('auth.register.passwordLabel', 'Password *', 'كلمة المرور *')}
+              {t('auth.register.passwordLabel')}
             </label>
             <div className="mt-2">
               <input
@@ -390,7 +376,7 @@ export default function Register() {
                 disabled={isLoading}
                 required
                 autoComplete="new-password"
-                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 ${
+                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
                   errors.password ? 'border-2 border-red-500' : ''
                 }`}
               />
@@ -403,7 +389,7 @@ export default function Register() {
           {/* Confirm Password Field */}
           <div>
             <label htmlFor="confirmPassword" className="block text-sm/6 font-medium text-black-100">
-              {tr('auth.register.confirmLabel', 'Confirm password *', 'تأكيد كلمة المرور *')}
+              {t('auth.register.confirmLabel')}
             </label>
             <div className="mt-2">
               <input
@@ -415,7 +401,7 @@ export default function Register() {
                 disabled={isLoading}
                 required
                 autoComplete="new-password"
-                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 ${
+                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
                   errors.confirmPassword ? 'border-2 border-red-500' : ''
                 }`}
               />
@@ -430,20 +416,20 @@ export default function Register() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+              className={`flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${
                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
               {isLoading
-                ? tr('auth.register.submitting', 'Creating account...', 'جارٍ إنشاء الحساب...')
-                : tr('auth.register.submit', 'Create account', 'إنشاء حساب')}
+                ? t('auth.register.submitting')
+                : t('auth.register.submit')}
             </button>
           </div>
         </form>
 
         <div className="mt-4 text-center text-sm">
-          <a href={loginHref} className="font-semibold text-indigo-400 hover:text-indigo-300">
-            {tr('auth.register.loginLink', 'Already have an account? Sign in', 'لديك حساب بالفعل؟ سجل الدخول')}
+          <a href={loginHref} className="font-semibold text-primary-500 hover:text-primary-400">
+            {t('auth.register.loginLink')}
           </a>
         </div>
       </div>

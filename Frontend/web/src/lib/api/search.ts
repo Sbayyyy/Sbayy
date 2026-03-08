@@ -1,11 +1,12 @@
 import { api } from '../api';
-import type { Product, SearchFilters, SearchResponse } from '@sbay/shared';
+import type { SearchFilters, SearchResponse } from '@sbay/shared';
+import { normalizeListingsResponse } from './transforms';
 
 /**
  * Search for products with filters
  */
 export const searchProducts = async (
-  query: string, 
+  query: string,
   filters?: SearchFilters
 ): Promise<SearchResponse> => {
   const page = filters?.page || 1;
@@ -22,42 +23,6 @@ export const searchProducts = async (
       pageSize: limit
     }
   });
-  
-  if (response.data && typeof response.data === 'object') {
-    if (Array.isArray(response.data)) {
-      return {
-        items: response.data,
-        total: response.data.length,
-        page,
-        limit,
-        totalPages: 1
-      };
-    }
-    if (response.data.items && Array.isArray(response.data.items)) {
-      return {
-        items: response.data.items,
-        total: response.data.total || response.data.items.length,
-        page,
-        limit,
-        totalPages: Math.ceil((response.data.total || response.data.items.length) / limit)
-      };
-    }
-  }
 
-  return {
-    items: [],
-    total: 0,
-    page,
-    limit,
-    totalPages: 0
-  };
-};
-
-/**
- * Get search suggestions / autocomplete
- */
-export const getSearchSuggestions = async (query: string): Promise<string[]> => {
-  if (!query || query.length < 2) return [];
-
-  return [];
+  return normalizeListingsResponse(response.data, page, limit);
 };

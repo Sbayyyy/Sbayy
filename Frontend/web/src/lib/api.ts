@@ -1,5 +1,9 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import config from './config';
+
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
 
 const api = axios.create({
   baseURL: config.apiUrl,
@@ -57,14 +61,19 @@ if (typeof window !== 'undefined') {
   );
 
   api.interceptors.response.use(
-    (res) => res,
+    (res) => {
+      // Clean up retry counter on success
+      const requestKey = `${res.config.method}:${res.config.url}`;
+      requestRetries.delete(requestKey);
+      return res;
+    },
     async (error: AxiosError) => {
-      const originalRequest = error.config;
+      const originalRequest = error.config as RetryableRequestConfig | undefined;
       if (!originalRequest) return Promise.reject(error);
 
       // Handle 401 Unauthorized - Token refresh
-      if (error.response?.status === 401 && !(originalRequest as any)._retry) {
-        (originalRequest as any)._retry = true;
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
         const refreshToken = localStorage.getItem('refreshToken');
 
         if (refreshToken) {

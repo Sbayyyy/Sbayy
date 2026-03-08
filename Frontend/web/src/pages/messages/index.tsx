@@ -10,6 +10,7 @@ import { useAuthStore } from '@/lib/store';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { HubConnectionState } from '@microsoft/signalr';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
 import { 
   MessageSquare, 
   Search,
@@ -42,6 +43,7 @@ interface ChatWithParticipant {
 export default function MessagesPage() {
   const { user } = useAuthStore();
   const isAuthed = useRequireAuth();
+  const { t, i18n } = useTranslation('common');
   
   const [chats, setChats] = useState<ChatWithParticipant[]>([]);
   const [filteredChats, setFilteredChats] = useState<ChatWithParticipant[]>([]);
@@ -91,7 +93,7 @@ export default function MessagesPage() {
             const listing = await getListingById(listingId);
             listingMap.set(listingId, listing.title);
           } catch {
-            listingMap.set(listingId, `منتج ${listingId.substring(0, 8)}`);
+            listingMap.set(listingId, t('messages.productFallback', { id: listingId.substring(0, 8) }));
           }
         }),
       );
@@ -117,7 +119,7 @@ export default function MessagesPage() {
             createdAt: ''
           },
           listingTitle: chat.listingId
-            ? listingMap.get(chat.listingId) ?? `منتج ${chat.listingId.substring(0, 8)}`
+            ? listingMap.get(chat.listingId) ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })
             : undefined,
           lastMessage: lastMessage ? {
             id: lastMessage.id,
@@ -140,7 +142,7 @@ export default function MessagesPage() {
       setError('');
     } catch (err) {
       console.error('Error loading chats:', err);
-      setError('حدث خطأ في تحميل المحادثات');
+      setError(t('messages.loadError'));
     } finally {
       if (mode === 'initial') setLoading(false);
     }
@@ -312,12 +314,12 @@ export default function MessagesPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'الآن';
-    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-    if (diffDays < 7) return `منذ ${diffDays} يوم`;
-    
-    return date.toLocaleDateString('ar-SY', { month: 'short', day: 'numeric' });
+    if (diffMins < 1) return t('messages.time.now');
+    if (diffMins < 60) return t('messages.time.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('messages.time.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('messages.time.daysAgo', { count: diffDays });
+
+    return date.toLocaleDateString(i18n.language === 'ar' ? 'ar-SY' : 'en-US', { month: 'short', day: 'numeric' });
   };
 
   const truncateMessage = (text: string, maxLength = 60) => {
@@ -332,9 +334,9 @@ export default function MessagesPage() {
       <Head>
         <title>
           {totalUnread > 0 ? `(${totalUnread}) ` : ''}
-          الرسائل - Sbay سباي
+          {t('messages.title')}
         </title>
-        <meta name="description" content="محادثاتك مع البائعين والمشترين" />
+        <meta name="description" content={t('messages.description')} />
       </Head>
 
       <div className="min-h-screen bg-gray-50">
@@ -343,7 +345,7 @@ export default function MessagesPage() {
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               <MessageSquare className="w-8 h-8 text-primary" />
-              <h1 className="text-3xl font-bold text-gray-900">الرسائل</h1>
+              <h1 className="text-3xl font-bold text-gray-900">{t('messages.heading')}</h1>
               {totalUnread > 0 && (
                 <span className="px-3 py-1 bg-primary text-white rounded-full text-sm font-medium">
                   {totalUnread}
@@ -351,7 +353,7 @@ export default function MessagesPage() {
               )}
             </div>
             <p className="text-gray-600">
-              تواصل مع البائعين والمشترين
+              {t('messages.subtitle')}
             </p>
           </div>
 
@@ -365,7 +367,7 @@ export default function MessagesPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="ابحث في المحادثات..."
+                  placeholder={t('messages.searchPlaceholder')}
                   className="input w-full pr-10"
                 />
               </div>
@@ -380,7 +382,7 @@ export default function MessagesPage() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  الكل ({chats.length})
+                  {t('messages.filterAll', { count: chats.length })}
                 </button>
                 <button
                   onClick={() => setFilter('unread')}
@@ -390,7 +392,7 @@ export default function MessagesPage() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  غير مقروءة ({totalUnread})
+                  {t('messages.filterUnread', { count: totalUnread })}
                 </button>
               </div>
             </div>
@@ -456,7 +458,7 @@ export default function MessagesPage() {
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                           <Package className="w-4 h-4" />
                           <span className="truncate">
-                            {chat.listingTitle ?? `منتج ${chat.listingId.substring(0, 8)}`}
+                            {chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })}
                           </span>
                         </div>
                       )}
@@ -470,7 +472,7 @@ export default function MessagesPage() {
                               : 'text-gray-600'
                           }`}>
                             {chat.lastMessage.senderId === user?.id && (
-                              <span className="text-gray-500 ml-1">أنت:</span>
+                              <span className="text-gray-500 ml-1">{t('messages.you')}</span>
                             )}
                             {truncateMessage(chat.lastMessage.content)}
                           </p>
@@ -493,10 +495,10 @@ export default function MessagesPage() {
                 <>
                   <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    لا توجد نتائج
+                    {t('messages.noResults')}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    جرب تعديل البحث أو الفلاتر
+                    {t('messages.noResultsSuggestion')}
                   </p>
                   <button
                     onClick={() => {
@@ -505,20 +507,20 @@ export default function MessagesPage() {
                     }}
                     className="btn-outline"
                   >
-                    مسح البحث
+                    {t('messages.clearSearch')}
                   </button>
                 </>
               ) : (
                 <>
                   <Inbox className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    لا توجد محادثات بعد
+                    {t('messages.emptyTitle')}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    ابدأ محادثة مع بائع أو مشتري من صفحة المنتج
+                    {t('messages.emptyMessage')}
                   </p>
                   <Link href="/browse" className="btn-primary">
-                    تصفح المنتجات
+                    {t('messages.browseProducts')}
                   </Link>
                 </>
               )}

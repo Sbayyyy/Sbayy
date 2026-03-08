@@ -6,6 +6,9 @@ import { getListingById, updateListing } from '@/lib/api/listings';
 import { Product, ProductUpdate } from '@sbay/shared';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { getErrorMessage } from '@/lib/api/errors';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 interface ProductFormData {
   title: string;
@@ -23,12 +26,13 @@ export default function EditListingPage() {
   const router = useRouter();
   const { id } = router.query;
   const isAuthed = useRequireAuth();
-  
+  const { t } = useTranslation('common');
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [listing, setListing] = useState<Product | null>(null);
-  
+
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
     description: '',
@@ -55,8 +59,7 @@ export default function EditListingPage() {
       setLoading(true);
       const data = await getListingById(listingId);
       setListing(data);
-      
-      // Formular mit existierenden Daten befüllen
+
       setFormData({
         title: data.title,
         description: data.description,
@@ -68,9 +71,9 @@ export default function EditListingPage() {
         condition: data.condition,
         region: data.region || ''
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading listing:', err);
-      setError('فشل تحميل المنتج');
+      setError(t('editListing.loadError'));
     } finally {
       setLoading(false);
     }
@@ -94,14 +97,14 @@ export default function EditListingPage() {
   const validate = (): boolean => {
     const newErrors: Partial<ProductFormData> = {};
 
-    if (!formData.title.trim()) newErrors.title = 'العنوان مطلوب';
-    if (!formData.description.trim()) newErrors.description = 'الوصف مطلوب';
+    if (!formData.title.trim()) newErrors.title = t('editListing.validation.titleRequired');
+    if (!formData.description.trim()) newErrors.description = t('editListing.validation.descriptionRequired');
     if (!formData.priceAmount || parseFloat(formData.priceAmount) <= 0) {
-      newErrors.priceAmount = 'السعر يجب أن يكون أكبر من 0';
+      newErrors.priceAmount = t('editListing.validation.pricePositive');
     }
-    if (!formData.region.trim()) newErrors.region = 'الموقع مطلوب';
+    if (!formData.region.trim()) newErrors.region = t('editListing.validation.locationRequired');
     if (!formData.stock || parseInt(formData.stock) < 0) {
-      newErrors.stock = 'الكمية يجب أن تكون 0 أو أكثر';
+      newErrors.stock = t('editListing.validation.stockMin');
     }
 
     setErrors(newErrors);
@@ -110,7 +113,7 @@ export default function EditListingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validate() || !id) return;
 
     try {
@@ -130,12 +133,11 @@ export default function EditListingPage() {
       };
 
       await updateListing(id as string, updateData);
-      
-      // Redirect to My Listings
+
       router.push('/seller/my-listings');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Update error:', err);
-      setError(err.response?.data?.message || 'فشل تحديث المنتج');
+      setError(getErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -143,11 +145,11 @@ export default function EditListingPage() {
 
   if (loading) {
     return (
-      <Layout title="تعديل المنتج - سباي">
+      <Layout title={t('editListing.title')}>
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">جارٍ التحميل...</p>
+            <p className="text-gray-600">{t('editListing.loading')}</p>
           </div>
         </div>
       </Layout>
@@ -156,7 +158,7 @@ export default function EditListingPage() {
 
   if (error && !listing) {
     return (
-      <Layout title="تعديل المنتج - سباي">
+      <Layout title={t('editListing.title')}>
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <p className="text-red-600 mb-4">{error}</p>
@@ -164,7 +166,7 @@ export default function EditListingPage() {
               onClick={() => router.push('/seller/my-listings')}
               className="btn btn-primary"
             >
-              العودة إلى منتجاتي
+              {t('editListing.backToListings')}
             </button>
           </div>
         </div>
@@ -173,7 +175,7 @@ export default function EditListingPage() {
   }
 
   return (
-    <Layout title={`تعديل: ${listing?.title || 'منتج'} - سباي`}>
+    <Layout title={t('editListing.titleWithName', { name: listing?.title || '' })}>
       <div className="bg-gray-50 min-h-screen py-8">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Header */}
@@ -183,10 +185,10 @@ export default function EditListingPage() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
             >
               <ArrowLeft size={20} />
-              العودة إلى منتجاتي
+              {t('editListing.backToListings')}
             </button>
-            <h1 className="text-3xl font-bold text-gray-900">تعديل المنتج</h1>
-            <p className="text-gray-600 mt-2">قم بتحديث معلومات منتجك</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('editListing.heading')}</h1>
+            <p className="text-gray-600 mt-2">{t('editListing.subtitle')}</p>
           </div>
 
           {/* Form */}
@@ -201,7 +203,7 @@ export default function EditListingPage() {
               {/* Title */}
               <div>
                 <label htmlFor="title" className="block text-sm font-medium mb-2">
-                  عنوان المنتج *
+                  {t('editListing.fields.title')}
                 </label>
                 <input
                   type="text"
@@ -211,7 +213,7 @@ export default function EditListingPage() {
                   onChange={handleChange}
                   disabled={submitting}
                   className={`w-full input ${errors.title ? 'border-2 border-red-500' : ''}`}
-                  placeholder="مثال: آيفون 15 برو ماكس 256GB"
+                  placeholder={t('editListing.fields.titlePlaceholder')}
                 />
                 {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
               </div>
@@ -219,7 +221,7 @@ export default function EditListingPage() {
               {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium mb-2">
-                  الوصف *
+                  {t('editListing.fields.description')}
                 </label>
                 <textarea
                   id="description"
@@ -229,7 +231,7 @@ export default function EditListingPage() {
                   disabled={submitting}
                   rows={6}
                   className={`w-full input ${errors.description ? 'border-2 border-red-500' : ''}`}
-                  placeholder="اكتب وصفاً تفصيلياً للمنتج..."
+                  placeholder={t('editListing.fields.descriptionPlaceholder')}
                 />
                 {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
               </div>
@@ -237,7 +239,7 @@ export default function EditListingPage() {
               {/* Images */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  صور المنتج
+                  {t('editListing.fields.images')}
                 </label>
                 <ImageUpload
                   images={formData.imageUrls}
@@ -250,7 +252,7 @@ export default function EditListingPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="priceAmount" className="block text-sm font-medium mb-2">
-                    السعر (ل.س) *
+                    {t('editListing.fields.price')}
                   </label>
                   <input
                     type="number"
@@ -268,7 +270,7 @@ export default function EditListingPage() {
 
                 <div>
                   <label htmlFor="stock" className="block text-sm font-medium mb-2">
-                    الكمية المتوفرة *
+                    {t('editListing.fields.stock')}
                   </label>
                   <input
                     type="number"
@@ -288,7 +290,7 @@ export default function EditListingPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="categoryPath" className="block text-sm font-medium mb-2">
-                    الفئة
+                    {t('editListing.fields.category')}
                   </label>
                   <select
                     id="categoryPath"
@@ -298,19 +300,19 @@ export default function EditListingPage() {
                     disabled={submitting}
                     className="w-full input"
                   >
-                    <option value="">اختر الفئة</option>
-                    <option value="electronics">إلكترونيات</option>
-                    <option value="fashion">أزياء</option>
-                    <option value="home">منزل وحديقة</option>
-                    <option value="cars">سيارات</option>
-                    <option value="real-estate">عقارات</option>
-                    <option value="other">أخرى</option>
+                    <option value="">{t('editListing.fields.categoryPlaceholder')}</option>
+                    <option value="electronics">{t('editListing.categories.electronics')}</option>
+                    <option value="fashion">{t('editListing.categories.fashion')}</option>
+                    <option value="home">{t('editListing.categories.home')}</option>
+                    <option value="cars">{t('editListing.categories.cars')}</option>
+                    <option value="real-estate">{t('editListing.categories.realEstate')}</option>
+                    <option value="other">{t('editListing.categories.other')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label htmlFor="condition" className="block text-sm font-medium mb-2">
-                    الحالة *
+                    {t('editListing.fields.condition')}
                   </label>
                   <select
                     id="condition"
@@ -320,10 +322,10 @@ export default function EditListingPage() {
                     disabled={submitting}
                     className="w-full input"
                   >
-                    <option value="New">جديد</option>
-                    <option value="Used">مستعمل</option>
-                    <option value="Refurbished">مجدد</option>
-                    <option value="LikeNew">مثل الجديد</option>
+                    <option value="New">{t('editListing.conditions.new')}</option>
+                    <option value="Used">{t('editListing.conditions.used')}</option>
+                    <option value="Refurbished">{t('editListing.conditions.refurbished')}</option>
+                    <option value="LikeNew">{t('editListing.conditions.likeNew')}</option>
                   </select>
                 </div>
               </div>
@@ -331,7 +333,7 @@ export default function EditListingPage() {
               {/* Location */}
               <div>
                 <label htmlFor="region" className="block text-sm font-medium mb-2">
-                  الموقع *
+                  {t('editListing.fields.location')}
                 </label>
                 <input
                   type="text"
@@ -341,7 +343,7 @@ export default function EditListingPage() {
                   onChange={handleChange}
                   disabled={submitting}
                   className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
-                  placeholder="مثال: دمشق - المزة"
+                  placeholder={t('editListing.fields.locationPlaceholder')}
                 />
                 {errors.region && <p className="mt-1 text-sm text-red-500">{errors.region}</p>}
               </div>
@@ -356,10 +358,10 @@ export default function EditListingPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin inline ml-2" />
-                      جارٍ التحديث...
+                      {t('editListing.submitting')}
                     </>
                   ) : (
-                    'حفظ التعديلات'
+                    t('editListing.submit')
                   )}
                 </button>
                 <button
@@ -368,7 +370,7 @@ export default function EditListingPage() {
                   disabled={submitting}
                   className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
-                  إلغاء
+                  {t('editListing.cancel')}
                 </button>
               </div>
             </div>
@@ -377,4 +379,8 @@ export default function EditListingPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return { props: { ...(await serverSideTranslations(locale ?? 'ar', ['common'])) } };
 }
