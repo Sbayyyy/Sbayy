@@ -63,6 +63,7 @@ Backend/SBay.Backend.Tests/obj/
 Backend/SBay.Backend.Tests/bin/
 
 Backend/SBay.Backend/appsettings.json
+!Backend/SBay.Backend/appsettings.template.json
 Backend/SBay.Backend/appsettings.Development.json
 Backend/SBay.Backend.Tests/ConnectionStrings.json
 

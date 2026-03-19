@@ -37,7 +37,10 @@ public static class Scopes
     public static IReadOnlyCollection<string> ForUser(User user)
     {
         if (user == null) return Array.Empty<string>();
-        return ForRole(user.Role, user.IsSeller);
+        var scopes = new HashSet<string>(ForRole(user.Role, user.IsSeller), StringComparer.OrdinalIgnoreCase);
+        if (user.ListingBanned || (user.ListingBanUntil.HasValue && user.ListingBanUntil > DateTimeOffset.UtcNow))
+            scopes.Remove(ListingsWrite);
+        return scopes;
     }
 
     public static IReadOnlyCollection<string> ForRole(string? role, bool isSeller)
@@ -139,6 +142,7 @@ public static class Scopes
         return new[]
         {
             ListingsRead,
+            ListingsWrite,
             OrdersRead,
             OrdersWrite,
             UsersRead,

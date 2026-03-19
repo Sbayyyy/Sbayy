@@ -30,8 +30,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
   <ItemGroup>
-  <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
-</ItemGroup>
+    <None Include="appsettings.json" Condition="Exists('appsettings.json')" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   <ItemGroup>
     <Folder Include="src\APIs\Controllers\Firebase\" />
     <Folder Include="src\APIs\interfaces\" />

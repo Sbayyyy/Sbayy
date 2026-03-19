@@ -19,17 +19,24 @@ using Sentry;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-builder.WebHost.UseSentry(options =>
+var sentryDsn = builder.Configuration["Sentry:Dsn"];
+var useSentry = !string.IsNullOrWhiteSpace(sentryDsn)
+                && Uri.TryCreate(sentryDsn, UriKind.Absolute, out _)
+                && sentryDsn.Contains('@');
+if (useSentry)
 {
-    options.Dsn = builder.Configuration["Sentry:Dsn"];
-    options.Debug = builder.Environment.IsDevelopment();
-    if (double.TryParse(builder.Configuration["Sentry:TracesSampleRate"], out var sampleRate))
-        options.TracesSampleRate = sampleRate;
-});
+    builder.WebHost.UseSentry(options =>
+    {
+        options.Dsn = sentryDsn;
+        options.Debug = builder.Environment.IsDevelopment();
+        if (double.TryParse(builder.Configuration["Sentry:TracesSampleRate"], out var sampleRate))
+            options.TracesSampleRate = sampleRate;
+    });
+}
 
 var providerName = builder.Configuration.GetValue<string>("Database:Provider") ?? "ef";
 var useEf = !string.Equals(providerName, "firestore", StringComparison.OrdinalIgnoreCase);
@@ -133,6 +140,10 @@ builder.Services.AddScoped<IImageStorageProvider>(sp =>
         if (string.IsNullOrWhiteSpace(endpoint))
             throw new InvalidOperationException("Storage:S3:Endpoint is required.");
 
+        var accessKeyMask = accessKey.Length <= 4 ? accessKey : $"{accessKey[..4]}****";
+        var endpointMask = endpoint.Length <= 32 ? endpoint : $"{endpoint[..32]}...";
+        Console.WriteLine($"S3 config loaded. AccessKeyPrefix={accessKeyMask}, Endpoint={endpointMask}");
+
         var s3Config = new AmazonS3Config
         {
             ServiceURL = endpoint,
@@ -141,7 +152,8 @@ builder.Services.AddScoped<IImageStorageProvider>(sp =>
         };
 
         var client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), s3Config);
-        return new S3ImageStorageProvider(client, config);
+        var logger = sp.GetRequiredService<ILogger<S3ImageStorageProvider>>();
+        return new S3ImageStorageProvider(client, config, logger);
     }
 
     return new LocalImageStorageProvider(env, config);
@@ -251,7 +263,10 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseRouting();
 app.UseMiddleware<ApiExceptionMiddleware>();
-app.UseSentryTracing();
+if (useSentry)
+{
+    app.UseSentryTracing();
+}
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
