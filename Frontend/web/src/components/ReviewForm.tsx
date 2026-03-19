@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'next-i18next';
 import RatingStars from './RatingStars';
 import { Send, X } from 'lucide-react';
 
@@ -23,6 +24,7 @@ export default function ReviewForm({
   onCancel,
   loading = false
 }: ReviewFormProps) {
+  const { t } = useTranslation('common');
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [comment, setComment] = useState(existingReview?.comment || '');
   const [error, setError] = useState('');
@@ -32,23 +34,23 @@ export default function ReviewForm({
     setError('');
 
     if (rating === 0) {
-      setError('يرجى اختيار التقييم');
+      setError(t('reviewForm.ratingRequired'));
       return;
     }
 
     if (comment.trim().length < 10) {
-      setError('يرجى كتابة تعليق (10 أحرف على الأقل)');
+      setError(t('reviewForm.commentMinError'));
       return;
     }
 
     if (comment.trim().length > 1000) {
-      setError('التعليق طويل جداً (الحد الأقصى 1000 حرف)');
+      setError(t('reviewForm.commentMaxError'));
       return;
     }
 
     try {
       await onSubmit({ rating, comment: comment.trim() });
-      
+
       // Reset form if new review (not editing)
       if (!existingReview) {
         setRating(0);
@@ -56,7 +58,7 @@ export default function ReviewForm({
       }
     } catch (err) {
       console.error('Failed to submit review:', err);
-      setError('حدث خطأ في إرسال التقييم. حاول مرة أخرى.');
+      setError(t('reviewForm.submitError'));
     }
   };
 
@@ -64,7 +66,7 @@ export default function ReviewForm({
     <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-gray-900">
-          {existingReview ? 'تعديل التقييم' : 'أضف تقييمك'}
+          {existingReview ? t('reviewForm.titleEdit') : t('reviewForm.titleAdd')}
         </h3>
         {onCancel && (
           <button
@@ -80,7 +82,7 @@ export default function ReviewForm({
         {/* Rating Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            التقييم <span className="text-red-500">*</span>
+            {t('reviewForm.ratingLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="flex items-center gap-4">
             <RatingStars
@@ -91,11 +93,11 @@ export default function ReviewForm({
             />
             {rating > 0 && (
               <span className="text-sm text-gray-600">
-                {rating === 1 && 'سيء جداً'}
-                {rating === 2 && 'سيء'}
-                {rating === 3 && 'متوسط'}
-                {rating === 4 && 'جيد'}
-                {rating === 5 && 'ممتاز'}
+                {rating === 1 && t('reviewForm.rating1')}
+                {rating === 2 && t('reviewForm.rating2')}
+                {rating === 3 && t('reviewForm.rating3')}
+                {rating === 4 && t('reviewForm.rating4')}
+                {rating === 5 && t('reviewForm.rating5')}
               </span>
             )}
           </div>
@@ -104,19 +106,19 @@ export default function ReviewForm({
         {/* Comment */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            التعليق <span className="text-red-500">*</span>
+            {t('reviewForm.commentLabel')} <span className="text-red-500">*</span>
           </label>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="شارك تجربتك مع هذا المنتج..."
+            placeholder={t('reviewForm.commentPlaceholder')}
             rows={5}
             className="input w-full resize-none"
             disabled={loading}
           />
           <div className="flex justify-between items-center mt-1">
             <p className="text-xs text-gray-500">
-              الحد الأدنى 10 أحرف
+              {t('reviewForm.commentMinHint')}
             </p>
             <p className={`text-xs ${
               comment.length > 1000 ? 'text-red-500' : 'text-gray-500'
@@ -143,16 +145,16 @@ export default function ReviewForm({
             {loading ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>جاري الإرسال...</span>
+                <span>{t('reviewForm.submitting')}</span>
               </>
             ) : (
               <>
                 <Send className="w-5 h-5" />
-                <span>{existingReview ? 'تحديث التقييم' : 'إرسال التقييم'}</span>
+                <span>{existingReview ? t('reviewForm.submitEdit') : t('reviewForm.submitAdd')}</span>
               </>
             )}
           </button>
-          
+
           {onCancel && (
             <button
               type="button"
@@ -160,7 +162,7 @@ export default function ReviewForm({
               className="btn-outline"
               disabled={loading}
             >
-              إلغاء
+              {t('reviewForm.cancel')}
             </button>
           )}
         </div>

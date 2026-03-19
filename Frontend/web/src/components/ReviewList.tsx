@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'next-i18next';
 import RatingStars from './RatingStars';
 import { User, ThumbsUp, MoreVertical, Trash2, Edit2 } from 'lucide-react';
 
@@ -32,6 +33,7 @@ export default function ReviewList({
   onDelete,
   loading = false
 }: ReviewListProps) {
+  const { t } = useTranslation('common');
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
@@ -39,15 +41,15 @@ export default function ReviewList({
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'اليوم';
-    if (diffDays === 1) return 'أمس';
-    if (diffDays < 7) return `منذ ${diffDays} أيام`;
-    if (diffDays < 30) return `منذ ${Math.floor(diffDays / 7)} أسابيع`;
-    
-    return date.toLocaleDateString('ar-SY', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    if (diffDays === 0) return t('reviewList.today');
+    if (diffDays === 1) return t('reviewList.yesterday');
+    if (diffDays < 7) return t('reviewList.daysAgo', { count: diffDays });
+    if (diffDays < 30) return t('reviewList.weeksAgo', { count: Math.floor(diffDays / 7) });
+
+    return date.toLocaleDateString('ar-SY', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
@@ -73,8 +75,8 @@ export default function ReviewList({
   if (reviews.length === 0) {
     return (
       <div className="bg-white rounded-lg p-12 text-center">
-        <p className="text-gray-500 text-lg">لا توجد تقييمات بعد</p>
-        <p className="text-gray-400 text-sm mt-2">كن أول من يقيّم هذا المنتج</p>
+        <p className="text-gray-500 text-lg">{t('reviewList.emptyTitle')}</p>
+        <p className="text-gray-400 text-sm mt-2">{t('reviewList.emptyMessage')}</p>
       </div>
     );
   }
@@ -106,11 +108,11 @@ export default function ReviewList({
                   <h4 className="font-medium text-gray-900">{review.userName}</h4>
                   {review.isOwn && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                      أنت
+                      {t('reviewList.you')}
                     </span>
                   )}
                 </div>
-                
+
                 <div className="flex items-center gap-3 mb-3">
                   <RatingStars rating={review.rating} size="sm" />
                   <span className="text-xs text-gray-500">{formatDate(review.createdAt)}</span>
@@ -132,7 +134,7 @@ export default function ReviewList({
                       }`}
                     >
                       <ThumbsUp className={`w-4 h-4 ${review.isHelpful ? 'fill-current' : ''}`} />
-                      <span>مفيد ({review.helpful})</span>
+                      <span>{t('reviewList.helpful', { count: review.helpful })}</span>
                     </button>
                   )}
                 </div>
@@ -156,7 +158,7 @@ export default function ReviewList({
                       className="fixed inset-0 z-10"
                       onClick={() => setMenuOpen(null)}
                     />
-                    
+
                     {/* Menu */}
                     <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[150px]">
                       {onEdit && (
@@ -168,7 +170,7 @@ export default function ReviewList({
                           className="w-full px-4 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                         >
                           <Edit2 className="w-4 h-4" />
-                          تعديل
+                          {t('reviewList.edit')}
                         </button>
                       )}
                       {onDelete && (
@@ -180,7 +182,7 @@ export default function ReviewList({
                           className="w-full px-4 py-2 text-right text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
-                          حذف
+                          {t('reviewList.delete')}
                         </button>
                       )}
                     </div>

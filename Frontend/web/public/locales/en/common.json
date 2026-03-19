@@ -261,5 +261,1008 @@
       "submit": "Failed to submit report.",
       "description": "Please add details."
     }
+  },
+  "common": {
+    "viewAll": "View all",
+    "noProducts": "No products",
+    "loading": "Loading...",
+    "currency": "SYP",
+    "tryAgain": "Try again",
+    "loadMore": "Load more"
+  },
+  "home": {
+    "title": "Home - SBay",
+    "searchPlaceholder": "Search for products...",
+    "locationHint": "Damascus and surrounding areas",
+    "browseCategories": "Browse categories",
+    "featuredListings": "Featured listings",
+    "noProductsAvailable": "No products available at the moment"
+  },
+  "footer": {
+    "brandName": "SBay",
+    "about": "The leading e-commerce platform in Syria. Buy and sell easily and securely.",
+    "quickLinks": "Quick links",
+    "aboutSbay": "About SBay",
+    "howItWorks": "How it works",
+    "helpCenter": "Help center",
+    "contactUs": "Contact us",
+    "privacyPolicy": "Privacy policy",
+    "termsAndConditions": "Terms and conditions",
+    "forSellers": "For sellers",
+    "startSelling": "Start selling now",
+    "sellerGuide": "Seller guide",
+    "feesAndCommissions": "Fees and commissions",
+    "sellerProtection": "Seller protection",
+    "sellingTips": "Selling tips",
+    "contactHeading": "Get in touch",
+    "workingHours": "Working hours:",
+    "weekdayHours": "Saturday - Thursday: 9:00 AM - 6:00 PM",
+    "fridayClosed": "Friday: Closed",
+    "copyright": "© {{year}} SBay. All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "sitemap": "Sitemap"
+  },
+  "cart": {
+    "title": "Shopping Cart - SBay",
+    "titleWithCount": "Shopping Cart ({{count}}) - SBay",
+    "heading": "Shopping Cart",
+    "emptyTitle": "Your cart is empty",
+    "emptyMessage": "You haven't added any products yet. Start browsing available products!",
+    "itemCount": "You have {{count}} item in your cart",
+    "itemCountPlural": "You have {{count}} items in your cart",
+    "products": "Products",
+    "clearCart": "Clear cart",
+    "clearConfirmTitle": "Clear cart?",
+    "clearConfirmMessage": "Are you sure you want to remove all products from your cart? This action cannot be undone.",
+    "clearConfirmYes": "Yes, clear cart",
+    "orderSummary": "Order Summary",
+    "subtotalWithCount": "Subtotal ({{count}} items)",
+    "shipping": "Shipping",
+    "shippingAtCheckout": "Calculated at checkout",
+    "grandTotal": "Grand Total",
+    "proceedToCheckout": "Proceed to Checkout",
+    "safePayment": "Secure cash on delivery",
+    "fastDelivery": "Fast delivery to all regions",
+    "itemSubtotal": "Subtotal:",
+    "removeFromCart": "Remove from cart",
+    "stockWarning": "Available stock: {{count}}"
+  },
+  "browse": {
+    "title": "Browse Products - SBay",
+    "heading": "Browse Products",
+    "loadingProducts": "Loading products...",
+    "loadError": "Failed to load products. Please try again.",
+    "productCount": "{{count}} products available",
+    "noProductsMatch": "No products match your filters. Try changing filters or adding new products!",
+    "addFirstProduct": "Add your first product"
+  },
+  "search": {
+    "placeholder": "Search for products...",
+    "searching": "Searching...",
+    "resultsFor": "{{count}} results for \"{{query}}\"",
+    "noResultsFor": "No results for \"{{query}}\"",
+    "noResultsTitle": "No results found",
+    "noResultsSuggestion": "Try different keywords or remove filters",
+    "browseAll": "Browse all products",
+    "initialTitle": "Find your favorite product",
+    "initialMessage": "Type above to search thousands of products"
+  },
+  "filters": {
+    "filter": "Filter",
+    "filterResults": "Filter results",
+    "filterAndSort": "Filter & Sort",
+    "sorting": "Sort by",
+    "sortNewest": "Newest",
+    "sortOldest": "Oldest",
+    "sortPriceAsc": "Price: Low to High",
+    "sortPriceDesc": "Price: High to Low",
+    "sortPopular": "Most Popular",
+    "categoryLabel": "Category",
+    "allCategories": "All categories",
+    "priceLabel": "Price",
+    "priceFrom": "Min price",
+    "priceTo": "Max price",
+    "priceError": "Minimum price must be less than or equal to maximum price",
+    "conditionLabel": "Condition",
+    "allConditions": "All conditions",
+    "regionPlaceholder": "Region (e.g. Damascus)",
+    "applyFilters": "Apply filters",
+    "resetFilters": "Reset filters"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "backToCart": "Checkout",
+    "steps": {
+      "delivery": "Delivery",
+      "payment": "Payment",
+      "review": "Review"
+    },
+    "delivery": {
+      "title": "Delivery Information",
+      "selectSaved": "Select a saved address",
+      "newAddress": "New address",
+      "nextPayment": "Next: Payment Method"
+    },
+    "address": {
+      "title": "Delivery Information",
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "Enter your full name",
+      "phone": "Phone Number",
+      "phonePlaceholder": "+963 XXX XXX XXX",
+      "city": "City / Governorate",
+      "cityPlaceholder": "Select governorate",
+      "street": "Detailed Address",
+      "streetPlaceholder": "Neighborhood, street, building number",
+      "notes": "Delivery Notes (optional)",
+      "notesPlaceholder": "Any special delivery instructions",
+      "saveAddress": "Save this address for later"
+    },
+    "payment": {
+      "title": "Payment Method",
+      "cod": "Cash on Delivery",
+      "codDesc": "Pay cash when you receive your order",
+      "bankTransfer": "Bank Transfer",
+      "bankTransferDesc": "Transfer to our bank account",
+      "meetInPerson": "Meet in Person",
+      "meetInPersonDesc": "Pay upon meeting in person"
+    },
+    "review": {
+      "title": "Review Order",
+      "quantity": "Quantity: {{count}}",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "total": "Total",
+      "termsAgree": "I agree to the",
+      "termsOfUse": "Terms of Use",
+      "and": "and",
+      "privacyPolicy": "Privacy Policy"
+    },
+    "back": "Back",
+    "reviewOrder": "Review Order",
+    "placeOrder": "Place Order",
+    "placingOrder": "Placing order...",
+    "termsRequired": "Please agree to the terms and conditions",
+    "orderError": "An error occurred while creating your order. Please try again.",
+    "summary": {
+      "title": "Order Summary",
+      "subtotal": "Subtotal ({{count}} items)",
+      "shipping": "Delivery fee",
+      "total": "Total"
+    },
+    "trust": {
+      "safeTitle": "Secure transactions",
+      "safeDesc": "Your information is protected",
+      "qualityTitle": "Quality guaranteed",
+      "qualityDesc": "All products are verified",
+      "deliveryTitle": "Local delivery",
+      "deliveryDesc": "Fast delivery in your area"
+    }
+  },
+  "favorites": {
+    "title": "My Favorites - SBay",
+    "heading": "My Favorites",
+    "loading": "Loading favorites...",
+    "loadError": "Failed to load favorites",
+    "removeError": "Failed to remove from favorites",
+    "itemCount": "You have {{count}} items in your favorites",
+    "emptyCount": "No products in your favorites",
+    "emptyTitle": "No favorites yet",
+    "emptyMessage": "Start adding products to your favorites by clicking the heart icon",
+    "browseProducts": "Browse products"
+  },
+  "sell": {
+    "title": "Sell Product - SBay",
+    "heading": "Sell a New Product",
+    "fields": {
+      "title": "Product Title *",
+      "titlePlaceholder": "e.g. iPhone 15 Pro Max 256GB",
+      "description": "Product Description *",
+      "descriptionPlaceholder": "Write a detailed description...",
+      "price": "Price (SYP) *",
+      "pricePlaceholder": "100000",
+      "stock": "Available Quantity *",
+      "stockPlaceholder": "1",
+      "category": "Category *",
+      "categoryPlaceholder": "Select category",
+      "condition": "Product Condition *",
+      "location": "Location *",
+      "locationPlaceholder": "e.g. Damascus - Mazzeh"
+    },
+    "submit": "Publish Product",
+    "submitting": "Publishing...",
+    "cancel": "Cancel",
+    "validation": {
+      "stockRequired": "Quantity is required",
+      "stockInteger": "Quantity must be a whole number",
+      "stockMin": "Quantity must be at least 1",
+      "imageRequired": "At least one image is required",
+      "unsafeContent": "Input contains disallowed content"
+    }
+  },
+  "orderConfirmation": {
+    "loadingTitle": "Loading order...",
+    "loadingMessage": "Loading order details...",
+    "errorTitle": "Error",
+    "invalidOrderId": "Invalid order ID",
+    "loadError": "Failed to load order",
+    "notFound": "Order not found",
+    "backHome": "Go to home page",
+    "successTitle": "Order placed successfully!",
+    "successMessage": "Thank you for your order. Your order number is",
+    "estimatedDelivery": "Estimated delivery",
+    "businessDays": "{{days}} business days",
+    "deliveryAddress": "Delivery address",
+    "notSpecified": "Not specified",
+    "totalAmount": "Total amount",
+    "continueShopping": "Continue shopping",
+    "viewOrderStatus": "View order status"
+  },
+  "dashboard": {
+    "purchases": {
+      "title": "My Purchases - SBay",
+      "description": "View all your orders and purchases",
+      "heading": "My Purchases",
+      "subtitle": "View all your orders and track shipping",
+      "backToDashboard": "Back to dashboard",
+      "loadError": "Failed to load orders",
+      "orderNumber": "Order #{{id}}",
+      "product": "Product #{{id}}",
+      "quantity": "Qty: {{qty}} × {{price}}",
+      "shippingAddress": "Shipping address:",
+      "noShippingAddress": "No shipping address",
+      "subtotal": "Subtotal:",
+      "shippingCost": "Shipping:",
+      "grandTotal": "Grand total",
+      "orderDetails": "Order details",
+      "contactSeller": "Contact seller",
+      "rateOrder": "Rate order",
+      "trackShipment": "Track shipment",
+      "emptyTitle": "No orders yet",
+      "emptyMessage": "You haven't made any purchases yet"
+    },
+    "sales": {
+      "title": "My Sales - SBay",
+      "description": "Manage your sales and orders",
+      "heading": "My Sales",
+      "subtitle": "Manage customer orders and update shipping status",
+      "backToDashboard": "Back to dashboard",
+      "loadError": "Failed to load sales",
+      "totalRevenue": "Total revenue",
+      "pendingOrders": "Pending orders",
+      "completedOrders": "Completed orders",
+      "customerInfo": "Customer info:",
+      "noCustomerInfo": "No address information",
+      "paymentMethod": "Payment method:",
+      "updateStatus": "Update order status:",
+      "confirmOrder": "Confirm order",
+      "markShipped": "Mark shipped",
+      "markDelivered": "Mark delivered",
+      "cancelOrder": "Cancel order",
+      "statusUpdateSuccess": "Order status updated successfully",
+      "statusUpdateError": "Failed to update order status",
+      "contactCustomer": "Contact customer",
+      "updateTracking": "Update tracking number",
+      "emptyTitle": "No sales yet",
+      "emptyMessage": "You haven't sold any products yet",
+      "addProduct": "Add a product to sell"
+    },
+    "orderDetails": {
+      "title": "Order Details #{{id}} - SBay",
+      "heading": "Order #{{id}}",
+      "backToOrders": "Back to orders",
+      "loadError": "Failed to load order",
+      "notFound": "Order not found",
+      "orderStatus": "Order Status",
+      "timeline": {
+        "created": "Order created",
+        "confirmed": "Confirmed",
+        "shipped": "Shipped",
+        "delivered": "Delivered"
+      },
+      "products": "Products",
+      "price": "Price:",
+      "shippingAddress": "Shipping Address",
+      "noShippingAddress": "No delivery address information",
+      "shippingInfo": "Shipping Information",
+      "carrier": "Carrier:",
+      "carrierDHL": "DHL",
+      "carrierOther": "Other",
+      "shippingCost": "Shipping cost:",
+      "estimatedDelivery": "Estimated delivery:",
+      "days": "{{days}} days",
+      "trackingNumber": "Tracking number:",
+      "trackShipment": "Track shipment",
+      "orderSummary": "Order Summary",
+      "subtotal": "Subtotal:",
+      "shipping": "Shipping:",
+      "grandTotal": "Grand total:",
+      "actions": "Actions",
+      "contactSeller": "Contact seller",
+      "cancelOrder": "Cancel order",
+      "cancelConfirm": "Are you sure you want to cancel this order?",
+      "cancelSuccess": "Order cancelled successfully",
+      "cancelError": "Failed to cancel order",
+      "rateOrder": "Rate order"
+    },
+    "orderStatus": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "statusFilters": {
+      "all": "All",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "paymentMethods": {
+      "cod": "Cash on delivery",
+      "bankTransfer": "Bank transfer",
+      "meetInPerson": "Meet in person"
+    },
+    "common": {
+      "browseProducts": "Browse products",
+      "loadMore": "Load more"
+    }
+  },
+  "productCard": {
+    "addToFavorites": "Add to favorites",
+    "removeFromFavorites": "Remove from favorites",
+    "unavailable": "Unavailable",
+    "view": "View"
+  },
+  "sellerDashboard": {
+    "title": "Dashboard - SBay",
+    "loading": "Loading...",
+    "welcome": "Welcome!",
+    "subtitle": "Here's an overview of your performance this week",
+    "totalRevenue": "Total Revenue",
+    "totalOrders": "Total Orders",
+    "newCustomers": "New Customers",
+    "conversionRate": "Conversion Rate",
+    "activeProducts": "Active Products",
+    "activeProductsSub": "products available",
+    "completedOrders": "Completed Orders",
+    "completedOrdersSub": "orders completed",
+    "awaitingShipment": "Awaiting Shipment",
+    "awaitingShipmentSub": "orders pending"
+  },
+  "myListings": {
+    "title": "My Listings - SBay",
+    "loading": "Loading...",
+    "heading": "My Listings",
+    "productCount": "{{count}} products",
+    "addNew": "Add new product",
+    "filterAll": "All ({{count}})",
+    "filterActive": "Active ({{count}})",
+    "filterSold": "Sold ({{count}})",
+    "loadError": "Failed to load products",
+    "deleteConfirm": "Are you sure you want to delete this product?",
+    "deleteError": "Failed to delete product",
+    "emptyTitle": "No products",
+    "emptyAllMessage": "Start by adding your first product",
+    "emptyActiveMessage": "No active products",
+    "emptySoldMessage": "No sold products",
+    "addNow": "Add product now",
+    "statusActive": "Active",
+    "statusSold": "Sold",
+    "stock": "Stock: {{count}}",
+    "views": "Views: {{count}}",
+    "view": "View",
+    "edit": "Edit"
+  },
+  "messages": {
+    "title": "Messages - SBay",
+    "description": "Your conversations with sellers and buyers",
+    "heading": "Messages",
+    "subtitle": "Chat with sellers and buyers",
+    "searchPlaceholder": "Search conversations...",
+    "filterAll": "All ({{count}})",
+    "filterUnread": "Unread ({{count}})",
+    "loadError": "Failed to load conversations",
+    "noResults": "No results found",
+    "noResultsSuggestion": "Try adjusting your search or filters",
+    "clearSearch": "Clear search",
+    "emptyTitle": "No conversations yet",
+    "emptyMessage": "Start a conversation with a seller or buyer from the product page",
+    "browseProducts": "Browse products",
+    "you": "You:",
+    "productFallback": "Product {{id}}",
+    "time": {
+      "now": "Just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} hr ago",
+      "daysAgo": "{{count}} day(s) ago"
+    }
+  },
+  "chat": {
+    "title": "Chat with {{name}} - SBay",
+    "loadError": "Failed to load conversation",
+    "sendError": "Failed to send message",
+    "notFound": "Conversation not found",
+    "backToMessages": "Back to messages",
+    "emptyMessages": "No messages yet",
+    "startConversation": "Start the conversation now",
+    "placeholder": "Type a message...",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "disallowedContent": "Input contains disallowed content",
+    "replyLabel": "Reply",
+    "replyingTo": "Replying to: {{text}}",
+    "editingMessage": "Editing message",
+    "originalUnavailable": "Original message unavailable",
+    "copy": "Copy",
+    "edit": "Edit",
+    "delete": "Delete",
+    "report": "Report"
+  },
+  "category": {
+    "title": "{{name}} - SBay",
+    "notFound": "Category not found",
+    "notFoundMessage": "Sorry, this category is not available",
+    "backHome": "Back to home",
+    "breadcrumbHome": "Home",
+    "loadError": "Failed to load products",
+    "priceError": "Minimum price must be less than or equal to maximum price.",
+    "loadingProducts": "Loading...",
+    "productCount": "{{count}} products available",
+    "productCountShort": "{{count}} products",
+    "filter": "Filter",
+    "loadMore": "Load more",
+    "emptyTitle": "No products in this category",
+    "emptyMessage": "Try adjusting your filters or go back to browse",
+    "browseAll": "Browse all products"
+  },
+  "forgotPassword": {
+    "title": "Reset Password",
+    "description": "Enter your email address and we'll send you a link to reset your password",
+    "successMessage": "A password reset link has been sent to your email",
+    "emailLabel": "Email address",
+    "submitting": "Sending...",
+    "submitted": "Sent!",
+    "submit": "Send reset link",
+    "backToLogin": "Back to login",
+    "spamNote": "Didn't receive the email? Check your spam folder"
+  },
+  "reviewForm": {
+    "titleAdd": "Add your review",
+    "titleEdit": "Edit review",
+    "ratingLabel": "Rating",
+    "ratingRequired": "Please select a rating",
+    "rating1": "Terrible",
+    "rating2": "Poor",
+    "rating3": "Average",
+    "rating4": "Good",
+    "rating5": "Excellent",
+    "commentLabel": "Comment",
+    "commentPlaceholder": "Share your experience with this product...",
+    "commentMinError": "Please write a comment (at least 10 characters)",
+    "commentMaxError": "Comment is too long (max 1000 characters)",
+    "commentMinHint": "Minimum 10 characters",
+    "submitError": "Failed to submit review. Please try again.",
+    "submitting": "Submitting...",
+    "submitAdd": "Submit review",
+    "submitEdit": "Update review",
+    "cancel": "Cancel"
+  },
+  "reviewList": {
+    "emptyTitle": "No reviews yet",
+    "emptyMessage": "Be the first to review this product",
+    "you": "You",
+    "helpful": "Helpful ({{count}})",
+    "edit": "Edit",
+    "delete": "Delete",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}} days ago",
+    "weeksAgo": "{{count}} weeks ago"
+  },
+  "recentOrders": {
+    "title": "Recent Orders",
+    "lastOrders": "Last {{count}} orders",
+    "viewAll": "View all",
+    "columns": {
+      "orderId": "Order ID",
+      "customer": "Customer",
+      "product": "Product",
+      "quantity": "Qty",
+      "amount": "Amount",
+      "status": "Status",
+      "payment": "Payment",
+      "date": "Date"
+    },
+    "status": {
+      "shipped": "Shipped",
+      "processing": "Processing",
+      "delivered": "Delivered",
+      "pending": "Pending"
+    },
+    "payment": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "waiting": "Waiting"
+    }
+  },
+  "revenueChart": {
+    "title": "Daily Revenue",
+    "subtitle": "Revenue over the week",
+    "tooltipLabel": "Revenue"
+  },
+  "salesChart": {
+    "title": "Weekly Sales",
+    "subtitle": "Sales over 4 weeks",
+    "tooltipLabel": "Sales"
+  },
+  "cartSidebar": {
+    "title": "Shopping Cart",
+    "closeLabel": "Close cart",
+    "emptyTitle": "Cart is empty",
+    "emptyMessage": "You haven't added any products yet",
+    "browseProducts": "Browse products",
+    "total": "Total:",
+    "checkout": "Checkout",
+    "viewCart": "View cart",
+    "continueShopping": "Continue shopping"
+  },
+  "imageUpload": {
+    "label": "Product Images ({{current}}/{{max}})",
+    "maxAlert": "You can upload a maximum of {{max}} images",
+    "uploadError": "Failed to upload images",
+    "dragText": "Drag images here or",
+    "chooseFile": "choose from device",
+    "fileTypes": "PNG, JPG, GIF up to 10MB",
+    "primaryBadge": "Primary",
+    "uploading": "Uploading images..."
+  },
+  "layout": {
+    "defaultTitle": "SBay - Syria's Online Marketplace",
+    "defaultDescription": "An e-commerce platform like eBay designed for Syria"
+  },
+  "confirmDialog": {
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "header": {
+    "brandName": "SBay"
+  },
+  "sellerProfile": {
+    "loading": "Loading seller profile...",
+    "notFound": "Seller not found.",
+    "loadError": "Failed to load seller data",
+    "title": "{{name}} - Seller Profile | SBay",
+    "description": "Seller profile for {{name}}. Rated {{rating}} out of 5.",
+    "joined": "Joined {{date}}",
+    "reviews": "{{count}} reviews",
+    "itemsSold": "Items Sold",
+    "completedSales": "Completed sales",
+    "averageRating": "Average Rating",
+    "totalReviews": "{{count}} total reviews",
+    "positiveFeedback": "Positive Feedback",
+    "basedOnReviews": "Based on reviews",
+    "noStats": "No stats available yet.",
+    "tabListings": "Listings ({{count}})",
+    "tabReviews": "Reviews ({{count}})",
+    "noListings": "No listings available right now.",
+    "totalRatings": "{{count}} total ratings",
+    "star": "{{count}} star"
+  },
+  "editListing": {
+    "title": "Edit Product - SBay",
+    "titleWithName": "Edit: {{name}} - SBay",
+    "loading": "Loading...",
+    "loadError": "Failed to load product",
+    "backToListings": "Back to my listings",
+    "heading": "Edit Product",
+    "subtitle": "Update your product information",
+    "fields": {
+      "title": "Product Title *",
+      "titlePlaceholder": "e.g. iPhone 15 Pro Max 256GB",
+      "description": "Description *",
+      "descriptionPlaceholder": "Write a detailed description...",
+      "images": "Product Images",
+      "price": "Price (SYP) *",
+      "stock": "Available Quantity *",
+      "category": "Category",
+      "categoryPlaceholder": "Select category",
+      "condition": "Condition *",
+      "location": "Location *",
+      "locationPlaceholder": "e.g. Damascus - Mazzeh"
+    },
+    "categories": {
+      "electronics": "Electronics",
+      "fashion": "Fashion",
+      "home": "Home & Garden",
+      "cars": "Cars",
+      "realEstate": "Real Estate",
+      "other": "Other"
+    },
+    "conditions": {
+      "new": "New",
+      "used": "Used",
+      "refurbished": "Refurbished",
+      "likeNew": "Like New"
+    },
+    "validation": {
+      "titleRequired": "Title is required",
+      "descriptionRequired": "Description is required",
+      "pricePositive": "Price must be greater than 0",
+      "locationRequired": "Location is required",
+      "stockMin": "Quantity must be 0 or more"
+    },
+    "submit": "Save changes",
+    "submitting": "Updating...",
+    "cancel": "Cancel"
+  },
+  "resetPassword": {
+    "title": "Create New Password",
+    "description": "Enter a new password for your account",
+    "passwordLabel": "New Password",
+    "confirmLabel": "Confirm Password",
+    "passwordMismatch": "Passwords do not match",
+    "submit": "Set Password",
+    "submitting": "Setting...",
+    "success": "Password changed successfully",
+    "successDescription": "You can now sign in with your new password",
+    "backToLogin": "Go to sign in",
+    "invalidToken": "Invalid or missing reset link",
+    "invalidTokenDescription": "Please request a new link from the forgot password page",
+    "requestNewLink": "Request new link"
+  },
+  "errorPage": {
+    "pageTitle404": "Page Not Found - SBay",
+    "pageTitle500": "Server Error - SBay",
+    "404": {
+      "title": "Page Not Found",
+      "description": "Sorry, the page you're looking for doesn't exist or has been moved",
+      "backHome": "Back to Home",
+      "browseProducts": "Browse Products"
+    },
+    "500": {
+      "title": "Server Error",
+      "description": "Sorry, an unexpected error occurred. Please try again later",
+      "tryAgain": "Try Again",
+      "backHome": "Back to Home"
+    }
+  },
+  "terms": {
+    "pageTitle": "Terms & Conditions - SBay",
+    "title": "Terms & Conditions",
+    "lastUpdated": "Last updated: March 2025",
+    "intro": "Welcome to SBay. By using our platform, you agree to the following terms and conditions. Please read them carefully.",
+    "sections": {
+      "general": {
+        "title": "1. General Terms",
+        "content": "SBay is an e-commerce platform connecting sellers and buyers in Syria. By creating an account or using our services, you agree to comply with these terms. You must be at least 18 years old to use the platform."
+      },
+      "accounts": {
+        "title": "2. Accounts & Registration",
+        "content": "You are responsible for maintaining the confidentiality of your account information and password. All information provided during registration must be accurate and up-to-date. We reserve the right to suspend or terminate accounts that violate our terms."
+      },
+      "listings": {
+        "title": "3. Listing Rules",
+        "content": "All listings must be for real products available for sale. Listing legally prohibited, counterfeit, or stolen products is forbidden. Descriptions and images must be accurate and represent the actual product."
+      },
+      "transactions": {
+        "title": "4. Transactions & Payment",
+        "content": "SBay facilitates communication between sellers and buyers. All financial transactions are conducted directly between the parties. We are not responsible for any financial disputes between users."
+      },
+      "prohibited": {
+        "title": "5. Prohibited Conduct",
+        "content": "Using the platform for fraud, harassment, spam, or any illegal activity is prohibited. Attempting to circumvent platform systems or collecting other users' data is also forbidden."
+      },
+      "liability": {
+        "title": "6. Limitation of Liability",
+        "content": "SBay operates as an intermediary platform and does not guarantee product quality or seller reliability. We are not responsible for any losses resulting from transactions between users. We always recommend verifying the product before purchase."
+      },
+      "intellectual": {
+        "title": "7. Intellectual Property",
+        "content": "All platform content including the logo, design, and text are the property of SBay. Copying or using any platform content without prior permission is prohibited."
+      },
+      "changes": {
+        "title": "8. Changes to Terms",
+        "content": "We reserve the right to modify these terms at any time. Users will be notified of any material changes. Your continued use of the platform after modifications means you accept the updated terms."
+      }
+    }
+  },
+  "privacy": {
+    "pageTitle": "Privacy Policy - SBay",
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: March 2025",
+    "intro": "At SBay, we respect your privacy and are committed to protecting your personal data. This policy explains how we collect, use, and protect your information.",
+    "sections": {
+      "collection": {
+        "title": "1. Information We Collect",
+        "content": "We collect information you provide during registration (name, email, phone number, city), transaction information, message content, and usage data such as IP address and browser type."
+      },
+      "usage": {
+        "title": "2. How We Use Information",
+        "content": "We use your information to provide and improve our services, process transactions, communicate with you about your account, send important notifications, and maintain platform security."
+      },
+      "sharing": {
+        "title": "3. Information Sharing",
+        "content": "We do not sell your personal data to third parties. We may share limited information with sellers/buyers to complete transactions, with service providers who help us operate the platform, or when legally required."
+      },
+      "security": {
+        "title": "4. Data Security",
+        "content": "We use advanced encryption technologies to protect your data. We regularly update security procedures. However, we cannot guarantee absolute security for any data transmission over the internet."
+      },
+      "cookies": {
+        "title": "5. Cookies",
+        "content": "We use cookies to improve your experience on the platform, remember your preferences, and analyze usage patterns. You can control cookie settings from your browser."
+      },
+      "rights": {
+        "title": "6. Your Rights",
+        "content": "You have the right to access your personal data, request its correction or deletion, and object to its processing. You can exercise these rights through your account settings or by contacting us."
+      },
+      "children": {
+        "title": "7. Children's Privacy",
+        "content": "Our platform is not intended for individuals under 18 years of age. We do not knowingly collect information from children. If we become aware of this, we will delete such information immediately."
+      },
+      "changes": {
+        "title": "8. Policy Updates",
+        "content": "We may update this privacy policy from time to time. We will notify you of any material changes via email or a notification on the platform."
+      }
+    }
+  },
+  "about": {
+    "pageTitle": "About SBay - SBay",
+    "title": "About SBay",
+    "subtitle": "Syria's Leading E-Commerce Platform",
+    "description": "SBay is an e-commerce platform designed specifically for the Syrian market, aimed at facilitating online buying and selling in a safe and reliable way.",
+    "mission": {
+      "title": "Our Mission",
+      "content": "Provide an easy-to-use and secure e-commerce platform that serves the Syrian community, enabling individuals and small businesses to reach a wider market."
+    },
+    "values": {
+      "title": "Our Values",
+      "trust": "Trust & Security",
+      "trustDesc": "We put user and transaction security first",
+      "simplicity": "Simplicity",
+      "simplicityDesc": "An easy-to-use interface for everyone",
+      "community": "Community",
+      "communityDesc": "Building an active and reliable e-commerce community",
+      "innovation": "Innovation",
+      "innovationDesc": "Continuous development to deliver the best user experience"
+    },
+    "stats": {
+      "users": "Registered Users",
+      "listings": "Active Listings",
+      "cities": "Syrian Cities",
+      "transactions": "Completed Transactions"
+    }
+  },
+  "howItWorks": {
+    "pageTitle": "How It Works - SBay",
+    "title": "How SBay Works",
+    "subtitle": "Start buying or selling in simple steps",
+    "forBuyers": "For Buyers",
+    "forSellers": "For Sellers",
+    "buyerSteps": {
+      "register": {
+        "title": "Create an Account",
+        "description": "Sign up for free with your email and fill in your profile information"
+      },
+      "browse": {
+        "title": "Browse Products",
+        "description": "Search for products you want using search or browse categories"
+      },
+      "contact": {
+        "title": "Contact the Seller",
+        "description": "Send the seller a message to ask about the product or negotiate the price"
+      },
+      "buy": {
+        "title": "Complete the Purchase",
+        "description": "Agree with the seller on payment and delivery method and complete the transaction"
+      }
+    },
+    "sellerSteps": {
+      "register": {
+        "title": "Create an Account",
+        "description": "Sign up for free and complete your seller profile"
+      },
+      "list": {
+        "title": "Add Your Products",
+        "description": "Create listings with clear photos and accurate descriptions"
+      },
+      "respond": {
+        "title": "Respond to Buyers",
+        "description": "Communicate with interested buyers through the direct messaging system"
+      },
+      "sell": {
+        "title": "Complete the Sale",
+        "description": "Agree on transaction details and complete the sale"
+      }
+    }
+  },
+  "help": {
+    "pageTitle": "Help Center - SBay",
+    "title": "Help Center",
+    "subtitle": "How can we help you?",
+    "searchPlaceholder": "Search for a question...",
+    "categories": {
+      "account": "Account",
+      "buying": "Buying",
+      "selling": "Selling",
+      "safety": "Safety"
+    },
+    "faq": {
+      "createAccount": {
+        "question": "How do I create an account on SBay?",
+        "answer": "Click 'Create Account' on the homepage, enter your email and choose a strong password, then complete your profile information."
+      },
+      "resetPassword": {
+        "question": "I forgot my password, what do I do?",
+        "answer": "Click 'Forgot Password' on the login page and enter your email. We'll send you a link to reset your password."
+      },
+      "howToBuy": {
+        "question": "How do I buy a product?",
+        "answer": "Browse available products and click on the one you want to see details. Contact the seller via the 'Contact Seller' button to agree on details."
+      },
+      "howToSell": {
+        "question": "How do I sell a product?",
+        "answer": "Sign in and click 'Sell Product' from the menu. Add clear photos of your product, write an accurate title and description, and set the price and category."
+      },
+      "isSafe": {
+        "question": "Is SBay safe to use?",
+        "answer": "Yes, we use advanced encryption technologies to protect your data. We also review listings and reports to maintain a safe environment. We always recommend verifying the product and seller before purchasing."
+      },
+      "reportUser": {
+        "question": "How do I report a violating user?",
+        "answer": "You can report any user, listing, or message via the 'Report' button found on every page. Our team will review the report and take appropriate action."
+      },
+      "editListing": {
+        "question": "How do I edit or delete my listing?",
+        "answer": "Go to 'My Listings' from the dashboard and click 'Edit' next to the listing you want to modify. You can also delete the listing from the same page."
+      },
+      "contactSupport": {
+        "question": "How do I contact support?",
+        "answer": "You can reach us via email at support@sbay.sy or through the 'Contact Us' page. We work Saturday through Thursday from 9 AM to 6 PM."
+      }
+    },
+    "stillNeedHelp": "Still need help?",
+    "contactSupport": "Contact Support"
+  },
+  "contact": {
+    "pageTitle": "Contact Us - SBay",
+    "title": "Contact Us",
+    "subtitle": "We're here to help. Reach out to us in any way that suits you.",
+    "info": {
+      "email": "Email",
+      "emailValue": "support@sbay.sy",
+      "phone": "Phone",
+      "phoneValue": "+963 12 345 6789",
+      "hours": "Working Hours",
+      "hoursValue": "Saturday - Thursday: 9:00 AM - 6:00 PM",
+      "hoursClosed": "Friday: Closed"
+    },
+    "form": {
+      "title": "Send Us a Message",
+      "name": "Name",
+      "namePlaceholder": "Your full name",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "subject": "Subject",
+      "subjectPlaceholder": "Message subject",
+      "message": "Message",
+      "messagePlaceholder": "Write your message here...",
+      "submit": "Send Message",
+      "submitting": "Sending...",
+      "success": "Your message has been sent successfully! We'll respond as soon as possible."
+    }
+  },
+  "sellerGuide": {
+    "pageTitle": "Seller Guide - SBay",
+    "title": "Seller Guide",
+    "subtitle": "Everything you need to know to start selling on SBay",
+    "sections": {
+      "gettingStarted": {
+        "title": "Getting Started",
+        "content": "Create your account and complete your profile. Add a profile photo and write a bio to build buyer trust. Make sure to add a valid phone number and your city."
+      },
+      "createListing": {
+        "title": "Creating a Successful Listing",
+        "content": "Take clear, high-quality photos from multiple angles. Write a clear and specific title. Add a detailed description including condition and specifications. Set a fair price based on product condition and market value."
+      },
+      "communication": {
+        "title": "Communicating with Buyers",
+        "content": "Respond to messages quickly and professionally. Be honest about product condition. Use SBay's built-in messaging system to keep a record of conversations."
+      },
+      "shipping": {
+        "title": "Delivery & Shipping",
+        "content": "Agree with the buyer on a suitable delivery method. You can arrange in-person delivery or use available shipping services. Make sure to package the product well."
+      },
+      "tips": {
+        "title": "Tips for Success",
+        "content": "Update your listings regularly. Maintain a positive rating through excellent customer service. Price your products competitively."
+      }
+    }
+  },
+  "fees": {
+    "pageTitle": "Fees & Commissions - SBay",
+    "title": "Fees & Commissions",
+    "subtitle": "SBay is free to use! Here are details about our services",
+    "free": {
+      "title": "Free Services",
+      "items": {
+        "registration": "Account creation and registration",
+        "listing": "Publishing listings",
+        "messaging": "Communicating with sellers and buyers",
+        "browsing": "Browsing products and searching"
+      }
+    },
+    "premium": {
+      "title": "Premium Services (Coming Soon)",
+      "description": "We plan to offer optional premium services in the future to enhance the selling experience:",
+      "items": {
+        "featured": "Featured Listings - Higher visibility in search results",
+        "analytics": "Advanced Analytics - Detailed statistics about your listings",
+        "verified": "Verified Account - Verification badge to increase trust"
+      }
+    },
+    "note": "Note: All basic services will always remain free."
+  },
+  "sellerProtection": {
+    "pageTitle": "Seller Protection - SBay",
+    "title": "Seller Protection",
+    "subtitle": "We are committed to protecting sellers on our platform",
+    "sections": {
+      "reporting": {
+        "title": "Reporting System",
+        "content": "You can report any violating or fraudulent buyer. Our team reviews all reports and takes swift action against violators."
+      },
+      "privacy": {
+        "title": "Data Protection",
+        "content": "Your personal information is protected and not shared with third parties. Your phone number and email are not displayed publicly."
+      },
+      "fraud": {
+        "title": "Fraud Prevention",
+        "content": "We use advanced systems to detect suspicious accounts and fraudulent activity. We block violating users immediately."
+      },
+      "support": {
+        "title": "Dedicated Support",
+        "content": "Our support team is available to help you with any issues. We work to resolve disputes fairly and quickly."
+      }
+    },
+    "tips": {
+      "title": "Protection Tips",
+      "items": {
+        "verify": "Verify the buyer's identity before completing large transactions",
+        "platform": "Use SBay's built-in messaging system",
+        "meet": "Meet in public places for in-person delivery",
+        "report": "Report suspicious behavior immediately"
+      }
+    }
+  },
+  "sellerTips": {
+    "pageTitle": "Selling Tips - SBay",
+    "title": "Selling Tips",
+    "subtitle": "Achieve more sales with these proven tips",
+    "sections": {
+      "photos": {
+        "title": "Professional Photos",
+        "content": "Use good natural lighting. Take photos from multiple angles. Show important details and any defects. Use a clean, simple background."
+      },
+      "description": {
+        "title": "Detailed Description",
+        "content": "Write a clear title with keywords. List full product specifications. Be honest about product condition. Add warranty information if available."
+      },
+      "pricing": {
+        "title": "Smart Pricing",
+        "content": "Research prices of similar products. Set a competitive price reflecting product condition. Be ready to negotiate but set a minimum price in advance."
+      },
+      "response": {
+        "title": "Quick Response",
+        "content": "Reply to buyer messages as quickly as possible. Sellers who respond faster achieve more sales. Enable notifications to receive alerts instantly."
+      },
+      "reputation": {
+        "title": "Building Reputation",
+        "content": "Provide excellent service to every buyer. Positive reviews increase new buyer trust. Be honest and professional in all your dealings."
+      }
+    }
   }
 }

@@ -1,5 +1,7 @@
+import { useTranslation } from 'next-i18next';
 import { Address } from '@sbay/shared';
 import { AlertCircle } from 'lucide-react';
+import { CITY_NAMES_AR } from '@/lib/constants';
 
 interface AddressFormProps {
   value: Address;
@@ -8,23 +10,6 @@ interface AddressFormProps {
   saveAddressFlag?: boolean;
   errors?: Record<string, string>;
 }
-
-const SYRIAN_CITIES = [
-  'دمشق',
-  'حلب',
-  'حمص',
-  'حماة',
-  'طرطوس',
-  'اللاذقية',
-  'إدلب',
-  'الرقة',
-  'الحسكة',
-  'دير الزور',
-  'السويداء',
-  'درعا',
-  'قنيطرة',
-  'ريف دمشق'
-];
 
 /**
  * AddressForm Component - Modern Redesign
@@ -44,6 +29,7 @@ export default function AddressForm({
   saveAddressFlag = false,
   errors = {}
 }: AddressFormProps) {
+  const { t } = useTranslation('common');
 
   const handleChange = (field: keyof Address, val: string) => {
     onChange({ ...value, [field]: val });
@@ -51,20 +37,20 @@ export default function AddressForm({
 
   return (
     <div>
-      <h3 className="text-xl font-bold mb-6">معلومات التوصيل</h3>
+      <h3 className="text-xl font-bold mb-6">{t('checkout.address.title')}</h3>
 
       {/* 2-Column Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Full Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            الاسم الكامل <span className="text-red-500">*</span>
+            {t('checkout.address.fullName')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={value.name || ''}
             onChange={(e) => handleChange('name', e.target.value)}
-            placeholder="أدخل اسمك الكامل"
+            placeholder={t('checkout.address.fullNamePlaceholder')}
             className={`w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.name ? 'border-red-500' : 'border-gray-200'
             }`}
@@ -80,13 +66,13 @@ export default function AddressForm({
         {/* Phone Number */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            رقم الهاتف <span className="text-red-500">*</span>
+            {t('checkout.address.phone')} <span className="text-red-500">*</span>
           </label>
           <input
             type="tel"
             value={value.phone || ''}
             onChange={(e) => handleChange('phone', e.target.value)}
-            placeholder="+963 XXX XXX XXX"
+            placeholder={t('checkout.address.phonePlaceholder')}
             className={`w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.phone ? 'border-red-500' : 'border-gray-200'
             }`}
@@ -102,7 +88,7 @@ export default function AddressForm({
         {/* City - Full Width */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            المحافظة / المدينة <span className="text-red-500">*</span>
+            {t('checkout.address.city')} <span className="text-red-500">*</span>
           </label>
           <select
             value={value.city || ''}
@@ -111,8 +97,8 @@ export default function AddressForm({
               errors.city ? 'border-red-500' : 'border-gray-200'
             }`}
           >
-            <option value="">اختر المحافظة</option>
-            {SYRIAN_CITIES.map((city) => (
+            <option value="">{t('checkout.address.cityPlaceholder')}</option>
+            {CITY_NAMES_AR.map((city) => (
               <option key={city} value={city}>
                 {city}
               </option>
@@ -129,13 +115,13 @@ export default function AddressForm({
         {/* Delivery Address - Full Width */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            العنوان التفصيلي <span className="text-red-500">*</span>
+            {t('checkout.address.street')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={value.street || ''}
             onChange={(e) => handleChange('street', e.target.value)}
-            placeholder="الحي، الشارع، رقم المنزل / البناء"
+            placeholder={t('checkout.address.streetPlaceholder')}
             className={`w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.street ? 'border-red-500' : 'border-gray-200'
             }`}
@@ -151,12 +137,12 @@ export default function AddressForm({
         {/* Delivery Notes - Full Width, Optional */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            ملاحظات التوصيل (اختياري)
+            {t('checkout.address.notes')}
           </label>
           <textarea
             value={value.region || ''}
             onChange={(e) => handleChange('region', e.target.value)}
-            placeholder="أي تعليمات خاصة للتوصيل"
+            placeholder={t('checkout.address.notesPlaceholder')}
             rows={3}
             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
@@ -174,7 +160,7 @@ export default function AddressForm({
             className="w-4 h-4 text-blue-600 rounded"
           />
           <label htmlFor="saveAddress" className="text-sm text-gray-700">
-            احفظ هذا العنوان لاستخدام لاحق
+            {t('checkout.address.saveAddress')}
           </label>
         </div>
       )}

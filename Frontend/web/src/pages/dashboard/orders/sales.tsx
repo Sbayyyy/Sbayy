@@ -4,6 +4,8 @@ import Layout from '@/components/Layout';
 import { getSales, updateOrderStatus } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { 
   Package, 
   Truck, 
@@ -22,6 +24,7 @@ import Head from 'next/head';
 
 export default function SalesPage() {
   const isAuthed = useRequireAuth();
+  const { t } = useTranslation('common');
   
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,7 @@ export default function SalesPage() {
       setError('');
     } catch (err) {
       console.error('Error loading sales:', err);
-      setError('حدث خطأ في تحميل المبيعات');
+      setError(t('dashboard.sales.loadError'));
     } finally {
       setLoading(false);
     }
@@ -78,7 +81,7 @@ export default function SalesPage() {
   const handleUpdateStatus = async (orderId: string, newStatus: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled') => {
     try {
       setUpdatingStatus(orderId);
-      await updateOrderStatus(orderId, newStatus as any);
+      await updateOrderStatus(orderId, newStatus);
       
       // Update local state
       setOrders(prev => prev.map(order => 
@@ -86,10 +89,10 @@ export default function SalesPage() {
       ));
       
       // Show success (could use toast notification)
-      alert('تم تحديث حالة الطلب بنجاح');
+      alert(t('dashboard.sales.statusUpdateSuccess'));
     } catch (err) {
       console.error('Error updating order status:', err);
-      alert('حدث خطأ في تحديث حالة الطلب');
+      alert(t('dashboard.sales.statusUpdateError'));
     } finally {
       setUpdatingStatus(null);
     }
@@ -115,15 +118,15 @@ export default function SalesPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'قيد الانتظار';
+        return t('dashboard.orderStatus.pending');
       case 'confirmed':
-        return 'تم التأكيد';
+        return t('dashboard.orderStatus.confirmed');
       case 'shipped':
-        return 'قيد الشحن';
+        return t('dashboard.orderStatus.shipped');
       case 'delivered':
-        return 'تم التوصيل';
+        return t('dashboard.orderStatus.delivered');
       case 'cancelled':
-        return 'ملغى';
+        return t('dashboard.orderStatus.cancelled');
       default:
         return status;
     }
@@ -166,8 +169,8 @@ export default function SalesPage() {
   return (
     <Layout>
       <Head>
-        <title>مبيعاتي - Sbay سباي</title>
-        <meta name="description" content="إدارة مبيعاتك وطلباتك" />
+        <title>{t('dashboard.sales.title')}</title>
+        <meta name="description" content={t('dashboard.sales.description')} />
       </Head>
 
       <div className="min-h-screen bg-gray-50 py-8">
@@ -179,11 +182,11 @@ export default function SalesPage() {
               className="inline-flex items-center gap-2 text-primary hover:underline mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
-              العودة للوحة التحكم
+              {t('dashboard.sales.backToDashboard')}
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">مبيعاتي</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('dashboard.sales.heading')}</h1>
             <p className="text-gray-600 mt-2">
-              إدارة طلبات العملاء وتحديث حالة الشحن
+              {t('dashboard.sales.subtitle')}
             </p>
           </div>
 
@@ -192,7 +195,7 @@ export default function SalesPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">إجمالي الإيرادات</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('dashboard.sales.totalRevenue')}</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {formatPrice(stats.totalRevenue)}
                   </p>
@@ -206,7 +209,7 @@ export default function SalesPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">طلبات قيد المعالجة</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('dashboard.sales.pendingOrders')}</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {stats.pendingOrders}
                   </p>
@@ -220,7 +223,7 @@ export default function SalesPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">طلبات مكتملة</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('dashboard.sales.completedOrders')}</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {stats.completedOrders}
                   </p>
@@ -236,12 +239,12 @@ export default function SalesPage() {
           <div className="bg-white rounded-lg shadow mb-6 p-4">
             <div className="flex flex-wrap gap-2">
               {[
-                { value: 'all', label: 'الكل', count: orders.length },
-                { value: 'pending', label: 'قيد الانتظار' },
-                { value: 'confirmed', label: 'تم التأكيد' },
-                { value: 'shipped', label: 'قيد الشحن' },
-                { value: 'delivered', label: 'تم التوصيل' },
-                { value: 'cancelled', label: 'ملغى' }
+                { value: 'all', label: t('dashboard.statusFilters.all'), count: orders.length },
+                { value: 'pending', label: t('dashboard.statusFilters.pending') },
+                { value: 'confirmed', label: t('dashboard.statusFilters.confirmed') },
+                { value: 'shipped', label: t('dashboard.statusFilters.shipped') },
+                { value: 'delivered', label: t('dashboard.statusFilters.delivered') },
+                { value: 'cancelled', label: t('dashboard.statusFilters.cancelled') }
               ].map(tab => (
                 <button
                   key={tab.value}
@@ -293,7 +296,7 @@ export default function SalesPage() {
                       {getStatusIcon(order.status)}
                       <div>
                         <p className="text-sm text-gray-600">
-                          طلب رقم #{order.id.slice(0, 8)}
+                          {t('dashboard.sales.orderNumber', { id: order.id.slice(0, 8) })}
                         </p>
                         <p className="text-xs text-gray-500">
                           {formatDate(order.createdAt)}
@@ -317,10 +320,10 @@ export default function SalesPage() {
                           </div>
                           <div className="flex-1">
                             <p className="font-medium text-gray-900">
-                              منتج #{item.productId.slice(0, 8)}
+                              {t('dashboard.sales.product', { id: item.productId.slice(0, 8) })}
                             </p>
                             <p className="text-sm text-gray-600">
-                              الكمية: {item.quantity} × {formatPrice(item.price)}
+                              {t('dashboard.sales.quantity', { qty: item.quantity, price: formatPrice(item.price) })}
                             </p>
                           </div>
                         </div>
@@ -330,7 +333,7 @@ export default function SalesPage() {
                     {/* Customer Info */}
                     <div className="bg-gray-50 rounded-lg p-3 mb-4">
                       <p className="text-sm font-medium text-gray-700 mb-1">
-                        معلومات العميل:
+                        {t('dashboard.sales.customerInfo')}
                       </p>
                       {order.shippingAddress ? (
                         <>
@@ -342,17 +345,17 @@ export default function SalesPage() {
                           </p>
                         </>
                       ) : (
-                        <p className="text-sm text-gray-500">لا توجد معلومات عنوان</p>
+                        <p className="text-sm text-gray-500">{t('dashboard.sales.noCustomerInfo')}</p>
                       )}
                     </div>
 
                     {/* Totals */}
                     <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                       <div className="text-sm text-gray-600">
-                        <p>طريقة الدفع: {order.paymentMethod === 'cod' ? 'الدفع عند الاستلام' : order.paymentMethod === 'bank_transfer' ? 'تحويل بنكي' : 'اللقاء شخصياً'}</p>
+                        <p>{t('dashboard.sales.paymentMethod')}: {order.paymentMethod === 'cod' ? t('dashboard.paymentMethods.cod') : order.paymentMethod === 'bank_transfer' ? t('dashboard.paymentMethods.bankTransfer') : t('dashboard.paymentMethods.meetInPerson')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-gray-600 mb-1">المجموع الكلي</p>
+                        <p className="text-sm text-gray-600 mb-1">{t('dashboard.sales.grandTotal')}</p>
                         <p className="text-2xl font-bold text-primary">
                           {formatPrice(order.total)}
                         </p>
@@ -363,7 +366,7 @@ export default function SalesPage() {
                     {order.status !== 'cancelled' && order.status !== 'delivered' && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                         <p className="text-sm font-medium text-blue-900 mb-2">
-                          تحديث حالة الطلب:
+                          {t('dashboard.sales.updateStatus')}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {order.status === 'pending' && (
@@ -372,7 +375,7 @@ export default function SalesPage() {
                               disabled={updatingStatus === order.id}
                               className="btn-primary text-sm"
                             >
-                              تأكيد الطلب
+                              {t('dashboard.sales.confirmOrder')}
                             </button>
                           )}
                           {order.status === 'confirmed' && (
@@ -381,7 +384,7 @@ export default function SalesPage() {
                               disabled={updatingStatus === order.id}
                               className="btn-primary text-sm"
                             >
-                              تم الشحن
+                              {t('dashboard.sales.markShipped')}
                             </button>
                           )}
                           {order.status === 'shipped' && (
@@ -390,7 +393,7 @@ export default function SalesPage() {
                               disabled={updatingStatus === order.id}
                               className="btn-primary text-sm"
                             >
-                              تم التوصيل
+                              {t('dashboard.sales.markDelivered')}
                             </button>
                           )}
                           {order.status === 'pending' && (
@@ -399,7 +402,7 @@ export default function SalesPage() {
                               disabled={updatingStatus === order.id}
                               className="btn-outline text-sm border-red-300 text-red-700 hover:bg-red-50"
                             >
-                              إلغاء الطلب
+                              {t('dashboard.sales.cancelOrder')}
                             </button>
                           )}
                         </div>
@@ -413,18 +416,18 @@ export default function SalesPage() {
                         className="btn-primary flex-1 sm:flex-none text-center"
                       >
                         <Package className="w-4 h-4 inline ml-2" />
-                        تفاصيل الطلب
+                        {t('dashboard.sales.orderDetails')}
                       </Link>
-                      
+
                       <button className="btn-outline flex-1 sm:flex-none">
                         <MessageSquare className="w-4 h-4 inline ml-2" />
-                        تواصل مع العميل
+                        {t('dashboard.sales.contactCustomer')}
                       </button>
 
                       {order.status === 'shipped' && (
                         <button className="btn-outline flex-1 sm:flex-none">
                           <Edit className="w-4 h-4 inline ml-2" />
-                          تحديث رقم التتبع
+                          {t('dashboard.sales.updateTracking')}
                         </button>
                       )}
                     </div>
@@ -437,13 +440,13 @@ export default function SalesPage() {
             <div className="bg-white rounded-lg shadow p-16 text-center">
               <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2">
-                لا توجد مبيعات بعد
+                {t('dashboard.sales.emptyTitle')}
               </h3>
               <p className="text-gray-600 mb-6">
-                لم تبع أي منتجات حتى الآن
+                {t('dashboard.sales.emptyMessage')}
               </p>
               <Link href="/listing/sell" className="btn-primary">
-                أضف منتج للبيع
+                {t('dashboard.sales.addProduct')}
               </Link>
             </div>
           )}
@@ -455,7 +458,7 @@ export default function SalesPage() {
                 onClick={() => setPage(prev => prev + 1)}
                 className="btn-outline"
               >
-                تحميل المزيد
+                {t('dashboard.common.loadMore')}
               </button>
             </div>
           )}
@@ -463,4 +466,8 @@ export default function SalesPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return { props: { ...(await serverSideTranslations(locale ?? 'ar', ['common'])) } };
 }

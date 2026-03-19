@@ -1,18 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import Head from 'next/head';
-import { 
-  Heart, 
-  Share2, 
-  MapPin, 
-  Package, 
-  Shield, 
-  MessageCircle,
-  ChevronLeft,
-  ChevronRight,
-  Star
-} from 'lucide-react';
+import { Heart, Share2, MapPin } from 'lucide-react';
 import { deleteListing, getListingById } from '@/lib/api/listings';
 import { addFavorite, getFavorites, removeFavorite } from '@/lib/api/favorites';
 import { openChat } from '@/lib/api/messages';
@@ -22,6 +11,11 @@ import { toast } from '@/lib/toast';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import ReportDialog from '@/components/ReportDialog';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { CONDITION_LABEL_MAP, CONDITION_I18N_MAP } from '@/lib/constants';
+import { formatPrice } from '@/lib/formatters';
+import { useRequireAuthAction } from '@/lib/hooks/useRequireAuthAction';
+import { ImageGallery, SellerCard, ListingActions, TrustBadges } from '@/components/listing';
 
 export default function ListingDetail() {
   const router = useRouter();
@@ -29,7 +23,8 @@ export default function ListingDetail() {
   const { user, isAuthenticated } = useAuthStore();
   const { t } = useTranslation('common');
   const locale = router.locale ?? 'ar';
-  
+  const requireAuth = useRequireAuthAction();
+
   const [listing, setListing] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,7 +40,7 @@ export default function ListingDetail() {
       loadListing(id);
     }
   }, [id]);
-  
+
   useEffect(() => {
     const loadFavoriteState = async (listingId: string) => {
       if (!isAuthenticated) {
@@ -70,24 +65,14 @@ export default function ListingDetail() {
       setLoading(true);
       const data = await getListingById(listingId);
       setListing(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading listing:', err);
-      setError(err.response?.data?.message || t('listing.errors.load', 'Failed to load listing'));
+      setError(t('listing.errors.load', 'Failed to load listing'));
     } finally {
       setLoading(false);
     }
   };
-  const requireAuth = () => {
-    if (isAuthenticated) return true;
-    const redirectPath = listing?.id
-      ? `/listing/${listing.id}`
-      : typeof id === 'string'
-        ? `/listing/${id}`
-        : '/';
-    const redirectTo = encodeURIComponent(redirectPath);
-    router.push(`/auth/login?redirect=${redirectTo}`);
-    return false;
-  };
+
   const handleContactSeller = () => {
     if (!requireAuth()) return;
     if (!listing || contactLoading) return;
@@ -145,7 +130,7 @@ export default function ListingDetail() {
       setDeleteLoading(false);
     }
   };
-  
+
   const handleFavoriteToggle = async () => {
     if (!requireAuth() || !listing) return;
     if (favoriteLoading) return;
@@ -170,28 +155,8 @@ export default function ListingDetail() {
     }
   };
 
-  const nextImage = () => {
-    if (listing?.imageUrls && listing.imageUrls.length > 0) {
-      setSelectedImageIndex((prev) => 
-        prev === listing.imageUrls.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const prevImage = () => {
-    if (listing?.imageUrls && listing.imageUrls.length > 0) {
-      setSelectedImageIndex((prev) => 
-        prev === 0 ? listing.imageUrls.length - 1 : prev - 1
-      );
-    }
-  };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingSpinner fullPage />;
   }
 
   if (error || !listing) {
@@ -210,15 +175,12 @@ export default function ListingDetail() {
     );
   }
 
-  const conditionLabels: Record<string, string> = {
-    New: t('listing.conditions.new', 'New'),
-    LikeNew: t('listing.conditions.likeNew', 'Like new'),
-    Good: t('listing.conditions.good', 'Good'),
-    Fair: t('listing.conditions.fair', 'Fair'),
-    Poor: t('listing.conditions.poor', 'Poor'),
-    Used: t('listing.conditions.used', 'Used'),
-    Refurbished: t('listing.conditions.refurbished', 'Refurbished')
-  };
+  const conditionLabels: Record<string, string> = Object.fromEntries(
+    Object.entries(CONDITION_I18N_MAP).map(([value, i18nKey]) => [
+      value,
+      t(i18nKey, CONDITION_LABEL_MAP[value] || value)
+    ])
+  );
 
   const isAvailable = listing.stock === undefined || listing.stock > 0;
   const sellerProfileId = listing.seller?.id || listing.sellerId;
@@ -249,67 +211,14 @@ export default function ListingDetail() {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
               {/* Image Gallery */}
-              <div>
-                <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
-                  {listing.imageUrls && listing.imageUrls.length > 0 ? (
-                    <>
-                      <img
-                        src={listing.imageUrls[selectedImageIndex]}
-                        alt={listing.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {listing.imageUrls.length > 1 && (
-                        <>
-                          <button
-                            onClick={prevImage}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all"
-                            aria-label={t('listing.images.previous', 'Previous image')}
-                          >
-                            <ChevronLeft size={24} />
-                          </button>
-                          <button
-                            onClick={nextImage}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all"
-                            aria-label={t('listing.images.next', 'Next image')}
-                          >
-                            <ChevronRight size={24} />
-                          </button>
-                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                            {selectedImageIndex + 1} / {listing.imageUrls.length}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <Package size={64} className="text-gray-300" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Thumbnails */}
-                {listing.imageUrls && listing.imageUrls.length > 1 && (
-                  <div className="grid grid-cols-5 gap-2">
-                    {listing.imageUrls.map((image, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedImageIndex(index)}
-                        className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                          selectedImageIndex === index
-                            ? 'border-primary-600 ring-2 ring-primary-200'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <img
-                          src={image}
-                          alt={`${listing.title} ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ImageGallery
+                images={listing.imageUrls || []}
+                title={listing.title}
+                selectedIndex={selectedImageIndex}
+                onSelectIndex={setSelectedImageIndex}
+                prevLabel={t('listing.images.previous', 'Previous image')}
+                nextLabel={t('listing.images.next', 'Next image')}
+              />
 
               {/* Product Info */}
               <div className="flex flex-col">
@@ -320,7 +229,7 @@ export default function ListingDetail() {
 
                   <div className="flex items-center gap-4 mb-6">
                     <span className="text-3xl font-bold text-primary-600">
-                      {listing.priceAmount.toLocaleString(locale === 'ar' ? 'ar-SY' : 'en-US')} {listing.priceCurrency || t('listing.details.currencyFallback', 'SYP')}
+                      {formatPrice(listing.priceAmount, locale, listing.priceCurrency || t('listing.details.currencyFallback', 'SYP'))}
                     </span>
                     {listing.condition && (
                       <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
@@ -393,167 +302,50 @@ export default function ListingDetail() {
 
                   {/* Seller Info */}
                   {listing.seller && (
-                    <div className="border-t pt-4 mb-6">
-                      <h2 className="text-xl font-semibold mb-3">{t('listing.sections.seller', 'Seller')}</h2>
-                      {sellerProfileId ? (
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/seller/${sellerProfileId}`)}
-                          className="flex w-full items-center gap-4 rounded-lg border border-transparent hover:border-gray-200 hover:bg-gray-50 p-3 -m-3 transition-colors text-left"
-                        >
-                          <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
-                            {listing.seller.avatar ? (
-                              <img
-                                src={listing.seller.avatar}
-                                alt={listing.seller.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-primary-600 font-bold text-lg">
-                                {listing.seller.name.charAt(0).toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">{listing.seller.name}</p>
-                            {listing.seller.rating !== undefined && (
-                              <div className="flex items-center gap-1 text-sm">
-                                <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                                <span className="text-gray-600">{listing.seller.rating.toFixed(1)}</span>
-                              </div>
-                            )}
-                            {listing.seller.reviewCount !== undefined && (
-                              <p className="text-xs text-gray-500">
-                                {t('listing.seller.reviews', '{{count}} reviews', { count: listing.seller.reviewCount })}
-                              </p>
-                            )}
-                            {listing.seller.city && (
-                              <p className="text-xs text-gray-500 flex items-center gap-1">
-                                <MapPin size={12} />
-                                {listing.seller.city}
-                              </p>
-                            )}
-                          </div>
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
-                            {listing.seller.avatar ? (
-                              <img
-                                src={listing.seller.avatar}
-                                alt={listing.seller.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-primary-600 font-bold text-lg">
-                                {listing.seller.name.charAt(0).toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">{listing.seller.name}</p>
-                            {listing.seller.rating !== undefined && (
-                              <div className="flex items-center gap-1 text-sm">
-                                <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                                <span className="text-gray-600">{listing.seller.rating.toFixed(1)}</span>
-                              </div>
-                            )}
-                            {listing.seller.reviewCount !== undefined && (
-                              <p className="text-xs text-gray-500">
-                                {t('listing.seller.reviews', '{{count}} reviews', { count: listing.seller.reviewCount })}
-                              </p>
-                            )}
-                            {listing.seller.city && (
-                              <p className="text-xs text-gray-500 flex items-center gap-1">
-                                <MapPin size={12} />
-                                {listing.seller.city}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <SellerCard
+                      seller={listing.seller}
+                      profileId={sellerProfileId}
+                      sectionTitle={t('listing.sections.seller', 'Seller')}
+                      reviewsLabel={(count) => t('listing.seller.reviews', '{{count}} reviews', { count })}
+                    />
                   )}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="border-t pt-6 mt-6">
-                  {!isAvailable ? (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-center">{t('listing.availability.unavailable', 'This item is currently unavailable.')}</div>
-                  ) : null}
-
-                  {!isOwnListing && (
-                    <div className="flex flex-col gap-3">
-                      <button
-                        onClick={handleContactSeller}
-                        disabled={contactLoading}
-                        className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-70"
-                      >
-                        <MessageCircle size={20} />
-                        {contactLoading ? t('listing.actions.openChatLoading', 'Opening chat...') : t('listing.actions.contactSeller', 'Message seller')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (!requireAuth()) return;
-                          setReportOpen(true);
-                        }}
-                        className="w-full flex items-center justify-center gap-2 border border-red-300 text-red-700 px-6 py-3 rounded-lg hover:bg-red-50 font-medium transition-colors"
-                      >
-                        {t('report.actions.reportListing', { defaultValue: 'Report listing' })}
-                      </button>
-                    </div>
-                  )}
-
-                  {isOwnListing && (
-                    <div className="flex flex-col gap-3">
-                      <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-center">{t('listing.owner.notice', 'This is your listing.')}</div>
-                      <button
-                        onClick={() => router.push(`/seller/listings/${listing.id}/edit`)}
-                        className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-medium transition-colors"
-                      >
-                        {t('listing.actions.edit', 'Edit listing')}
-                      </button>
-                      <button
-                        onClick={handleDeleteListing}
-                        disabled={deleteLoading}
-                        className="w-full flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-70"
-                      >
-                        {deleteLoading ? t('listing.actions.deleteLoading', 'Deleting...') : t('listing.actions.delete', 'Delete listing')}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Trust Badges */}
-                  <div className="grid grid-cols-3 gap-4 mt-6 text-center">
-                    <div>
-                      <Shield className="mx-auto mb-2 text-green-600" size={24} />
-                      <p className="text-xs text-gray-600">{t('listing.trust.safe', 'Secure payment')}</p>
-                    </div>
-                    <div>
-                      <Package className="mx-auto mb-2 text-blue-600" size={24} />
-                      <p className="text-xs text-gray-600">{t('listing.trust.fastShipping', 'Fast delivery')}</p>
-                    </div>
-                    <div>
-                      <Shield className="mx-auto mb-2 text-primary-600" size={24} />
-                      <p className="text-xs text-gray-600">{t('listing.trust.quality', 'Quality guaranteed')}</p>
-                    </div>
-                  </div>
-                </div>
+                {/* Action Buttons + Trust Badges */}
+                <ListingActions
+                  isOwnListing={isOwnListing}
+                  isAvailable={isAvailable}
+                  contactLoading={contactLoading}
+                  deleteLoading={deleteLoading}
+                  onContactSeller={handleContactSeller}
+                  onReport={() => {
+                    if (!requireAuth()) return;
+                    setReportOpen(true);
+                  }}
+                  onEdit={() => router.push(`/seller/listings/${listing.id}/edit`)}
+                  onDelete={handleDeleteListing}
+                  t={(key, def) => t(key, { defaultValue: def })}
+                />
+                <TrustBadges
+                  safeLabel={t('listing.trust.safe', 'Secure payment')}
+                  shippingLabel={t('listing.trust.fastShipping', 'Fast delivery')}
+                  qualityLabel={t('listing.trust.quality', 'Quality guaranteed')}
+                />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-          {listing?.id ? (
-            <ReportDialog
-              isOpen={reportOpen}
-              onClose={() => setReportOpen(false)}
-              onSubmitted={() => setReportOpen(false)}
-              targetType="Listing"
-              targetId={listing.id}
-            />
-          ) : null}
+      {listing?.id ? (
+        <ReportDialog
+          isOpen={reportOpen}
+          onClose={() => setReportOpen(false)}
+          onSubmitted={() => setReportOpen(false)}
+          targetType="Listing"
+          targetId={listing.id}
+        />
+      ) : null}
     </>
   );
 }
@@ -565,7 +357,3 @@ export async function getServerSideProps({ locale }: { locale?: string }) {
     }
   };
 }
-
-
-
-

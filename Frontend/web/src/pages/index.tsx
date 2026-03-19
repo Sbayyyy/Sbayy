@@ -8,20 +8,12 @@ import Layout from '@/components/Layout';
 import ProductCardSkeleton from '@/components/ProductCardSkeleton';
 import { Search, MapPin, Package } from 'lucide-react';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-
-const categories = [
-  { id: 'cars', slug: 'cars', name: 'مركبات', icon: '🚗' },
-  { id: 'electronics', slug: 'electronics', name: 'إلكترونيات', icon: '📱' },
-  { id: 'furniture', slug: 'furniture', name: 'أثاث', icon: '🛋️' },
-  { id: 'home', slug: 'home', name: 'منزل وحديقة', icon: '🏡' },
-  { id: 'fashion', slug: 'fashion', name: 'ملابس', icon: '👕' },
-  { id: 'books', slug: 'books', name: 'كتب', icon: '📚' },
-  { id: 'sports', slug: 'sports', name: 'رياضة', icon: '⚽' },
-  { id: 'other', slug: 'other', name: 'أخرى', icon: '📦' }
-];
+import { useTranslation } from 'next-i18next';
+import { HOMEPAGE_CATEGORIES } from '@/lib/constants';
 
 export default function Home() {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,7 +55,7 @@ export default function Home() {
   };
 
   return (
-    <Layout title="الرئيسية - سباي">
+    <Layout title={t('home.title')}>
       <div className="min-h-screen space-y-6 py-6">
         
         {/* Search Section */}
@@ -81,14 +73,14 @@ export default function Home() {
                     const validation = defaultTextInputValidator.validate(next);
                     setSearchError(validation.isValid ? '' : validation.message ?? 'Input contains disallowed content');
                   }}
-                  placeholder="ابحث عن منتجات..."
+                  placeholder={t('home.searchPlaceholder')}
                   className="w-full pr-10 pl-4 h-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </form>
               {searchError && <p className="text-sm text-red-500">{searchError}</p>}
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4" />
-                <span>دمشق والمناطق المحيطة</span>
+                <span>{t('home.locationHint')}</span>
               </div>
             </div>
           </div>
@@ -97,9 +89,9 @@ export default function Home() {
         {/* Categories */}
         <div className="container mx-auto px-4">
           <div className="bg-white rounded-lg border shadow-sm p-6">
-            <h3 className="text-xl font-bold mb-4">تصفح الفئات</h3>
+            <h3 className="text-xl font-bold mb-4">{t('home.browseCategories')}</h3>
             <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
-              {categories.map((category) => (
+              {HOMEPAGE_CATEGORIES.map((category) => (
                 <Link
                   key={category.id}
                   href={`/category/${category.slug}`}
@@ -116,9 +108,9 @@ export default function Home() {
         {/* Featured Products */}
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">الإعلانات المميزة</h2>
+            <h2 className="text-2xl font-bold">{t('home.featuredListings')}</h2>
             <Link href="/browse" className="text-primary-600 hover:underline">
-              عرض الكل
+              {t('common.viewAll')}
             </Link>
           </div>
 
@@ -137,8 +129,8 @@ export default function Home() {
           ) : (
             <div className="bg-white rounded-lg border shadow-sm p-12 text-center">
               <Package size={64} className="mx-auto mb-4 text-gray-300" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">لا توجد منتجات</h3>
-              <p className="text-gray-600">لا توجد منتجات متوفرة حالياً</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('common.noProducts')}</h3>
+              <p className="text-gray-600">{t('home.noProductsAvailable')}</p>
             </div>
           )}
         </div>

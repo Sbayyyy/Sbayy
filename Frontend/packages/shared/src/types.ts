@@ -203,8 +203,8 @@ export interface SellerStats {
   awaitingShipment: number;
 }
 
-// Order Interface
-export interface Order {
+// Seller dashboard order summary (distinct from OrderResponse used in order pages)
+export interface SellerOrderSummary {
   id: string;
   orderId: string;
   customerName: string;

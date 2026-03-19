@@ -86,7 +86,7 @@ export default function Header() {
           {/* Logo & Navigation */}
           <div className="flex items-center gap-8">
             <Link href="/" className="text-2xl font-bold text-primary-600 hover:text-primary-700">
-              سباي
+              {t('header.brandName')}
             </Link>
 
             {/* Desktop Navigation */}

@@ -6,6 +6,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { getOrder, updateOrderStatus, cancelOrder } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { 
   Package, 
   Truck, 
@@ -29,6 +31,7 @@ export default function OrderDetailsPage() {
   const router = useRouter();
   const { id } = router.query;
   const isAuthed = useRequireAuth();
+  const { t } = useTranslation('common');
   
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export default function OrderDetailsPage() {
       setError('');
     } catch (err) {
       console.error('Error loading order:', err);
-      setError('حدث خطأ في تحميل الطلب');
+      setError(t('dashboard.orderDetails.loadError'));
     } finally {
       setLoading(false);
     }
@@ -61,28 +64,28 @@ export default function OrderDetailsPage() {
     
     try {
       setUpdating(true);
-      await updateOrderStatus(order.id, newStatus as any);
+      await updateOrderStatus(order.id, newStatus);
       setOrder({ ...order, status: newStatus });
-      alert('تم تحديث حالة الطلب بنجاح');
+      alert(t('dashboard.orderDetails.statusUpdateSuccess'));
     } catch (err) {
       console.error('Error updating order status:', err);
-      alert('حدث خطأ في تحديث حالة الطلب');
+      alert(t('dashboard.orderDetails.statusUpdateError'));
     } finally {
       setUpdating(false);
     }
   };
 
   const handleCancelOrder = async () => {
-    if (!order || !confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) return;
-    
+    if (!order || !confirm(t('dashboard.orderDetails.cancelConfirm'))) return;
+
     try {
       setUpdating(true);
       await cancelOrder(order.id);
       setOrder({ ...order, status: 'cancelled' });
-      alert('تم إلغاء الطلب بنجاح');
+      alert(t('dashboard.orderDetails.cancelSuccess'));
     } catch (err) {
       console.error('Error cancelling order:', err);
-      alert('حدث خطأ في إلغاء الطلب');
+      alert(t('dashboard.orderDetails.cancelError'));
     } finally {
       setUpdating(false);
     }
@@ -108,15 +111,15 @@ export default function OrderDetailsPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'قيد الانتظار';
+        return t('dashboard.orderStatus.pending');
       case 'confirmed':
-        return 'تم التأكيد';
+        return t('dashboard.orderStatus.confirmed');
       case 'shipped':
-        return 'قيد الشحن';
+        return t('dashboard.orderStatus.shipped');
       case 'delivered':
-        return 'تم التوصيل';
+        return t('dashboard.orderStatus.delivered');
       case 'cancelled':
-        return 'ملغى';
+        return t('dashboard.orderStatus.cancelled');
       default:
         return status;
     }
@@ -163,10 +166,10 @@ export default function OrderDetailsPage() {
     if (!order) return [];
     
     const steps = [
-      { status: 'pending', label: 'تم إنشاء الطلب', completed: true },
-      { status: 'confirmed', label: 'تم التأكيد', completed: order.status !== 'pending' && order.status !== 'cancelled' },
-      { status: 'shipped', label: 'تم الشحن', completed: order.status === 'shipped' || order.status === 'delivered' },
-      { status: 'delivered', label: 'تم التوصيل', completed: order.status === 'delivered' }
+      { status: 'pending', label: t('dashboard.orderDetails.timelineCreated'), completed: true },
+      { status: 'confirmed', label: t('dashboard.orderDetails.timelineConfirmed'), completed: order.status !== 'pending' && order.status !== 'cancelled' },
+      { status: 'shipped', label: t('dashboard.orderDetails.timelineShipped'), completed: order.status === 'shipped' || order.status === 'delivered' },
+      { status: 'delivered', label: t('dashboard.orderDetails.timelineDelivered'), completed: order.status === 'delivered' }
     ];
     
     return steps;
@@ -188,10 +191,10 @@ export default function OrderDetailsPage() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">خطأ في تحميل الطلب</h2>
-            <p className="text-gray-600 mb-6">{error || 'الطلب غير موجود'}</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('dashboard.orderDetails.errorHeading')}</h2>
+            <p className="text-gray-600 mb-6">{error || t('dashboard.orderDetails.notFound')}</p>
             <Link href="/dashboard/orders/purchases" className="btn-primary">
-              العودة للطلبات
+              {t('dashboard.orderDetails.backToOrders')}
             </Link>
           </div>
         </div>
@@ -202,7 +205,7 @@ export default function OrderDetailsPage() {
   return (
     <Layout>
       <Head>
-        <title>تفاصيل الطلب #{order.id.slice(0, 8)} - Sbay سباي</title>
+        <title>{t('dashboard.orderDetails.title', { id: order.id.slice(0, 8) })}</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 py-8">
@@ -214,12 +217,12 @@ export default function OrderDetailsPage() {
               className="inline-flex items-center gap-2 text-primary hover:underline mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
-              العودة للطلبات
+              {t('dashboard.orderDetails.backToOrders')}
             </Link>
             <div className="flex flex-wrap justify-between items-start gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
-                  الطلب #{order.id.slice(0, 8)}
+                  {t('dashboard.orderDetails.heading', { id: order.id.slice(0, 8) })}
                 </h1>
                 <p className="text-gray-600 mt-2 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
@@ -236,7 +239,7 @@ export default function OrderDetailsPage() {
           {/* Order Timeline */}
           {order.status !== 'cancelled' && (
             <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <h2 className="text-xl font-bold mb-6">حالة الطلب</h2>
+              <h2 className="text-xl font-bold mb-6">{t('dashboard.orderDetails.orderStatus')}</h2>
               <div className="relative">
                 <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200" style={{ zIndex: 0 }}></div>
                 <div className="grid grid-cols-4 gap-4 relative" style={{ zIndex: 1 }}>
@@ -271,7 +274,7 @@ export default function OrderDetailsPage() {
               {/* Order Items */}
               <div className="bg-white rounded-lg shadow">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-xl font-bold">المنتجات</h2>
+                  <h2 className="text-xl font-bold">{t('dashboard.orderDetails.products')}</h2>
                 </div>
                 <div className="p-6 space-y-4">
                   {order.items.map((item, index) => (
@@ -281,13 +284,13 @@ export default function OrderDetailsPage() {
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-gray-900 mb-1">
-                          منتج #{item.productId.slice(0, 8)}
+                          {t('dashboard.orderDetails.product', { id: item.productId.slice(0, 8) })}
                         </p>
                         <p className="text-sm text-gray-600">
-                          السعر: {formatPrice(item.price)}
+                          {t('dashboard.orderDetails.price')}: {formatPrice(item.price)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          الكمية: {item.quantity}
+                          {t('dashboard.orderDetails.quantity')}: {item.quantity}
                         </p>
                       </div>
                       <div className="text-right">
@@ -303,7 +306,7 @@ export default function OrderDetailsPage() {
               {/* Shipping Address */}
               <div className="bg-white rounded-lg shadow">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-xl font-bold">عنوان الشحن</h2>
+                  <h2 className="text-xl font-bold">{t('dashboard.orderDetails.shippingAddress')}</h2>
                 </div>
                 <div className="p-6">
                   {order.shippingAddress ? (
@@ -328,7 +331,7 @@ export default function OrderDetailsPage() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-500">لا توجد معلومات عنوان التوصيل</p>
+                    <p className="text-gray-500">{t('dashboard.orderDetails.noShippingAddress')}</p>
                   )}
                 </div>
               </div>
@@ -337,30 +340,30 @@ export default function OrderDetailsPage() {
               {order.shippingInfo && (
                 <div className="bg-white rounded-lg shadow">
                   <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-xl font-bold">معلومات الشحن</h2>
+                    <h2 className="text-xl font-bold">{t('dashboard.orderDetails.shippingInfo')}</h2>
                   </div>
                   <div className="p-6 space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">شركة الشحن:</span>
+                      <span className="text-gray-600">{t('dashboard.orderDetails.carrier')}:</span>
                       <span className="font-medium text-gray-900">
-                        {order.shippingInfo.carrier === 'dhl' ? 'DHL' : 'أخرى'}
+                        {order.shippingInfo.carrier === 'dhl' ? 'DHL' : t('dashboard.orderDetails.otherCarrier')}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">تكلفة الشحن:</span>
+                      <span className="text-gray-600">{t('dashboard.orderDetails.shippingCost')}:</span>
                       <span className="font-medium text-gray-900">
                         {formatPrice(order.shippingInfo.cost)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">مدة التوصيل المتوقعة:</span>
+                      <span className="text-gray-600">{t('dashboard.orderDetails.estimatedDelivery')}:</span>
                       <span className="font-medium text-gray-900">
-                        {order.shippingInfo.estimatedDays} أيام
+                        {t('dashboard.orderDetails.estimatedDays', { days: order.shippingInfo.estimatedDays })}
                       </span>
                     </div>
                     {order.shippingInfo.trackingNumber && (
                       <div className="pt-3 border-t border-gray-100">
-                        <p className="text-sm text-gray-600 mb-2">رقم التتبع:</p>
+                        <p className="text-sm text-gray-600 mb-2">{t('dashboard.orderDetails.trackingNumber')}:</p>
                         <code className="bg-gray-100 px-3 py-2 rounded text-sm font-mono">
                           {order.shippingInfo.trackingNumber}
                         </code>
@@ -371,7 +374,7 @@ export default function OrderDetailsPage() {
                           className="btn-outline mt-3 w-full text-center"
                         >
                           <Truck className="w-4 h-4 inline ml-2" />
-                          تتبع الشحنة
+                          {t('dashboard.orderDetails.trackShipment')}
                         </a>
                       </div>
                     )}
@@ -385,19 +388,19 @@ export default function OrderDetailsPage() {
               {/* Order Summary */}
               <div className="bg-white rounded-lg shadow">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-xl font-bold">ملخص الطلب</h2>
+                  <h2 className="text-xl font-bold">{t('dashboard.orderDetails.orderSummary')}</h2>
                 </div>
                 <div className="p-6 space-y-3">
                   <div className="flex justify-between text-gray-600">
-                    <span>المجموع الفرعي:</span>
+                    <span>{t('dashboard.orderDetails.subtotal')}:</span>
                     <span>{formatPrice(order.subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>الشحن:</span>
+                    <span>{t('dashboard.orderDetails.shipping')}:</span>
                     <span>{formatPrice(order.shippingInfo.cost)}</span>
                   </div>
                   <div className="pt-3 border-t border-gray-200 flex justify-between">
-                    <span className="font-bold text-lg">المجموع الكلي:</span>
+                    <span className="font-bold text-lg">{t('dashboard.orderDetails.grandTotal')}:</span>
                     <span className="font-bold text-2xl text-primary">
                       {formatPrice(order.total)}
                     </span>
@@ -405,11 +408,11 @@ export default function OrderDetailsPage() {
                   <div className="pt-3 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-600">
                     <CreditCard className="w-4 h-4" />
                     <span>
-                      {order.paymentMethod === 'cod' 
-                        ? 'الدفع عند الاستلام' 
-                        : order.paymentMethod === 'bank_transfer' 
-                        ? 'تحويل بنكي' 
-                        : 'اللقاء شخصياً'}
+                      {order.paymentMethod === 'cod'
+                        ? t('dashboard.paymentMethods.cod')
+                        : order.paymentMethod === 'bank_transfer'
+                        ? t('dashboard.paymentMethods.bankTransfer')
+                        : t('dashboard.paymentMethods.meetInPerson')}
                     </span>
                   </div>
                 </div>
@@ -417,11 +420,11 @@ export default function OrderDetailsPage() {
 
               {/* Actions */}
               <div className="bg-white rounded-lg shadow p-6 space-y-3">
-                <h3 className="font-bold mb-4">الإجراءات</h3>
-                
+                <h3 className="font-bold mb-4">{t('dashboard.orderDetails.actions')}</h3>
+
                 <button className="btn-primary w-full">
                   <MessageSquare className="w-4 h-4 inline ml-2" />
-                  تواصل مع البائع
+                  {t('dashboard.orderDetails.contactSeller')}
                 </button>
 
                 {order.status === 'pending' && (
@@ -435,14 +438,14 @@ export default function OrderDetailsPage() {
                     ) : (
                       <XCircle className="w-4 h-4 inline ml-2" />
                     )}
-                    إلغاء الطلب
+                    {t('dashboard.orderDetails.cancelOrder')}
                   </button>
                 )}
 
                 {order.status === 'delivered' && (
                   <button className="btn-outline w-full">
                     <CheckCircle className="w-4 h-4 inline ml-2" />
-                    تقييم الطلب
+                    {t('dashboard.orderDetails.rateOrder')}
                   </button>
                 )}
               </div>
@@ -452,4 +455,8 @@ export default function OrderDetailsPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getServerSideProps({ locale }: { locale?: string }) {
+  return { props: { ...(await serverSideTranslations(locale ?? 'ar', ['common'])) } };
 }

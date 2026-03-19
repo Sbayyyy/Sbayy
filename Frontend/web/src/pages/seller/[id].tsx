@@ -8,8 +8,9 @@ import ReviewList from '@/components/ReviewList';
 import { getSellerReviews } from '@/lib/api/reviews';
 import { getListingsBySeller } from '@/lib/api/listings';
 import { getSellerProfile } from '@/lib/api/users';
+import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
-import { 
+import {
   User as UserIcon,
   MapPin,
   Package,
@@ -29,7 +30,8 @@ import ReportDialog from '@/components/ReportDialog';
 export default function SellerProfilePage() {
   const router = useRouter();
   const { id: sellerId } = router.query;
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
+  const { user } = useAuthStore();
 
   const [seller, setSeller] = useState<Awaited<ReturnType<typeof getSellerProfile>> | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -62,7 +64,7 @@ export default function SellerProfilePage() {
         const reviewsData = await getSellerReviews(sellerId as string, 1, 10);
         setReviews(reviewsData.reviews.map(r => ({
           ...r,
-          isOwn: false // TODO: Check against current user
+          isOwn: r.userId === user?.id
         })));
         setReviewStats(reviewsData.stats);
       } catch (err) {
@@ -74,7 +76,7 @@ export default function SellerProfilePage() {
       setError('');
     } catch (err) {
       console.error('Error loading seller data:', err);
-      setError('حدث خطأ في تحميل بيانات البائع');
+      setError(t('sellerProfile.loadError'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +84,7 @@ export default function SellerProfilePage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ar-SY', {
+    return date.toLocaleDateString(i18n.language === 'ar' ? 'ar-SY' : 'en-US', {
       year: 'numeric',
       month: 'long'
     });
@@ -113,7 +115,7 @@ export default function SellerProfilePage() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-gray-600">
             <Loader2 className="w-8 h-8 animate-spin" />
-            <span>Loading seller profile...</span>
+            <span>{t('sellerProfile.loading')}</span>
           </div>
         </div>
       </Layout>
@@ -124,7 +126,7 @@ export default function SellerProfilePage() {
     return (
       <Layout>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center text-gray-600">Seller not found.</div>
+          <div className="text-center text-gray-600">{t('sellerProfile.notFound')}</div>
         </div>
       </Layout>
     );
@@ -133,10 +135,10 @@ export default function SellerProfilePage() {
   return (
     <Layout>
       <Head>
-        <title>{seller.name} - Seller Profile | SBay</title>
+        <title>{t('sellerProfile.title', { name: seller.name })}</title>
         <meta
           name="description"
-          content={`Seller profile for ${seller.name}. Rated ${averageRating.toFixed(1)} out of 5.`}
+          content={t('sellerProfile.description', { name: seller.name, rating: averageRating.toFixed(1) })}
         />
       </Head>
 
@@ -165,13 +167,13 @@ export default function SellerProfilePage() {
                     <div className="flex items-center gap-2 mt-2">
                       <RatingStars rating={averageRating} size="md" showNumber />
                       <span className="text-sm text-gray-600">
-                        {averageRating.toFixed(1)} | {reviewTotal} reviews
+                        {averageRating.toFixed(1)} | {t('sellerProfile.reviews', { count: reviewTotal })}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        <span>Joined {formatDate(seller.createdAt)}</span>
+                        <span>{t('sellerProfile.joined', { date: formatDate(seller.createdAt) })}</span>
                       </div>
                       {seller.city && (
                         <div className="flex items-center gap-2">
@@ -210,28 +212,28 @@ export default function SellerProfilePage() {
             <div className="bg-white rounded-2xl shadow-sm p-5">
               <div className="flex items-center gap-2 text-gray-600 mb-1">
                 <Package className="w-4 h-4" />
-                <span className="text-xs uppercase tracking-wide">Items Sold</span>
+                <span className="text-xs uppercase tracking-wide">{t('sellerProfile.itemsSold')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">{seller.totalOrders}</p>
-              <p className="text-xs text-gray-500 mt-1">Completed sales</p>
+              <p className="text-xs text-gray-500 mt-1">{t('sellerProfile.completedSales')}</p>
             </div>
             <div className="bg-white rounded-2xl shadow-sm p-5">
               <div className="flex items-center gap-2 text-gray-600 mb-1">
                 <Star className="w-4 h-4" />
-                <span className="text-xs uppercase tracking-wide">Average Rating</span>
+                <span className="text-xs uppercase tracking-wide">{t('sellerProfile.averageRating')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">{averageRating.toFixed(1)}</p>
-              <p className="text-xs text-gray-500 mt-1">{reviewTotal} total reviews</p>
+              <p className="text-xs text-gray-500 mt-1">{t('sellerProfile.totalReviews', { count: reviewTotal })}</p>
             </div>
             <div className="bg-white rounded-2xl shadow-sm p-5">
               <div className="flex items-center gap-2 text-gray-600 mb-1">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-xs uppercase tracking-wide">Positive Feedback</span>
+                <span className="text-xs uppercase tracking-wide">{t('sellerProfile.positiveFeedback')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">
-                {hasReviewStats ? `${positiveFeedback}%` : 'No stats'}
+                {hasReviewStats ? `${positiveFeedback}%` : t('sellerProfile.noStats')}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Based on reviews</p>
+              <p className="text-xs text-gray-500 mt-1">{t('sellerProfile.basedOnReviews')}</p>
             </div>
           </div>
 
@@ -246,7 +248,7 @@ export default function SellerProfilePage() {
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  Listings ({products.length})
+                  {t('sellerProfile.tabListings', { count: products.length })}
                 </button>
                 <button
                   onClick={() => setActiveTab('reviews')}
@@ -256,7 +258,7 @@ export default function SellerProfilePage() {
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  Reviews ({reviewTotal})
+                  {t('sellerProfile.tabReviews', { count: reviewTotal })}
                 </button>
               </div>
             </div>
@@ -272,7 +274,7 @@ export default function SellerProfilePage() {
                 ) : (
                   <div className="text-center py-12">
                     <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">No listings available right now.</p>
+                    <p className="text-gray-500">{t('sellerProfile.noListings')}</p>
                   </div>
                 )
               ) : (
@@ -286,13 +288,13 @@ export default function SellerProfilePage() {
                           </div>
                           <RatingStars rating={averageRating} size="md" showNumber={false} />
                           <p className="text-sm text-gray-600 mt-2">
-                            {reviewTotal} total ratings
+                            {t('sellerProfile.totalRatings', { count: reviewTotal })}
                           </p>
                         </div>
                         <div className="space-y-3">
                           {[5, 4, 3, 2, 1].map((stars) => (
                             <div key={stars} className="flex items-center gap-3">
-                              <span className="text-sm w-12">{stars} star</span>
+                              <span className="text-sm w-12">{t('sellerProfile.star', { count: stars })}</span>
                               <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-primary"
@@ -307,7 +309,7 @@ export default function SellerProfilePage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center text-sm text-gray-500">No stats available yet.</div>
+                      <div className="text-center text-sm text-gray-500">{t('sellerProfile.noStats')}</div>
                     )}
                   </div>
 

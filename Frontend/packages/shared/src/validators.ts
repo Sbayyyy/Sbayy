@@ -80,6 +80,12 @@ export const createNoProfanityValidator = (
   );
 };
 
+/**
+ * Basic SQL injection detection pattern. Note: this is a defense-in-depth measure
+ * and may produce false positives for legitimate inputs containing SQL keywords
+ * (e.g., a product titled "select items" or "union jack"). Backend parameterized
+ * queries remain the primary protection against SQL injection.
+ */
 const sqlInjectionPattern =
   /(\b(select|insert|update|delete|drop|alter|create|truncate|exec|execute|union)\b|--|;|\/\*|\*\/|@@|char\(|nchar\(|varchar\(|nvarchar\(|xp_)/i;
 

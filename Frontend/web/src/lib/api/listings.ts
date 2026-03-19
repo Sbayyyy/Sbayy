@@ -1,5 +1,6 @@
 import { api } from '../api';
 import type { Product, ProductCreate, ProductUpdate, SearchFilters, SearchResponse } from '@sbay/shared';
+import { normalizeListingsResponse } from './transforms';
 
 /**
  * Listing erstellen
@@ -49,13 +50,13 @@ export const getListingsBySeller = async (sellerId: string): Promise<Product[]> 
  * Alle Listings abrufen (mit Pagination und Filtern)
  */
 export const getAllListings = async (
-  page = 1, 
+  page = 1,
   limit = 20,
   filters?: SearchFilters
 ): Promise<SearchResponse> => {
-  const response = await api.get<any>('/listings', {
-    params: { 
-      page, 
+  const response = await api.get('/listings', {
+    params: {
+      page,
       pageSize: limit, // Backend uses 'pageSize' not 'limit'
       category: filters?.category,
       minPrice: filters?.minPrice,
@@ -64,37 +65,6 @@ export const getAllListings = async (
       region: filters?.region,
     }
   });
-  
-  // Backend should return { items: Product[], total: number } or just Product[]
-  // Handle both cases for compatibility
-  if (response.data && typeof response.data === 'object') {
-    if (Array.isArray(response.data)) {
-      // Backend returns array directly
-      return {
-        items: response.data,
-        total: response.data.length, // Can't know real total from single page
-        page,
-        limit,
-        totalPages: 1, // Unknown without total from backend
-      };
-    } else if (response.data.items && Array.isArray(response.data.items)) {
-      // Backend returns { items, total }
-      return {
-        items: response.data.items,
-        total: response.data.total || response.data.items.length,
-        page,
-        limit,
-        totalPages: Math.ceil((response.data.total || response.data.items.length) / limit),
-      };
-    }
-  }
-  
-  // Fallback
-  return {
-    items: [],
-    total: 0,
-    page,
-    limit,
-    totalPages: 0,
-  };
+
+  return normalizeListingsResponse(response.data, page, limit);
 };

@@ -1,5 +1,5 @@
 import { Product } from '@sbay/shared';
-import { SellerStats, Order, DailyRevenue, WeeklySales } from '@sbay/shared';
+import { SellerStats, SellerOrderSummary, DailyRevenue, WeeklySales } from '@sbay/shared';
 
 export const mockProducts: Product[] = [
   {
@@ -91,7 +91,7 @@ export const mockStats: SellerStats = {
   awaitingShipment: 18
 };
 
-export const mockRecentOrders: Order[] = [
+export const mockRecentOrders: SellerOrderSummary[] = [
   {
     id: '1',
     orderId: 'ORD-1127',

@@ -1,5 +1,5 @@
 import { api } from '../api';
-import { SellerStats, Order, DailyRevenue, WeeklySales } from '@sbay/shared';
+import { SellerStats, SellerOrderSummary, DailyRevenue, WeeklySales } from '@sbay/shared';
 
 /**
  * Seller Statistics abrufen
@@ -12,7 +12,7 @@ export const getSellerStats = async (): Promise<SellerStats> => {
 /**
  * Recent Orders abrufen
  */
-export const getRecentOrders = async (limit = 10): Promise<Order[]> => {
+export const getRecentOrders = async (limit = 10): Promise<SellerOrderSummary[]> => {
   const response = await api.get('/seller/orders/recent', { params: { limit } });
   return response.data;
 };
