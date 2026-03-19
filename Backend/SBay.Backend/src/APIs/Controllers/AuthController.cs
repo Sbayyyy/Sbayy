@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -75,6 +75,7 @@ public class AuthController : ControllerBase
 
         var dto = user.ToDto();
         var token = GenerateJwt(user);
+        SetAuthCookie(token);
         return CreatedAtAction(nameof(GetMe), new { }, new AuthResponse(dto, token));
     }
 
@@ -106,6 +107,7 @@ public class AuthController : ControllerBase
 
         var dto = user.ToDto();
         var token = GenerateJwt(user);
+        SetAuthCookie(token);
         return Ok(new AuthResponse(dto, token));
     }
 
@@ -148,6 +150,20 @@ public class AuthController : ControllerBase
 
         return Ok();
     }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("auth_token", new CookieOptions
+        {
+            Path = "/",
+            SameSite = SameSiteMode.Strict,
+            HttpOnly = true,
+            Secure = true,
+        });
+        return Ok();
+    }
     
     private string GenerateJwt(User user)
     {
@@ -174,5 +190,17 @@ public class AuthController : ControllerBase
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private void SetAuthCookie(string token)
+    {
+        Response.Cookies.Append("auth_token", token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddDays(7),
+            Path = "/",
+        });
     }
 }

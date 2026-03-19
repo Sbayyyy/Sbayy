@@ -326,7 +326,12 @@
     "fastDelivery": "Fast delivery to all regions",
     "itemSubtotal": "Subtotal:",
     "removeFromCart": "Remove from cart",
-    "stockWarning": "Available stock: {{count}}"
+    "stockWarning": "Available stock: {{count}}",
+    "error": {
+      "stockInsufficient": "Sorry, not enough stock. Available: {{stock}}",
+      "stockExceeded": "Cannot add more. Available stock: {{stock}}",
+      "itemNotFound": "Item not found in cart"
+    }
   },
   "browse": {
     "title": "Browse Products - SBay",

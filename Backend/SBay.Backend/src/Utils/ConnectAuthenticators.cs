@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.AspNetCore.Authentication;
@@ -180,13 +180,25 @@ public static class ConnectAuthenticators
             var prev = o.Events.OnMessageReceived;
             o.Events.OnMessageReceived = async ctx =>
             {
+                // SignalR: read token from query string for WebSocket connections
                 if (ctx.Request.Query.TryGetValue("access_token", out var token) &&
                     ctx.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
                 {
                     ctx.Token = token;
                 }
+
+                // Cookie fallback: read from HttpOnly cookie when no Authorization header present
+                if (string.IsNullOrEmpty(ctx.Token) &&
+                    !ctx.Request.Headers.ContainsKey("Authorization") &&
+                    ctx.Request.Cookies.TryGetValue("auth_token", out var cookieToken) &&
+                    !string.IsNullOrWhiteSpace(cookieToken))
+                {
+                    ctx.Token = cookieToken;
+                }
+
                 if (prev != null) await prev(ctx);
             };
         });
+
     }
 }

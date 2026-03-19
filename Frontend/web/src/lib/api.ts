@@ -8,6 +8,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 const api = axios.create({
   baseURL: config.apiUrl,
   timeout: config.apiTimeout,
+  withCredentials: true, // send auth_token cookie automatically
   headers: { 
     'Content-Type': 'application/json',
   },
@@ -47,19 +48,6 @@ if (config.enableLogging) {
 }
 
 if (typeof window !== 'undefined') {
-  api.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
-    }
-  );
-
   api.interceptors.response.use(
     (res) => {
       // Clean up retry counter on success
@@ -71,36 +59,13 @@ if (typeof window !== 'undefined') {
       const originalRequest = error.config as RetryableRequestConfig | undefined;
       if (!originalRequest) return Promise.reject(error);
 
-      // Handle 401 Unauthorized - Token refresh
+      // Handle 401 Unauthorized - cookie expired or invalid, redirect to login
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
-        const refreshToken = localStorage.getItem('refreshToken');
-
-        if (refreshToken) {
-          try {
-            const response = await axios.post(`${config.apiUrl}/auth/refresh`, { refreshToken });
-            const { token } = response.data;
-
-            localStorage.setItem('token', token);
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            
-            return api.request(originalRequest);
-          } catch (refreshError) {
-            // Refresh failed - logout
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-              window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
-            }
-            return Promise.reject(refreshError);
-          }
-        } else {
-          // No refresh token - logout
-          localStorage.removeItem('token');
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-            window.location.href = '/auth/login';
-          }
+        if (!window.location.pathname.includes('/auth')) {
+          window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
         }
+        return Promise.reject(error);
       }
 
       // Handle network errors with retry
