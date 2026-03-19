@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/router';
 import { getAllListings } from '@/lib/api/listings';
-import { Product, defaultTextInputValidator, loadProfanityListFromUrl } from '@sbay/shared';
+import { Product, defaultTextInputValidator } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
@@ -14,33 +15,20 @@ import { HOMEPAGE_CATEGORIES } from '@/lib/constants';
 export default function Home() {
   const router = useRouter();
   const { t } = useTranslation('common');
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchError, setSearchError] = useState('');
-  
-  useEffect(() => {
-    loadFeaturedProducts();
-  }, []);
 
-  useEffect(() => {
-    void loadProfanityListFromUrl('/profanities.txt');
-  }, []);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['featuredProducts'],
+    queryFn: () => getAllListings(1, 8),
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+  });
 
-  const loadFeaturedProducts = async () => {
-    try {
-      const data = await getAllListings(1, 8);
-      if (data && data.items) {
-        setFeaturedProducts(data.items);
-      } else if (Array.isArray(data)) {
-        setFeaturedProducts(data.slice(0, 8));
-      }
-    } catch (err) {
-      console.error('Error loading featured products:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const featuredProducts: Product[] = data?.items
+    ? data.items
+    : Array.isArray(data)
+    ? (data as Product[]).slice(0, 8)
+    : [];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

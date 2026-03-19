@@ -8,9 +8,10 @@ import {
   Edit2,
 } from 'lucide-react';
 import type { User } from '@sbay/shared';
-import type { ProfileFormData, ProfileErrors, TranslationFn } from './types';
+import type { ProfileFormData, ProfileErrors } from './types';
 import { getCityLabel } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
+import { useTranslation } from 'next-i18next';
 
 interface CityOption {
   value: string;
@@ -36,7 +37,6 @@ interface ProfileHeaderProps {
   pendingOrders: number;
   reviewCount: number;
   memberSince: string;
-  t: TranslationFn;
 }
 
 export default function ProfileHeader({
@@ -57,8 +57,8 @@ export default function ProfileHeader({
   pendingOrders,
   reviewCount,
   memberSince,
-  t,
 }: ProfileHeaderProps) {
+  const { t } = useTranslation('common');
   return (
     <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex flex-col lg:flex-row gap-6">

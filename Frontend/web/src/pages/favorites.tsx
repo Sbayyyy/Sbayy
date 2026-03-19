@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
 import { getFavorites, removeFavorite } from '@/lib/api/favorites';
@@ -12,37 +12,25 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 export default function FavoritesPage() {
   const { t } = useTranslation('common');
   const isAuthed = useRequireAuth();
-  const [favorites, setFavorites] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!isAuthed) return;
-    loadFavorites();
-  }, [isAuthed]);
+  const { data: favorites = [], isLoading: loading, error: queryError } = useQuery<Product[]>({
+    queryKey: ['favorites'],
+    queryFn: getFavorites,
+    enabled: !!isAuthed,
+  });
 
-  const loadFavorites = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await getFavorites();
-      setFavorites(data);
-    } catch (err: unknown) {
-      console.error('Error loading favorites:', err);
-      setError(t('favorites.loadError'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const error = queryError ? t('favorites.loadError') : '';
 
   const handleRemoveFavorite = async (productId: string) => {
     try {
       await removeFavorite(productId);
-      // Update local state
-      setFavorites(prev => prev.filter(p => p.id !== productId));
+      // Optimistic update: remove from cached list immediately
+      queryClient.setQueryData<Product[]>(['favorites'], (prev) =>
+        (prev ?? []).filter((p) => p.id !== productId)
+      );
     } catch (err: unknown) {
       console.error('Error removing favorite:', err);
-      setError(t('favorites.removeError'));
     }
   };
 

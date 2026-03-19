@@ -2,7 +2,6 @@ import type { AppProps } from 'next/app';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import '@/styles/globals.css';
-import CartSidebar from '@/components/CartSidebar';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { ToastContainer } from '@/lib/toast';
 import { appWithTranslation } from 'next-i18next';
@@ -43,7 +42,6 @@ function App({ Component, pageProps }: AppProps) {
       <ErrorBoundary>
         <Component {...pageProps} />
       </ErrorBoundary>
-      <CartSidebar />
       <ToastContainer />
     </QueryClientProvider>
   );

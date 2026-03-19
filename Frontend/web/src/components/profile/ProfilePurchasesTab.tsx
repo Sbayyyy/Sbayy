@@ -1,21 +1,20 @@
 import Link from 'next/link';
 import { Loader2, AlertCircle } from 'lucide-react';
 import type { OrderResponse } from '@sbay/shared';
-import type { TranslationFn } from './types';
+import { useTranslation } from 'next-i18next';
 
 interface ProfilePurchasesTabProps {
   purchases: OrderResponse[];
   purchasesLoading: boolean;
   purchasesError: string;
-  t: TranslationFn;
 }
 
 export default function ProfilePurchasesTab({
   purchases,
   purchasesLoading,
   purchasesError,
-  t,
 }: ProfilePurchasesTabProps) {
+  const { t } = useTranslation('common');
   return (
     <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.purchasesTitle')}</h2>

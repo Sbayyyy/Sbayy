@@ -1,5 +1,5 @@
 import { Package, ShoppingBag } from 'lucide-react';
-import type { TranslationFn } from './types';
+import { useTranslation } from 'next-i18next';
 
 interface Activity {
   type: 'listing' | 'purchase';
@@ -10,10 +10,10 @@ interface Activity {
 
 interface ProfileOverviewTabProps {
   activities: Activity[];
-  t: TranslationFn;
 }
 
-export default function ProfileOverviewTab({ activities, t }: ProfileOverviewTabProps) {
+export default function ProfileOverviewTab({ activities }: ProfileOverviewTabProps) {
+  const { t } = useTranslation('common');
   return (
     <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="bg-white rounded-xl border border-gray-200 p-6">
