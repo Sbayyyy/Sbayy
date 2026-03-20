@@ -40,7 +40,8 @@ describe('Auth Store', () => {
       expect(result.current.user).toEqual(mockUser);
       expect(result.current.token).toBe('test-token');
       expect(result.current.isAuthenticated).toBe(true);
-      expect(localStorage.setItem).toHaveBeenCalledWith('token', 'test-token');
+      // Token must NOT be persisted to localStorage (in-memory only)
+      expect(localStorage.setItem).not.toHaveBeenCalledWith('token', expect.anything());
     });
   });
 
@@ -64,8 +65,9 @@ describe('Auth Store', () => {
       expect(result.current.user).toBeNull();
       expect(result.current.token).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
-      expect(localStorage.removeItem).toHaveBeenCalledWith('token');
-      expect(localStorage.removeItem).toHaveBeenCalledWith('refreshToken');
+      // localStorage should NOT be touched for token cleanup (in-memory only)
+      expect(localStorage.removeItem).not.toHaveBeenCalledWith('token');
+      expect(localStorage.removeItem).not.toHaveBeenCalledWith('refreshToken');
     });
   });
 

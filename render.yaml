@@ -47,6 +47,8 @@ services:
         sync: false
       - key: Sentry__Dsn
         sync: false
+      - key: App__AllowedOrigins
+        sync: false
 
   - type: web
     name: sbay-web

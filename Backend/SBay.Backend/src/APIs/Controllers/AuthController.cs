@@ -15,10 +15,12 @@ using RegisterRequest=SBay.Backend.APIs.Records.RegisterRequest;
 using UserDto=SBay.Backend.APIs.Records.UserDto;
 using AuthResponse= SBay.Backend.APIs.Records.Responses.AuthResponse;
 using ChangePasswordRequest = SBay.Backend.APIs.Records.ChangePasswordRequest;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting("AuthRateLimit")]
 public class AuthController : ControllerBase
 {
     private readonly IUserRepository _users;
@@ -199,7 +201,7 @@ public class AuthController : ControllerBase
             HttpOnly = true,
             Secure = true,
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddDays(7),
+            Expires = DateTimeOffset.UtcNow.AddMinutes(_jwt.ExpMinutes),
             Path = "/",
         });
     }

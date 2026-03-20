@@ -44,6 +44,9 @@ export const useCartStore = create<CartStore>()(
 
       // Actions
       addItem: (product: Product, quantity = 1) => {
+        // Reject non-positive or non-integer quantities
+        if (!Number.isInteger(quantity) || quantity <= 0) return;
+
         const state = get();
         
         // Validate stock
@@ -119,6 +122,8 @@ export const useCartStore = create<CartStore>()(
       },
 
       updateQuantity: (productId: string, quantity: number) => {
+        // Reject non-integer quantities; treat zero/negative as remove
+        if (!Number.isInteger(quantity)) return;
         if (quantity <= 0) {
           get().removeItem(productId);
           return;

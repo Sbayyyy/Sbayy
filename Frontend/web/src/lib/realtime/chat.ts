@@ -6,6 +6,7 @@ import {
 } from '@microsoft/signalr';
 
 import config from '@/lib/config';
+import { useAuthStore } from '@/lib/store';
 
 export type RealtimeMessage = {
   id: string;
@@ -108,7 +109,7 @@ export async function createChatConnection(): Promise<HubConnection> {
   return new HubConnectionBuilder()
     .withUrl(resolveHubUrl(), {
       transport: HttpTransportType.WebSockets,
-      accessTokenFactory: () => localStorage.getItem('token') ?? '',
+      accessTokenFactory: () => useAuthStore.getState().token ?? '',
     })
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Warning)

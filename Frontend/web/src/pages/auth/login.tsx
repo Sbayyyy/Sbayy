@@ -126,7 +126,7 @@ export default function Login() {
         try {
             const data = await login({ email, password });
             
-            // Store in AuthStore (which also saves to localStorage)
+            // Store in AuthStore (in-memory only; cookie handles HTTP auth)
             loginStore(data.user, data.token);
             
             // Redirect

@@ -190,12 +190,42 @@ ConnectAuthenticators.connectAuthenticators(builder);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ─── CORS: Config-driven allowed origins ────────────────────────────────────
+var allowedOrigins = builder.Configuration["App:AllowedOrigins"]
+    ?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? (builder.Environment.IsDevelopment()
+        ? new[] { "http://localhost:3000", "http://localhost:5173" }
+        : Array.Empty<string>());
+
 builder.Services.AddCors(o =>
 {
-    o.AddPolicy("AllowAll", p => p
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowAnyOrigin());
+    o.AddPolicy("SBayOrigins", p =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            p.WithOrigins(allowedOrigins)
+             .AllowAnyHeader()
+             .AllowAnyMethod()
+             .AllowCredentials(); // Required for HttpOnly cookies
+        }
+        else
+        {
+            // Fallback: no origins allowed (fail-closed)
+            p.SetIsOriginAllowed(_ => false);
+        }
+    });
+});
+
+// ─── Rate Limiting: protect auth endpoints ──────────────────────────────────
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("AuthRateLimit", opt =>
+    {
+        opt.PermitLimit = 10;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
 });
 
 var app = builder.Build();
@@ -267,7 +297,8 @@ if (useSentry)
 {
     app.UseSentryTracing();
 }
-app.UseCors("AllowAll");
+app.UseCors("SBayOrigins");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
