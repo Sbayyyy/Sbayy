@@ -147,12 +147,10 @@ export default function CategoryPage() {
   }
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('category.title', { name: currentCategory?.name })}</title>
-        <meta name="description" content={currentCategory?.description} />
-      </Head>
-
+    <Layout 
+      title={t('category.title', { name: currentCategory?.name })}
+      description={currentCategory?.description}
+    >
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
           {/* Breadcrumb */}

@@ -130,12 +130,10 @@ export default function PurchasesPage() {
   };
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('dashboard.purchases.title')}</title>
-        <meta name="description" content={t('dashboard.purchases.description')} />
-      </Head>
-
+    <Layout 
+      title={t('dashboard.purchases.title')} 
+      description={t('dashboard.purchases.description')}
+    >
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           {/* Header */}

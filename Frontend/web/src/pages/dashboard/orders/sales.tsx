@@ -167,12 +167,10 @@ export default function SalesPage() {
   };
 
   return (
-    <Layout>
-      <Head>
-        <title>{t('dashboard.sales.title')}</title>
-        <meta name="description" content={t('dashboard.sales.description')} />
-      </Head>
-
+    <Layout 
+      title={t('dashboard.sales.title')}
+      description={t('dashboard.sales.description')}
+    >
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           {/* Header */}

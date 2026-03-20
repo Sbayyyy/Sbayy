@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import Layout from '@/components/Layout';
 import { Heart, Share2, MapPin } from 'lucide-react';
 import { deleteListing, getListingById } from '@/lib/api/listings';
 import { addFavorite, getFavorites, removeFavorite } from '@/lib/api/favorites';
@@ -174,12 +174,11 @@ export default function ListingDetail() {
   const isOwnListing = user?.id === sellerProfileId;
 
   return (
-    <>
-      <Head>
-        <title>{t('listing.meta.title', '{{title}} - SBay', { title: listing.title })}</title>
-        <meta name="description" content={listing.description} />
-      </Head>
-
+    <Layout 
+      title={t('listing.meta.title', '{{title}} - SBay', { title: listing.title })}
+      description={listing.description}
+      ogImage={listing.imageUrls?.[0]}
+    >
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
@@ -333,7 +332,7 @@ export default function ListingDetail() {
           targetId={listing.id}
         />
       ) : null}
-    </>
+    </Layout>
   );
 }
 
