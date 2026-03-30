@@ -7,6 +7,7 @@ import { useCartStore } from '@/lib/cartStore';
 import { useTranslation } from 'next-i18next';
 import { createChatConnection, onMessageNew, onMessagesRead, onMessageDeleted, type RealtimeDelete } from '@/lib/realtime/chat';
 import { getUnreadCount } from '@/lib/api/messages';
+import { api } from '@/lib/api';
 import type { Message } from '@sbay/shared';
 
 export default function Header() {
@@ -20,7 +21,13 @@ export default function Header() {
   const loginHref = `/auth/login?redirect=${redirectParam}`;
   const registerHref = `/auth/register?redirect=${redirectParam}`;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Clear the HttpOnly auth_token cookie server-side
+      await api.post('/auth/logout');
+    } catch {
+      // ignore — always clear local state even if the request fails
+    }
     logout();
     setUserMenuOpen(false);
     router.push('/');
@@ -304,13 +311,6 @@ export default function Header() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('nav.profile')}
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="block py-2 text-gray-700"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('nav.dashboard')}
                 </Link>
                 <button
                   onClick={handleLogout}

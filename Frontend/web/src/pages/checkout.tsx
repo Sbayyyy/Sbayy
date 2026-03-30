@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -23,7 +24,6 @@ type CheckoutStep = 'delivery' | 'payment' | 'review';
 interface CheckoutState {
   address: Address;
   selectedAddressId: string;
-  savedAddresses: SavedAddress[];
   paymentMethod: 'cod' | 'bank_transfer' | 'meet_in_person';
   shippingCost: number;
   agreedToTerms: boolean;
@@ -57,7 +57,6 @@ export default function CheckoutPage() {
       region: ''
     },
     selectedAddressId: '',
-    savedAddresses: [],
     paymentMethod: 'cod',
     shippingCost: 0,
     agreedToTerms: false,
@@ -65,19 +64,11 @@ export default function CheckoutPage() {
     addressErrors: {}
   });
 
-  // Load saved addresses on mount
-  useEffect(() => {
-    const loadAddresses = async () => {
-      try {
-        const addresses = await getMyAddresses();
-        setState(prev => ({ ...prev, savedAddresses: addresses }));
-      } catch (error) {
-        console.error('Failed to load addresses:', error);
-      }
-    };
-    if (!isAuthed) return;
-    loadAddresses();
-  }, [isAuthed]);
+  const { data: savedAddresses = [] } = useQuery({
+    queryKey: ['savedAddresses'],
+    queryFn: getMyAddresses,
+    enabled: isAuthed,
+  });
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -102,13 +93,13 @@ export default function CheckoutPage() {
   // Calculate shipping when city changes
   useEffect(() => {
     const city = state.selectedAddressId 
-      ? state.savedAddresses.find(a => a.id === state.selectedAddressId)?.city
+      ? savedAddresses.find((a: SavedAddress) => a.id === state.selectedAddressId)?.city
       : state.address.city;
     
     if (city && city.length > 2) {
       handleCalculateShipping(city);
     }
-  }, [handleCalculateShipping, state.address.city, state.selectedAddressId, state.savedAddresses]);
+  }, [handleCalculateShipping, state.address.city, state.selectedAddressId, savedAddresses]);
 
   const handlePlaceOrder = async () => {
     if (!state.agreedToTerms) {
@@ -226,7 +217,7 @@ export default function CheckoutPage() {
                   <h2 className="text-xl font-bold mb-6">{t('checkout.address.title')}</h2>
                   
                   {/* Saved Addresses Dropdown */}
-                  {state.savedAddresses.length > 0 && (
+                  {savedAddresses.length > 0 && (
                     <div className="mb-6">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t('checkout.address.selectSaved')}
@@ -248,7 +239,7 @@ export default function CheckoutPage() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="">{t('checkout.address.newAddress')}</option>
-                        {state.savedAddresses.map(addr => (
+                        {savedAddresses.map((addr: SavedAddress) => (
                           <option key={addr.id} value={addr.id}>
                             {addr.name} - {addr.city}, {addr.street}
                           </option>
@@ -271,7 +262,7 @@ export default function CheckoutPage() {
                   {state.selectedAddressId && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       {(() => {
-                        const selected = state.savedAddresses.find(a => a.id === state.selectedAddressId);
+                        const selected = savedAddresses.find((a: SavedAddress) => a.id === state.selectedAddressId);
                         return selected ? (
                           <div>
                             <p className="font-medium">{selected.name}</p>

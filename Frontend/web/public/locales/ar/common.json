@@ -326,7 +326,12 @@
     "fastDelivery": "توصيل سريع لجميع المحافظات",
     "itemSubtotal": "المجموع:",
     "removeFromCart": "حذف من السلة",
-    "stockWarning": "الكمية المتوفرة: {{count}}"
+    "stockWarning": "الكمية المتوفرة: {{count}}",
+    "error": {
+      "stockInsufficient": "للأسف، المخزون غير كافٍ. المتوفر: {{stock}}",
+      "stockExceeded": "لا يمكن إضافة المزيد. المخزون المتوفر: {{stock}}",
+      "itemNotFound": "المنتج غير موجود في السلة"
+    }
   },
   "browse": {
     "title": "تصفح المنتجات - سباي",

@@ -6,6 +6,8 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  error?: Error;
+  componentStack?: string;
 }
 
 export default class ErrorBoundary extends React.Component<Props, State> {
@@ -14,16 +16,22 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, errorInfo);
+    console.error('[ErrorBoundary] Uncaught error:', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    });
+    this.setState({ componentStack: errorInfo.componentStack ?? undefined });
   }
 
   render() {
     if (this.state.hasError) {
+      const isDev = process.env.NODE_ENV === 'development';
       return (
         <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
           <div className="text-center max-w-md">
@@ -34,9 +42,18 @@ export default class ErrorBoundary extends React.Component<Props, State> {
             <p className="text-gray-600 mb-8">
               An unexpected error occurred. Please try again.
             </p>
+            {isDev && this.state.error && (
+              <details className="text-left bg-red-50 border border-red-200 rounded p-3 mb-6 text-xs text-red-700 overflow-auto max-h-48">
+                <summary className="cursor-pointer font-semibold mb-1">Error details (dev only)</summary>
+                <pre className="whitespace-pre-wrap">{this.state.error.message}</pre>
+                {this.state.componentStack && (
+                  <pre className="whitespace-pre-wrap mt-2 text-red-500">{this.state.componentStack}</pre>
+                )}
+              </details>
+            )}
             <button
               onClick={() => {
-                this.setState({ hasError: false });
+                this.setState({ hasError: false, error: undefined, componentStack: undefined });
                 window.location.reload();
               }}
               className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-2"

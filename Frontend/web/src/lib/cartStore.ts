@@ -44,11 +44,15 @@ export const useCartStore = create<CartStore>()(
 
       // Actions
       addItem: (product: Product, quantity = 1) => {
+        // Reject non-positive or non-integer quantities
+        if (!Number.isInteger(quantity) || quantity <= 0) return;
+
         const state = get();
         
         // Validate stock
         if (product.stock !== undefined && product.stock < quantity) {
-          set({ error: `للأسف، المخزون غير كافٍ. المتوفر: ${product.stock}` });
+          // i18n key: cart.error.stockInsufficient | interpolation: { stock }
+          set({ error: `cart.error.stockInsufficient|${product.stock}` });
           return;
         }
 
@@ -63,7 +67,8 @@ export const useCartStore = create<CartStore>()(
           
           // Check stock for total quantity
           if (product.stock !== undefined && newQuantity > product.stock) {
-            set({ error: `لا يمكن إضافة المزيد. المخزون المتوفر: ${product.stock}` });
+            // i18n key: cart.error.stockExceeded | interpolation: { stock }
+            set({ error: `cart.error.stockExceeded|${product.stock}` });
             return;
           }
           
@@ -117,6 +122,8 @@ export const useCartStore = create<CartStore>()(
       },
 
       updateQuantity: (productId: string, quantity: number) => {
+        // Reject non-integer quantities; treat zero/negative as remove
+        if (!Number.isInteger(quantity)) return;
         if (quantity <= 0) {
           get().removeItem(productId);
           return;
@@ -126,13 +133,15 @@ export const useCartStore = create<CartStore>()(
         const item = state.items.find((item) => item.product.id === productId);
 
         if (!item) {
-          set({ error: 'المنتج غير موجود في السلة' });
+          // i18n key: cart.error.itemNotFound
+          set({ error: 'cart.error.itemNotFound' });
           return;
         }
 
         // Stock Validation
         if (item.product.stock !== undefined && quantity > item.product.stock) {
-          set({ error: `المخزون غير كافٍ. المتوفر: ${item.product.stock}` });
+          // i18n key: cart.error.stockInsufficient | interpolation: { stock }
+          set({ error: `cart.error.stockInsufficient|${item.product.stock}` });
           return;
         }
 
@@ -219,3 +228,22 @@ export const formatPrice = (price: number, currency: string = 'SYP'): string => 
     maximumFractionDigits: 0,
   }).format(price);
 };
+
+/**
+ * Translates a cartStore error code into a localized message.
+ *
+ * Error codes are stored as `"i18nKey"` or `"i18nKey|value"` for
+ * keys that need an interpolation variable (the stock count).
+ *
+ * Usage in a component:
+ *   const { error } = useCartStore();
+ *   const message = error ? translateCartError(error, t) : null;
+ */
+export function translateCartError(
+  error: string,
+  t: (key: string, opts?: Record<string, unknown>) => string
+): string {
+  const [key, value] = error.split('|');
+  const opts = value !== undefined ? { stock: Number(value) } : undefined;
+  return t(key, opts);
+}

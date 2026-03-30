@@ -7,7 +7,16 @@ const nextConfig = {
   output: 'standalone',
   i18n,
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'example.local' },
+      { protocol: 'http', hostname: 'example.local' },
+      { protocol: 'https', hostname: '**.supabase.co' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'loremflickr.com' },
+      { protocol: 'https', hostname: 'picsum.photos' },
+      { protocol: 'https', hostname: 'via.placeholder.com' }
+    ],
   },
   transpilePackages: ['@sbay/shared'],
   async rewrites() {

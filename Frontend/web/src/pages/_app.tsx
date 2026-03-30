@@ -1,15 +1,34 @@
 import type { AppProps } from 'next/app';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import '@/styles/globals.css';
-import CartSidebar from '@/components/CartSidebar';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { ToastContainer } from '@/lib/toast';
+import { ToastContainer, toast } from '@/lib/toast';
 import { appWithTranslation } from 'next-i18next';
 import { i18n as i18nextInstance } from 'next-i18next';
+import { getErrorMessage } from '@/lib/api/errors';
 
 function App({ Component, pageProps }: AppProps) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error: any) => {
+        // Globally toast network errors or 500s for queries, to avoid silent failures when backend is down
+        const isNetworkOr500 = error?.code === 'ECONNABORTED' || error?.message === 'Network Error' || error?.response?.status >= 500;
+        if (isNetworkOr500) {
+          toast.error(getErrorMessage(error));
+        }
+      }
+    }),
+    mutationCache: new MutationCache({
+      onError: (error: any) => {
+        // Also global toast for mutations if network/500 error 
+        const isNetworkOr500 = error?.code === 'ECONNABORTED' || error?.message === 'Network Error' || error?.response?.status >= 500;
+        if (isNetworkOr500) {
+          toast.error(getErrorMessage(error));
+        }
+      }
+    })
+  }));
   
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -43,7 +62,6 @@ function App({ Component, pageProps }: AppProps) {
       <ErrorBoundary>
         <Component {...pageProps} />
       </ErrorBoundary>
-      <CartSidebar />
       <ToastContainer />
     </QueryClientProvider>
   );

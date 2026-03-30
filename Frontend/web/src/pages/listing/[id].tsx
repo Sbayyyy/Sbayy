@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import Layout from '@/components/Layout';
 import { Heart, Share2, MapPin } from 'lucide-react';
 import { deleteListing, getListingById } from '@/lib/api/listings';
 import { addFavorite, getFavorites, removeFavorite } from '@/lib/api/favorites';
@@ -24,54 +25,30 @@ export default function ListingDetail() {
   const { t } = useTranslation('common');
   const locale = router.locale ?? 'ar';
   const requireAuth = useRequireAuthAction();
+  const queryClient = useQueryClient();
 
-  const [listing, setListing] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
-  useEffect(() => {
-    if (id && typeof id === 'string') {
-      loadListing(id);
-    }
-  }, [id]);
+  const listingId = typeof id === 'string' ? id : undefined;
 
-  useEffect(() => {
-    const loadFavoriteState = async (listingId: string) => {
-      if (!isAuthenticated) {
-        setIsFavorite(false);
-        return;
-      }
-      try {
-        const favorites = await getFavorites();
-        setIsFavorite(favorites.some(item => item.id === listingId));
-      } catch (err) {
-        console.error('Error loading favorites:', err);
-      }
-    };
+  const { data: listing, isLoading: loading, error: listingError } = useQuery({
+    queryKey: ['listing', listingId],
+    queryFn: () => getListingById(listingId!),
+    enabled: !!listingId,
+  });
 
-    if (id && typeof id === 'string') {
-      void loadFavoriteState(id);
-    }
-  }, [id, isAuthenticated]);
+  const { data: favorites = [] } = useQuery({
+    queryKey: ['favorites'],
+    queryFn: getFavorites,
+    enabled: isAuthenticated,
+  });
 
-  const loadListing = async (listingId: string) => {
-    try {
-      setLoading(true);
-      const data = await getListingById(listingId);
-      setListing(data);
-    } catch (err: unknown) {
-      console.error('Error loading listing:', err);
-      setError(t('listing.errors.load', 'Failed to load listing'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isFavorite = listing ? favorites.some(f => f.id === listing.id) : false;
+  const error = listingError ? t('listing.errors.load', 'Failed to load listing') : '';
 
   const handleContactSeller = () => {
     if (!requireAuth()) return;
@@ -136,7 +113,12 @@ export default function ListingDetail() {
     if (favoriteLoading) return;
 
     const nextIsFavorite = !isFavorite;
-    setIsFavorite(nextIsFavorite);
+    // Optimistic update in cache
+    queryClient.setQueryData<{ id: string }[]>(['favorites'], (prev = []) =>
+      nextIsFavorite
+        ? [...prev, { id: listing.id }]
+        : prev.filter(f => f.id !== listing.id)
+    );
     setFavoriteLoading(true);
     try {
       if (nextIsFavorite) {
@@ -148,7 +130,12 @@ export default function ListingDetail() {
       }
     } catch (err) {
       console.error('Error updating favorite:', err);
-      setIsFavorite(!nextIsFavorite);
+      // Rollback optimistic update
+      queryClient.setQueryData<{ id: string }[]>(['favorites'], (prev = []) =>
+        nextIsFavorite
+          ? prev.filter(f => f.id !== listing.id)
+          : [...prev, { id: listing.id }]
+      );
       toast.error(t('listing.actions.favoriteError', 'Failed to update favorites.'));
     } finally {
       setFavoriteLoading(false);
@@ -187,12 +174,11 @@ export default function ListingDetail() {
   const isOwnListing = user?.id === sellerProfileId;
 
   return (
-    <>
-      <Head>
-        <title>{t('listing.meta.title', '{{title}} - SBay', { title: listing.title })}</title>
-        <meta name="description" content={listing.description} />
-      </Head>
-
+    <Layout 
+      title={t('listing.meta.title', '{{title}} - SBay', { title: listing.title })}
+      description={listing.description}
+      ogImage={listing.imageUrls?.[0]}
+    >
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
@@ -346,7 +332,7 @@ export default function ListingDetail() {
           targetId={listing.id}
         />
       ) : null}
-    </>
+    </Layout>
   );
 }
 

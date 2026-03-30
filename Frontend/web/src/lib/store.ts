@@ -21,18 +21,14 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       hasHydrated: false,
       login: (user, token) => {
-        // Store in both localStorage (for API interceptor) and Zustand (for React state)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
-        }
+        // HttpOnly cookie is set by the backend on login/register (primary auth).
+        // Token is kept only in Zustand memory for SignalR; never persisted to
+        // localStorage so it cannot be exfiltrated via XSS.
         set({ user, token, isAuthenticated: true });
       },
       logout: () => {
-        // Clear both storage locations
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-        }
+        // Clear in-memory Zustand state.
+        // The HttpOnly auth_token cookie is cleared server-side by POST /auth/logout.
         set({ user: null, token: null, isAuthenticated: false });
       },
       setUser: (user) => {
@@ -44,21 +40,16 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      // Only persist user info, not token (token in localStorage is source of truth)
+      // Persist only user profile info; token stays in-memory only.
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
-      // Rehydrate token from localStorage on load
       onRehydrateStorage: () => (state) => {
-        if (state && typeof window !== 'undefined') {
-          const token = localStorage.getItem('token');
-          if (token) {
-            state.token = token;
-            state.isAuthenticated = true;
-          } else {
-            state.isAuthenticated = false;
-          }
+        if (state) {
+          // Token is intentionally NOT restored — it is ephemeral.
+          // The HttpOnly cookie handles API auth on reload;
+          // a fresh login is needed to re-obtain a SignalR token.
           state.setHasHydrated();
         }
       },

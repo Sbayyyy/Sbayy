@@ -22,11 +22,7 @@ export default function AboutPage() {
   const { t } = useTranslation('common');
 
   return (
-    <Layout title={t('about.pageTitle')}>
-      <Head>
-        <meta name="description" content={t('about.subtitle')} />
-      </Head>
-
+    <Layout title={t('about.pageTitle')} description={t('about.subtitle')}>
       <div className="min-h-screen py-10">
         <div className="max-w-5xl mx-auto px-4 space-y-12">
 

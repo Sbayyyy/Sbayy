@@ -1,14 +1,13 @@
 import { Loader2, AlertCircle } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import type { Product } from '@sbay/shared';
-import type { TranslationFn } from './types';
+import { useTranslation } from 'next-i18next';
 
 interface ProfileWatchlistTabProps {
   watchlist: Product[];
   watchlistLoading: boolean;
   watchlistError: string;
   onRemoveFavorite: (id: string) => void;
-  t: TranslationFn;
 }
 
 export default function ProfileWatchlistTab({
@@ -16,8 +15,8 @@ export default function ProfileWatchlistTab({
   watchlistLoading,
   watchlistError,
   onRemoveFavorite,
-  t,
 }: ProfileWatchlistTabProps) {
+  const { t } = useTranslation('common');
   return (
     <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.watchlistTitle')}</h2>

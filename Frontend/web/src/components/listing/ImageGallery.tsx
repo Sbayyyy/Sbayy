@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import Image from 'next/image';
 
 interface ImageGalleryProps {
   images: string[];
@@ -30,10 +31,13 @@ export default function ImageGallery({
       <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
         {images.length > 0 ? (
           <>
-            <img
+            <Image
               src={images[selectedIndex]}
               alt={title}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              priority
             />
             {images.length > 1 && (
               <>
@@ -71,16 +75,18 @@ export default function ImageGallery({
             <button
               key={index}
               onClick={() => onSelectIndex(index)}
-              className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                 selectedIndex === index
                   ? 'border-primary-600 ring-2 ring-primary-200'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <img
+              <Image
                 src={image}
                 alt={`${title} ${index + 1}`}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="20vw"
               />
             </button>
           ))}

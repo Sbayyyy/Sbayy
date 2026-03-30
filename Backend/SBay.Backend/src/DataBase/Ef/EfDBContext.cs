@@ -87,7 +87,8 @@ namespace SBay.Domain.Database
                 e.HasIndex(x => x.Email).IsUnique();
                 e.Ignore(x => x.ExternalId);
                 e.Ignore(x => x.Region);
-                e.Ignore(x => x.UserName);
+                e.Property(x => x.UserName).HasColumnName("username").HasMaxLength(60);
+                e.HasIndex(x => x.UserName).IsUnique();
                 e.Ignore(x => x.Cart);
                 e.Ignore(x => x.Listings);
                 e.Ignore(x => x.ShoppingLists);

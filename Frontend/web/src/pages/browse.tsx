@@ -55,18 +55,25 @@ export default function BrowsePage() {
     loadProducts();
   }, [filters]); // Reload wenn Filter sich ändern
 
+  const normalizeFilters = (f: SearchFilters): SearchFilters => {
+    const priceRangeInvalid =
+      f.minPrice !== undefined &&
+      f.maxPrice !== undefined &&
+      f.minPrice > f.maxPrice;
+    return {
+      ...f,
+      minPrice: priceRangeInvalid ? undefined : f.minPrice,
+      maxPrice: priceRangeInvalid ? undefined : f.maxPrice === 0 ? undefined : f.maxPrice,
+    };
+  };
+
   const loadProducts = async () => {
     try {
       setError('');
       if (isInitialLoad) {
         setLoading(true);
       }
-      const normalizedFilters = {
-        ...filters,
-        minPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : filters.minPrice,
-        maxPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : (filters.maxPrice === 0 ? undefined : filters.maxPrice)
-      };
-      const data = await getAllListings(1, 20, normalizedFilters);
+      const data = await getAllListings(1, 20, normalizeFilters(filters));
 
       setProducts(data.items || []);
       setHasMore(data.items.length >= 20);
@@ -86,12 +93,7 @@ export default function BrowsePage() {
     try {
       setLoadingMore(true);
       const nextPage = page + 1;
-      const normalizedFilters = {
-        ...filters,
-        minPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : filters.minPrice,
-        maxPrice: filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice ? undefined : (filters.maxPrice === 0 ? undefined : filters.maxPrice)
-      };
-      const data = await getAllListings(nextPage, 20, normalizedFilters);
+      const data = await getAllListings(nextPage, 20, normalizeFilters(filters));
 
       setProducts(prev => [...prev, ...(data.items || [])]);
       setPage(nextPage);

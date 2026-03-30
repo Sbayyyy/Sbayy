@@ -313,7 +313,6 @@ export default function ProfilePage() {
             pendingOrders={pendingOrders}
             reviewCount={reviewCount}
             memberSince={memberSince}
-            t={t}
           />
 
           <div className="mt-8 flex flex-wrap gap-2">
@@ -333,7 +332,7 @@ export default function ProfilePage() {
           </div>
 
           {activeTab === 'overview' && (
-            <ProfileOverviewTab activities={activities} t={t} />
+            <ProfileOverviewTab activities={activities} />
           )}
 
           {activeTab === 'listings' && (
@@ -341,7 +340,6 @@ export default function ProfilePage() {
               listings={listings}
               listingsLoading={listingsLoading}
               listingsError={listingsError}
-              t={t}
             />
           )}
 
@@ -350,7 +348,6 @@ export default function ProfilePage() {
               purchases={purchases}
               purchasesLoading={purchasesLoading}
               purchasesError={purchasesError}
-              t={t}
             />
           )}
 
@@ -360,7 +357,6 @@ export default function ProfilePage() {
               watchlistLoading={watchlistLoading}
               watchlistError={watchlistError}
               onRemoveFavorite={handleRemoveFavorite}
-              t={t}
             />
           )}
         </div>

@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -15,10 +15,12 @@ using RegisterRequest=SBay.Backend.APIs.Records.RegisterRequest;
 using UserDto=SBay.Backend.APIs.Records.UserDto;
 using AuthResponse= SBay.Backend.APIs.Records.Responses.AuthResponse;
 using ChangePasswordRequest = SBay.Backend.APIs.Records.ChangePasswordRequest;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting("AuthRateLimit")]
 public class AuthController : ControllerBase
 {
     private readonly IUserRepository _users;
@@ -52,6 +54,7 @@ public class AuthController : ControllerBase
         {
             Id = Guid.NewGuid(),
             Email = email,
+            UserName = req.Name?.Trim(),
             DisplayName = (req.DisplayName ?? req.Name)?.Trim(),
             Phone = req.Phone?.Trim(),
             City = req.City?.Trim(),
@@ -75,6 +78,7 @@ public class AuthController : ControllerBase
 
         var dto = user.ToDto();
         var token = GenerateJwt(user);
+        SetAuthCookie(token);
         return CreatedAtAction(nameof(GetMe), new { }, new AuthResponse(dto, token));
     }
 
@@ -106,6 +110,7 @@ public class AuthController : ControllerBase
 
         var dto = user.ToDto();
         var token = GenerateJwt(user);
+        SetAuthCookie(token);
         return Ok(new AuthResponse(dto, token));
     }
 
@@ -148,6 +153,20 @@ public class AuthController : ControllerBase
 
         return Ok();
     }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("auth_token", new CookieOptions
+        {
+            Path = "/",
+            SameSite = SameSiteMode.Strict,
+            HttpOnly = true,
+            Secure = true,
+        });
+        return Ok();
+    }
     
     private string GenerateJwt(User user)
     {
@@ -174,5 +193,17 @@ public class AuthController : ControllerBase
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private void SetAuthCookie(string token)
+    {
+        Response.Cookies.Append("auth_token", token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(_jwt.ExpMinutes),
+            Path = "/",
+        });
     }
 }

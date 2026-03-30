@@ -2,21 +2,20 @@ import Link from 'next/link';
 import { Loader2, AlertCircle } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import type { Product } from '@sbay/shared';
-import type { TranslationFn } from './types';
+import { useTranslation } from 'next-i18next';
 
 interface ProfileListingsTabProps {
   listings: Product[];
   listingsLoading: boolean;
   listingsError: string;
-  t: TranslationFn;
 }
 
 export default function ProfileListingsTab({
   listings,
   listingsLoading,
   listingsError,
-  t,
 }: ProfileListingsTabProps) {
+  const { t } = useTranslation('common');
   return (
     <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
