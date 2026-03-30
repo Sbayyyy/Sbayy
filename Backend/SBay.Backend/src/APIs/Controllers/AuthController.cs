@@ -54,6 +54,7 @@ public class AuthController : ControllerBase
         {
             Id = Guid.NewGuid(),
             Email = email,
+            UserName = req.Name?.Trim(),
             DisplayName = (req.DisplayName ?? req.Name)?.Trim(),
             Phone = req.Phone?.Trim(),
             City = req.City?.Trim(),
