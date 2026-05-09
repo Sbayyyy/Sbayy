@@ -38,7 +38,6 @@ namespace SBay.Domain.Database
                     UpdatedAt = now
                 };
                 await _db.Set<PushToken>().AddAsync(entity, ct);
-                await _db.SaveChangesAsync(ct);
                 return;
             }
 
@@ -47,7 +46,6 @@ namespace SBay.Domain.Database
             existing.DeviceId = deviceId;
             existing.UpdatedAt = now;
             _db.Set<PushToken>().Update(existing);
-            await _db.SaveChangesAsync(ct);
         }
 
         public async Task RemoveAsync(Guid userId, string token, CancellationToken ct)
@@ -56,7 +54,6 @@ namespace SBay.Domain.Database
                 .FirstOrDefaultAsync(x => x.UserId == userId && x.Token == token, ct);
             if (existing is null) return;
             _db.Set<PushToken>().Remove(existing);
-            await _db.SaveChangesAsync(ct);
         }
     }
 }

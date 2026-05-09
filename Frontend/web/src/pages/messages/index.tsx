@@ -17,7 +17,6 @@ import {
   Package,
   User as UserIcon,
   AlertCircle,
-  Loader2,
   Inbox
 } from 'lucide-react';
 import Head from 'next/head';
@@ -339,30 +338,29 @@ export default function MessagesPage() {
         <meta name="description" content={t('messages.description')} />
       </Head>
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="app-page">
         <div className="max-w-5xl mx-auto px-4 py-8">
-          {/* Header */}
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
-              <MessageSquare className="w-8 h-8 text-primary" />
-              <h1 className="text-3xl font-bold text-gray-900">{t('messages.heading')}</h1>
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-50 text-primary-700">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <h1 className="page-title">{t('messages.heading')}</h1>
               {totalUnread > 0 && (
-                <span className="px-3 py-1 bg-primary text-white rounded-full text-sm font-medium">
+                <span className="status-pill border-primary-600 bg-primary-600 text-white">
                   {totalUnread}
                 </span>
               )}
             </div>
-            <p className="text-gray-600">
+            <p className="page-subtitle">
               {t('messages.subtitle')}
             </p>
           </div>
 
-          {/* Search & Filter */}
-          <div className="bg-white rounded-lg shadow mb-6 p-4">
+          <div className="surface-card mb-6 p-4">
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search */}
               <div className="flex-1 relative">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -372,24 +370,23 @@ export default function MessagesPage() {
                 />
               </div>
 
-              {/* Filter Buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 rounded-2xl bg-slate-100 p-1">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
                     filter === 'all'
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-950'
                   }`}
                 >
                   {t('messages.filterAll', { count: chats.length })}
                 </button>
                 <button
                   onClick={() => setFilter('unread')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
                     filter === 'unread'
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-950'
                   }`}
                 >
                   {t('messages.filterUnread', { count: totalUnread })}
@@ -398,9 +395,8 @@ export default function MessagesPage() {
             </div>
           </div>
 
-          {/* Error State */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4">
               <div className="flex items-center gap-2 text-red-700">
                 <AlertCircle className="w-5 h-5" />
                 <p>{error}</p>
@@ -408,20 +404,27 @@ export default function MessagesPage() {
             </div>
           )}
 
-          {/* Loading State */}
           {loading ? (
-            <div className="bg-white rounded-lg shadow p-16 text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+            <div className="surface-card divide-y divide-slate-100">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="flex items-start gap-4 p-4">
+                  <div className="skeleton h-12 w-12 rounded-full" />
+                  <div className="flex-1">
+                    <div className="skeleton mb-2 h-4 w-40" />
+                    <div className="skeleton mb-2 h-3 w-56 max-w-full" />
+                    <div className="skeleton h-3 w-72 max-w-full" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredChats.length > 0 ? (
-            /* Chats List */
-            <div className="bg-white rounded-lg shadow divide-y divide-gray-100">
+            <div className="surface-card divide-y divide-slate-100 overflow-hidden">
               {filteredChats.map(chat => (
                 <Link
                   key={chat.id}
                   href={`/messages/${chat.id}`}
-                  className={`block p-4 hover:bg-gray-50 transition-colors ${
-                    chat.unreadCount > 0 ? 'bg-blue-50/50' : ''
+                  className={`block p-4 transition-colors hover:bg-slate-50 ${
+                    chat.unreadCount > 0 ? 'bg-primary-50/50' : ''
                   }`}
                 >
                   <div className="flex items-start gap-4">
@@ -431,11 +434,11 @@ export default function MessagesPage() {
                         <img
                           src={chat.participant.avatar}
                           alt={chat.participant.name}
-                          className="w-12 h-12 rounded-full object-cover"
+                          className="h-12 w-12 rounded-full object-cover ring-2 ring-white shadow-sm"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                          <UserIcon className="w-6 h-6 text-gray-500" />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 ring-2 ring-white shadow-sm">
+                          <UserIcon className="w-6 h-6 text-slate-500" />
                         </div>
                       )}
                     </div>
@@ -443,19 +446,19 @@ export default function MessagesPage() {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
-                        <h3 className={`font-medium text-gray-900 ${
+                        <h3 className={`font-semibold text-slate-950 ${
                           chat.unreadCount > 0 ? 'font-bold' : ''
                         }`}>
                           {chat.participant?.name}
                         </h3>
-                        <span className="text-xs text-gray-500 flex-shrink-0">
+                        <span className="text-xs text-slate-500 flex-shrink-0">
                           {formatTime(chat.lastMessageAt || chat.createdAt)}
                         </span>
                       </div>
 
                       {/* Product Reference */}
                       {chat.listingId && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                        <div className="mb-1 flex items-center gap-2 text-sm text-slate-600">
                           <Package className="w-4 h-4" />
                           <span className="truncate">
                             {chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })}
@@ -468,16 +471,16 @@ export default function MessagesPage() {
                         <div className="flex items-center justify-between gap-2">
                           <p className={`text-sm truncate ${
                             chat.unreadCount > 0 
-                              ? 'text-gray-900 font-medium' 
-                              : 'text-gray-600'
+                              ? 'text-slate-950 font-semibold' 
+                              : 'text-slate-600'
                           }`}>
                             {chat.lastMessage.senderId === user?.id && (
-                              <span className="text-gray-500 ml-1">{t('messages.you')}</span>
+                              <span className="text-slate-500 ml-1">{t('messages.you')}</span>
                             )}
                             {truncateMessage(chat.lastMessage.content)}
                           </p>
                           {chat.unreadCount > 0 && (
-                            <span className="flex-shrink-0 w-6 h-6 bg-primary text-white rounded-full text-xs flex items-center justify-center font-medium">
+                            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
                               {chat.unreadCount}
                             </span>
                           )}
@@ -489,15 +492,14 @@ export default function MessagesPage() {
               ))}
             </div>
           ) : (
-            /* Empty State */
-            <div className="bg-white rounded-lg shadow p-16 text-center">
+            <div className="surface-card p-10 text-center sm:p-16">
               {searchQuery || filter === 'unread' ? (
                 <>
-                  <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  <Search className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-slate-950 mb-2">
                     {t('messages.noResults')}
                   </h3>
-                  <p className="text-gray-600 mb-6">
+                  <p className="text-slate-600 mb-6">
                     {t('messages.noResultsSuggestion')}
                   </p>
                   <button
@@ -505,21 +507,21 @@ export default function MessagesPage() {
                       setSearchQuery('');
                       setFilter('all');
                     }}
-                    className="btn-outline"
+                    className="btn btn-outline"
                   >
                     {t('messages.clearSearch')}
                   </button>
                 </>
               ) : (
                 <>
-                  <Inbox className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  <Inbox className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-slate-950 mb-2">
                     {t('messages.emptyTitle')}
                   </h3>
-                  <p className="text-gray-600 mb-6">
+                  <p className="text-slate-600 mb-6">
                     {t('messages.emptyMessage')}
                   </p>
-                  <Link href="/browse" className="btn-primary">
+                  <Link href="/browse" className="btn btn-primary">
                     {t('messages.browseProducts')}
                   </Link>
                 </>

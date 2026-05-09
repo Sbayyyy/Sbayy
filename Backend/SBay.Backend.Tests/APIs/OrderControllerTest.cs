@@ -32,6 +32,8 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
     [Fact]
     public async Task CreateOrder_Fails_WhenBuyerIsSeller()
     {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
         // Use TestAuth to act as a single user
         var client = _factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
@@ -68,6 +70,8 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
     [Fact]
     public async Task CreateOrder_Fails_WhenMultipleSellers()
     {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
         // Create listing L1 via API as TestAuth seller
         var buyer = _factory.CreateClient();
         buyer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
@@ -154,7 +158,259 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
         var res = await client.PostAsJsonAsync("/api/orders", orderReq);
         res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await res.Content.ReadAsStringAsync();
-        body.Should().Contain("One or more listings not found");
+        body.Should().Contain("unavailable");
+    }
+
+    [Fact]
+    public async Task CreateOrder_Fails_WhenListingInactive()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+        client.DefaultRequestHeaders.Add("X-Test-Scopes", "orders.write");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var listing = new SBay.Domain.Entities.Listing(
+            Guid.NewGuid(),
+            "Hidden Item",
+            "Hidden",
+            new SBay.Domain.ValueObjects.Money(10m, "EUR"),
+            stock: 1);
+        db.Add(listing);
+        db.Entry(listing).Property(l => l.Status).CurrentValue = "hidden";
+        await db.SaveChangesAsync();
+
+        var orderReq = new CreateOrderReq(
+            SellerId: Guid.Empty,
+            Items: new[] { new CreateOrderItemReq(listing.Id, 1, 999m, "USD") },
+            SavedAddressId: null,
+            NewAddress: null,
+            PaymentMethod: "cod");
+
+        var res = await client.PostAsJsonAsync("/api/orders", orderReq);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await res.Content.ReadAsStringAsync();
+        body.Should().Contain("unavailable");
+    }
+
+    [Fact]
+    public async Task CreateOrder_Fails_WhenOutOfStock()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+        client.DefaultRequestHeaders.Add("X-Test-Scopes", "orders.write");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var listing = new SBay.Domain.Entities.Listing(
+            Guid.NewGuid(),
+            "Empty Item",
+            "Empty",
+            new SBay.Domain.ValueObjects.Money(10m, "EUR"),
+            stock: 0);
+        db.Add(listing);
+        await db.SaveChangesAsync();
+
+        var orderReq = new CreateOrderReq(
+            SellerId: Guid.Empty,
+            Items: new[] { new CreateOrderItemReq(listing.Id, 1, 999m, "USD") },
+            SavedAddressId: null,
+            NewAddress: null,
+            PaymentMethod: "cod");
+
+        var res = await client.PostAsJsonAsync("/api/orders", orderReq);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await res.Content.ReadAsStringAsync();
+        body.Should().Contain("unavailable");
+    }
+
+    [Fact]
+    public async Task CreateOrder_Fails_WhenQuantityExceedsStock()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+        client.DefaultRequestHeaders.Add("X-Test-Scopes", "orders.write");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var listing = new SBay.Domain.Entities.Listing(
+            Guid.NewGuid(),
+            "Limited Item",
+            "Limited",
+            new SBay.Domain.ValueObjects.Money(10m, "EUR"),
+            stock: 1);
+        db.Add(listing);
+        await db.SaveChangesAsync();
+
+        var orderReq = new CreateOrderReq(
+            SellerId: Guid.Empty,
+            Items: new[] { new CreateOrderItemReq(listing.Id, 2, 1m, "EUR") },
+            SavedAddressId: null,
+            NewAddress: null,
+            PaymentMethod: "cod");
+
+        var res = await client.PostAsJsonAsync("/api/orders", orderReq);
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await res.Content.ReadAsStringAsync();
+        body.Should().Contain("exceeds available stock");
+    }
+
+    [Fact]
+    public async Task CreateOrder_UsesServerTotals_And_DecrementsStock()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+        client.DefaultRequestHeaders.Add("X-Test-Scopes", "orders.write");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var listing = new SBay.Domain.Entities.Listing(
+            Guid.NewGuid(),
+            "Real Price Item",
+            "Real Price",
+            new SBay.Domain.ValueObjects.Money(12.50m, "EUR"),
+            stock: 3);
+        db.Add(listing);
+        await db.SaveChangesAsync();
+
+        var orderReq = new CreateOrderReq(
+            SellerId: Guid.Empty,
+            Items: new[] { new CreateOrderItemReq(listing.Id, 2, 0.01m, "USD") },
+            SavedAddressId: null,
+            NewAddress: null,
+            PaymentMethod: "cod");
+
+        var res = await client.PostAsJsonAsync("/api/orders", orderReq);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Created);
+        var dto = await res.Content.ReadFromJsonAsync<OrderDto>();
+        dto.Should().NotBeNull();
+        dto!.TotalAmount.Should().Be(25m);
+        dto.TotalCurrency.Should().Be("EUR");
+        dto.Items.Single().PriceAmount.Should().Be(12.50m);
+        dto.Items.Single().PriceCurrency.Should().Be("EUR");
+
+        using var verifyScope = _factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var saved = await verifyDb.Listings.FindAsync(listing.Id);
+        saved!.StockQuantity.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_RejectsInvalidJumps_And_IsIdempotent()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+        client.DefaultRequestHeaders.Add("X-Test-Scopes", "orders.write");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var seller = await db.Users.FindAsync(TestAuthHandler.SellerId) ?? new SBay.Domain.Entities.User
+        {
+            Id = TestAuthHandler.SellerId,
+            Email = $"seller.{Guid.NewGuid():N}@example.com",
+            PasswordHash = "$",
+            Role = "seller"
+        };
+        seller.PendingOrders = 1;
+        seller.TotalOrders = 0;
+        seller.TotalRevenue = 0;
+        var order = new SBay.Domain.Entities.Order
+        {
+            Id = Guid.NewGuid(),
+            BuyerId = Guid.NewGuid(),
+            SellerId = seller.Id,
+            Status = SBay.Domain.Entities.OrderStatus.Pending,
+            TotalAmount = 20m,
+            TotalCurrency = "EUR"
+        };
+        if (db.Entry(seller).State == Microsoft.EntityFrameworkCore.EntityState.Detached)
+            db.Add(seller);
+        db.Add(order);
+        await db.SaveChangesAsync();
+
+        var invalid = await client.PatchAsJsonAsync($"/api/orders/{order.Id}/status", new UpdateOrderStatusRequest { Status = "completed" });
+        invalid.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        var paid = await client.PatchAsJsonAsync($"/api/orders/{order.Id}/status", new UpdateOrderStatusRequest { Status = "paid" });
+        paid.StatusCode.Should().Be(HttpStatusCode.OK);
+        var shipped = await client.PatchAsJsonAsync($"/api/orders/{order.Id}/status", new UpdateOrderStatusRequest { Status = "shipped" });
+        shipped.StatusCode.Should().Be(HttpStatusCode.OK);
+        var completed = await client.PatchAsJsonAsync($"/api/orders/{order.Id}/status", new UpdateOrderStatusRequest { Status = "completed" });
+        completed.StatusCode.Should().Be(HttpStatusCode.OK);
+        var completedAgain = await client.PatchAsJsonAsync($"/api/orders/{order.Id}/status", new UpdateOrderStatusRequest { Status = "completed" });
+        completedAgain.StatusCode.Should().Be(HttpStatusCode.OK);
+        var cancelledAfterComplete = await client.PatchAsJsonAsync($"/api/orders/{order.Id}/status", new UpdateOrderStatusRequest { Status = "cancelled" });
+        cancelledAfterComplete.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        using var verifyScope = _factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var updatedSeller = await verifyDb.Users.FindAsync(seller.Id);
+        updatedSeller!.PendingOrders.Should().Be(0);
+        updatedSeller.TotalOrders.Should().Be(1);
+        updatedSeller.TotalRevenue.Should().Be(20m);
+    }
+
+    [Fact]
+    public async Task Cancel_PendingOrder_RestoresStock()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+        client.DefaultRequestHeaders.Add("X-Test-Scopes", "orders.write");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var seller = new SBay.Domain.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            Email = $"seller.cancel.{Guid.NewGuid():N}@example.com",
+            PasswordHash = "$",
+            Role = "seller",
+            PendingOrders = 1
+        };
+        var listing = new SBay.Domain.Entities.Listing(
+            seller.Id,
+            "Reserved Item",
+            "Reserved",
+            new SBay.Domain.ValueObjects.Money(20m, "EUR"),
+            stock: 0);
+        var order = new SBay.Domain.Entities.Order
+        {
+            Id = Guid.NewGuid(),
+            BuyerId = TestAuthHandler.SellerId,
+            SellerId = seller.Id,
+            Status = SBay.Domain.Entities.OrderStatus.Pending,
+            TotalAmount = 20m,
+            TotalCurrency = "EUR"
+        };
+        order.Items.Add(new SBay.Domain.Entities.OrderItem
+        {
+            Id = Guid.NewGuid(),
+            OrderId = order.Id,
+            ListingId = listing.Id,
+            Quantity = 1,
+            PriceAmount = 20m,
+            PriceCurrency = "EUR"
+        });
+        db.Add(seller);
+        db.Add(listing);
+        db.Add(order);
+        await db.SaveChangesAsync();
+
+        var res = await client.DeleteAsync($"/api/orders/{order.Id}");
+
+        res.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        using var verifyScope = _factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var savedListing = await verifyDb.Listings.FindAsync(listing.Id);
+        var savedOrder = await verifyDb.Set<SBay.Domain.Entities.Order>().FindAsync(order.Id);
+        var savedSeller = await verifyDb.Users.FindAsync(seller.Id);
+        savedListing!.StockQuantity.Should().Be(1);
+        savedOrder!.Status.Should().Be(SBay.Domain.Entities.OrderStatus.Cancelled);
+        savedSeller!.PendingOrders.Should().Be(0);
     }
 
     [Fact]

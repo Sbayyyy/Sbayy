@@ -37,25 +37,25 @@ public sealed class ReviewsController : ControllerBase
     }
 
     [HttpGet("product/{productId:guid}")]
-    public async Task<ActionResult<object>> GetByProduct(Guid productId, [FromQuery] int page = 1, [FromQuery] int limit = 10, CancellationToken ct = default)
+    public async Task<ActionResult<ReviewsPageResponse>> GetByProduct(Guid productId, [FromQuery] int page = 1, [FromQuery] int limit = 10, CancellationToken ct = default)
     {
         var (pageValue, limitValue) = NormalizePaging(page, limit);
         var (items, total) = await _reviews.GetByListingAsync(productId, pageValue, limitValue, ct);
         var stats = await _reviews.GetStatsByListingAsync(productId, ct);
         var currentUserId = await _resolver.GetUserIdAsync(User, ct);
         var dtos = await MapReviewsAsync(items, currentUserId, ct);
-        return Ok(new { reviews = dtos, stats = ToStats(stats), total });
+        return Ok(new ReviewsPageResponse(dtos, dtos, ToStats(stats), total, pageValue, limitValue));
     }
 
     [HttpGet("seller/{sellerId:guid}")]
-    public async Task<ActionResult<object>> GetBySeller(Guid sellerId, [FromQuery] int page = 1, [FromQuery] int limit = 10, CancellationToken ct = default)
+    public async Task<ActionResult<ReviewsPageResponse>> GetBySeller(Guid sellerId, [FromQuery] int page = 1, [FromQuery] int limit = 10, CancellationToken ct = default)
     {
         var (pageValue, limitValue) = NormalizePaging(page, limit);
         var (items, total) = await _reviews.GetBySellerAsync(sellerId, pageValue, limitValue, ct);
         var stats = await _reviews.GetStatsBySellerAsync(sellerId, ct);
         var currentUserId = await _resolver.GetUserIdAsync(User, ct);
         var dtos = await MapReviewsAsync(items, currentUserId, ct);
-        return Ok(new { reviews = dtos, stats = ToStats(stats), total });
+        return Ok(new ReviewsPageResponse(dtos, dtos, ToStats(stats), total, pageValue, limitValue));
     }
 
     [HttpGet("my-reviews")]
@@ -207,14 +207,14 @@ public sealed class ReviewsController : ControllerBase
 
     [HttpPost("{id:guid}/helpful")]
     [Authorize(Policy = ScopePolicies.UsersRead)]
-    public async Task<ActionResult<object>> ToggleHelpful(Guid id, CancellationToken ct)
+    public async Task<ActionResult<ReviewHelpfulResponse>> ToggleHelpful(Guid id, CancellationToken ct)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
 
         var result = await _reviews.ToggleHelpfulAsync(id, me.Value, ct);
         if (result == null) return NotFound();
-        return Ok(new { helpful = result.Value.HelpfulCount, isHelpful = result.Value.IsHelpful });
+        return Ok(new ReviewHelpfulResponse(result.Value.HelpfulCount, result.Value.IsHelpful));
     }
 
     private static void ApplyReviewCreated(User seller, int rating)

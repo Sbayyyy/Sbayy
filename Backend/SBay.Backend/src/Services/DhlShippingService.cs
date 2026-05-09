@@ -79,7 +79,7 @@ public sealed class DhlShippingService : IShippingService
         
         var quote = new ShippingQuote(
             Cost: totalCost,
-            Carrier: "DHL Syria",
+            Carrier: "dhl",
             EstimatedDays: estimatedDays,
             TrackingNumber: null  // Will be set when shipped
         );

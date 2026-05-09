@@ -5,16 +5,16 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-sbay}
+      POSTGRES_USER: ${DB_USER:-sbay}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sbay_dev_password}
     ports:
-      - "${DB_HOST_PORT}:5432"
+      - "${DB_HOST_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./Database:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sbay} -d ${DB_NAME:-sbay}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,7 +25,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "${REDIS_HOST_PORT}:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -47,12 +47,34 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__Default: ${ConnectionStrings__Default}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      Database__Provider: ef
+      ConnectionStrings__Default: ${ConnectionStrings__Default:-Host=postgres;Port=5432;Database=sbay;Username=sbay;Password=sbay_dev_password}
+      Jwt__Issuer: ${JWT_ISSUER:-SBay}
+      Jwt__Audience: ${JWT_AUDIENCE:-SBayClients}
+      Jwt__Secret: ${JWT_SECRET:-dev_only_change_me_32_bytes_minimum_value}
+      Jwt__ExpMinutes: ${JWT_EXP_MINUTES:-60}
       Redis__Host: redis
       Redis__Port: 6379
-      App__PublicBaseUrl: ${App__PublicBaseUrl}
+      App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-http://localhost:8080}
+      Storage__Provider: ${STORAGE_PROVIDER:-local}
+      Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-http://localhost:8080/uploads}
+      Payments__Provider: ${PAYMENTS_PROVIDER:-mock}
+      Payments__Mock__WebhookSecret: ${PAYMENTS_MOCK_WEBHOOK_SECRET:-dev_mock_webhook_secret}
+      Monetization__Currency: ${MONETIZATION_CURRENCY:-SYP}
+      Monetization__CommissionPercent: ${MONETIZATION_COMMISSION_PERCENT:-5}
+      Cors__AllowAnyOrigin: ${CORS_ALLOW_ANY_ORIGIN:-true}
+      Cors__AllowedOrigins__0: ${WEB_PUBLIC_ORIGIN:-http://localhost:3000}
     ports:
-      - "${API_HOST_PORT}:8080"
+      - "${API_HOST_PORT:-8080}:8080"
+    volumes:
+      - api-uploads:/app/wwwroot/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
       - sbay
 
@@ -61,24 +83,31 @@ services:
       context: ./Frontend
       dockerfile: web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL}
-        NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET}
+        NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL:-/api}
+        NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET:-http://backend:8080}
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV}
-      PORT: ${WEB_PORT}
-      NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL}
-      NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET}
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${WEB_PORT:-3000}
+      NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL:-/api}
+      NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET:-http://backend:8080}
     ports:
-      - "${WEB_HOST_PORT}:${WEB_PORT}"
+      - "${WEB_HOST_PORT:-3000}:${WEB_PORT:-3000}"
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${WEB_PORT:-3000}/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
       - sbay
 
 volumes:
   pgdata:
+  api-uploads:
 
 networks:
   sbay:

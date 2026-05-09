@@ -22,16 +22,12 @@ public static class ConnectAuthenticators
 
         builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
         var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
-        var firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
-        var oidcAuthority = builder.Configuration["Oidc:Authority"];
-        var oidcAudience = builder.Configuration["Oidc:Audience"];
-
         builder.Services
             .AddAuthentication(options =>
             {
-                options.DefaultScheme = "Composite";
-                options.DefaultAuthenticateScheme = "Composite";
-                options.DefaultChallengeScheme = "Composite";
+                options.DefaultScheme = "SBayJwt";
+                options.DefaultAuthenticateScheme = "SBayJwt";
+                options.DefaultChallengeScheme = "SBayJwt";
             })
             .AddJwtBearer("SBayJwt", o =>
             {
@@ -45,67 +41,12 @@ public static class ConnectAuthenticators
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret)),
                     ValidateLifetime = true,
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true,
+                    ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
                     ClockSkew = TimeSpan.FromMinutes(2),
                     NameClaimType = "sub",
                     RoleClaimType = "role"
-                };
-            })
-            .AddJwtBearer("Firebase", o =>
-            {
-                if (string.IsNullOrWhiteSpace(firebaseProjectId)) return;
-
-                o.MapInboundClaims = false;
-                o.Authority = $"https://securetoken.google.com/{firebaseProjectId}";
-                o.MetadataAddress = "https://www.googleapis.com/identitytoolkit/.well-known/openid-configuration";
-                o.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidIssuer = $"https://securetoken.google.com/{firebaseProjectId}",
-                    ValidateAudience = true,
-                    ValidAudience = firebaseProjectId,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.FromMinutes(2),
-                    NameClaimType = "user_id",
-                    RoleClaimType = "role"
-                };
-                o.RequireHttpsMetadata = true;
-            })
-            .AddJwtBearer("Oidc", o =>
-            {
-                if (string.IsNullOrWhiteSpace(oidcAuthority)) return;
-
-                o.MapInboundClaims = false;
-                o.Authority = oidcAuthority;
-                o.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = !string.IsNullOrWhiteSpace(oidcAudience),
-                    ValidAudience = oidcAudience,
-                    NameClaimType = "sub",
-                    RoleClaimType = "role"
-                };
-                o.RequireHttpsMetadata = true;
-            })
-            .AddPolicyScheme("Composite", "Composite", options =>
-            {
-                options.ForwardDefaultSelector = ctx =>
-                {
-                    if (!ctx.Request.Headers.TryGetValue("Authorization", out var header) ||
-                        !AuthenticationHeaderValue.TryParse(header!, out var ahv) ||
-                        !ahv.Scheme.Equals("Bearer", StringComparison.OrdinalIgnoreCase) ||
-                        string.IsNullOrWhiteSpace(ahv.Parameter))
-                        return "SBayJwt";
-
-                    var iss = JwtPeek.TryReadIssuer(ahv.Parameter);
-                    if (!string.IsNullOrWhiteSpace(firebaseProjectId) &&
-                        string.Equals(iss, $"https://securetoken.google.com/{firebaseProjectId}", StringComparison.OrdinalIgnoreCase))
-                        return "Firebase";
-
-                    if (!string.IsNullOrWhiteSpace(oidcAuthority) &&
-                        iss != null && iss.StartsWith(oidcAuthority.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
-                        return "Oidc";
-
-                    return "SBayJwt";
                 };
             });
 

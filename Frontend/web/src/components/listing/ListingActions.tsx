@@ -24,9 +24,9 @@ export default function ListingActions({
   t,
 }: ListingActionsProps) {
   return (
-    <div className="border-t pt-6 mt-6">
+    <div className="mt-6 border-t border-slate-200 pt-6">
       {!isAvailable && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-center">
+        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center text-red-700">
           {t('listing.availability.unavailable', 'This item is currently unavailable.')}
         </div>
       )}
@@ -36,7 +36,7 @@ export default function ListingActions({
           <button
             onClick={onContactSeller}
             disabled={contactLoading}
-            className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-70"
+            className="btn btn-outline w-full"
           >
             <MessageCircle size={20} />
             {contactLoading
@@ -45,7 +45,7 @@ export default function ListingActions({
           </button>
           <button
             onClick={onReport}
-            className="w-full flex items-center justify-center gap-2 border border-red-300 text-red-700 px-6 py-3 rounded-lg hover:bg-red-50 font-medium transition-colors"
+            className="btn btn-outline w-full border-red-200 text-red-700 hover:bg-red-50"
           >
             {t('report.actions.reportListing', 'Report listing')}
           </button>
@@ -54,19 +54,19 @@ export default function ListingActions({
 
       {isOwnListing && (
         <div className="flex flex-col gap-3">
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-center">
+          <div className="rounded-2xl border border-primary-100 bg-primary-50 px-4 py-3 text-center text-primary-800">
             {t('listing.owner.notice', 'This is your listing.')}
           </div>
           <button
             onClick={onEdit}
-            className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-medium transition-colors"
+            className="btn btn-primary w-full"
           >
             {t('listing.actions.edit', 'Edit listing')}
           </button>
           <button
             onClick={onDelete}
             disabled={deleteLoading}
-            className="w-full flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-70"
+            className="btn btn-danger w-full"
           >
             {deleteLoading
               ? t('listing.actions.deleteLoading', 'Deleting...')

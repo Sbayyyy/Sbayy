@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import ProductCardSkeleton from '@/components/ProductCardSkeleton';
 import SearchFiltersPanel from '@/components/SearchFiltersPanel';
 import { searchProducts } from '@/lib/api/search';
 import { Product, SearchFilters, defaultTextInputValidator, loadProfanityListFromUrl } from '@sbay/shared';
@@ -23,11 +23,13 @@ export default function SearchPage() {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
   const [totalResults, setTotalResults] = useState(0);
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const searchCacheRef = useRef<Map<string, { items: Product[]; total: number }>>(new Map());
 
   // Filter State
   const [showFilters, setShowFilters] = useState(false);
 
-  const defaultFilters: SearchFilters = {
+  const defaultFilters = useMemo<SearchFilters>(() => ({
     category: '',
     minPrice: undefined,
     maxPrice: undefined,
@@ -35,7 +37,7 @@ export default function SearchPage() {
     region: '',
     sortBy: 'date',
     sortOrder: 'desc'
-  };
+  }), []);
 
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
 
@@ -47,8 +49,7 @@ export default function SearchPage() {
     if (q && typeof q === 'string') {
       setSearchQuery(q);
       
-      // Load filters from URL
-      setFilters({
+      const nextFilters: SearchFilters = {
         category: category ? (category as string) : '',
         minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
         maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
@@ -60,13 +61,14 @@ export default function SearchPage() {
           ? (sortBy as SearchFilters['sortBy'])
           : 'date',
         sortOrder: 'desc'
-      });
-      
-      performSearch(q as string);
+      };
+
+      setFilters(nextFilters);
+      void performSearch(q as string, nextFilters);
     }
   }, [q, category, minPrice, maxPrice, condition, region, sortBy]);
 
-  const performSearch = async (query: string) => {
+  const performSearch = async (query: string, nextFilters = filters) => {
     if (!query.trim()) return;
     const validation = defaultTextInputValidator.validate(query);
     if (!validation.isValid) {
@@ -74,25 +76,49 @@ export default function SearchPage() {
       return;
     }
 
+    const cacheKey = JSON.stringify({ query: query.trim(), filters: nextFilters });
+    const cached = searchCacheRef.current.get(cacheKey);
+    if (cached) {
+      setResults(cached.items);
+      setTotalResults(cached.total);
+      setSearched(true);
+      setError('');
+      setLoading(false);
+      return;
+    }
+
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+
     try {
       setLoading(true);
       setSearched(true);
       setError('');
 
-      // API Call mit Filtern
-      const data = await searchProducts(query, filters);
+      const data = await searchProducts(query, nextFilters, controller.signal);
 
-      // Response Format: SearchResponse
-      setResults(data.items || []);
-      setTotalResults(data.total || 0);
+      const items = data.items || [];
+      const total = data.total || 0;
+      searchCacheRef.current.set(cacheKey, { items, total });
+      if (searchCacheRef.current.size > 20) {
+        const oldest = searchCacheRef.current.keys().next().value;
+        if (oldest) searchCacheRef.current.delete(oldest);
+      }
+      setResults(items);
+      setTotalResults(total);
 
     } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'CanceledError') return;
       console.error('Search error:', err);
       setError(getErrorMessage(err));
       setResults([]);
       setTotalResults(0);
     } finally {
-      setLoading(false);
+      if (searchAbortRef.current === controller) {
+        searchAbortRef.current = null;
+        setLoading(false);
+      }
     }
   };
 
@@ -135,7 +161,7 @@ export default function SearchPage() {
 
   const resetFilters = () => {
     setFilters(defaultFilters);
-    if (searchQuery) performSearch(searchQuery);
+    if (searchQuery) void performSearch(searchQuery, defaultFilters);
   };
 
   const applyFilters = () => {
@@ -143,12 +169,11 @@ export default function SearchPage() {
   };
 
   return (
-    <>
-      <div className="bg-gray-50 min-h-screen">
-        {/* Search Header */}
-        <div className="bg-white border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-6">
-            <form onSubmit={handleSearch} className="max-w-3xl mx-auto">
+    <Layout title={t('search.title', 'Search')}>
+      <div className="app-page">
+        <div className="sticky top-[65px] z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+          <div className="container mx-auto px-4 py-5">
+            <form onSubmit={handleSearch} className="mx-auto max-w-3xl">
               <div className="relative">
                 <input
                   type="text"
@@ -160,36 +185,37 @@ export default function SearchPage() {
                   setSearchError(validation.isValid ? '' : validation.message ?? 'Input contains disallowed content');
                 }}
                   placeholder={t('search.placeholder')}
-                  className="w-full px-6 py-4 pr-14 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="input h-14 rounded-2xl pr-14 text-base shadow-md shadow-slate-950/5 sm:text-lg"
                   autoFocus
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={clearSearch}
-                    className="absolute left-14 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600"
+                    className="absolute left-14 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                    aria-label={t('common.clear', 'Clear')}
                   >
                     <X size={20} />
                   </button>
                 )}
                 <button
                   type="submit"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 p-2 text-primary-600 hover:text-primary-700"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-primary-600 transition-colors hover:bg-primary-50 hover:text-primary-700"
+                  aria-label={t('nav.search', 'Search')}
                 >
                   <Search size={24} />
                 </button>
               </div>
             </form>
             {searchError && (
-              <p className="mt-2 text-sm text-red-500 text-center">{searchError}</p>
+              <p className="mt-2 text-center text-sm font-medium text-red-600">{searchError}</p>
             )}
 
-            {/* Filter Toggle Button */}
             {searched && (
-              <div className="flex justify-center mt-4">
+              <div className="mt-4 flex justify-center">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="btn btn-outline"
                 >
                   <SlidersHorizontal size={18} />
                   {t('filters.filterAndSort')}
@@ -197,7 +223,6 @@ export default function SearchPage() {
               </div>
             )}
 
-            {/* Filters Panel */}
             {showFilters && (
               <SearchFiltersPanel
                 filters={filters}
@@ -209,16 +234,19 @@ export default function SearchPage() {
           </div>
         </div>
 
-        {/* Results */}
         <div className="container mx-auto px-4 py-8">
           {loading ? (
-            <LoadingSpinner message={t('search.searching')} />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-label={t('search.searching')}>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <ProductCardSkeleton key={index} />
+              ))}
+            </div>
           ) : error ? (
-            <div className="text-center py-20">
-              <p className="text-red-600 mb-4">{error}</p>
+            <div className="empty-state">
+              <p className="mb-4 font-medium text-red-600">{error}</p>
               <button
                 onClick={() => performSearch(searchQuery)}
-                className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className="btn btn-primary"
               >
                 {t('common.tryAgain')}
               </button>
@@ -226,7 +254,7 @@ export default function SearchPage() {
           ) : searched ? (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                <h1 className="page-title">
                   {totalResults > 0
                     ? t('search.resultsFor', { count: totalResults, query: searchQuery })
                     : t('search.noResultsFor', { query: searchQuery })
@@ -235,23 +263,25 @@ export default function SearchPage() {
               </div>
 
               {results.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {results.map(product => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-20">
-                  <Search className="w-16 h-16 text-gray-300 mx-auto mb-6" />
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                <div className="empty-state">
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary-50">
+                    <Search className="h-8 w-8 text-primary-600" />
+                  </div>
+                  <h2 className="mb-2 text-2xl font-bold text-slate-950">
                     {t('search.noResultsTitle')}
                   </h2>
-                  <p className="text-gray-600 mb-6">
+                  <p className="mb-6 text-slate-600">
                     {t('search.noResultsSuggestion')}
                   </p>
                   <button
                     onClick={() => router.push('/browse')}
-                    className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                    className="btn btn-primary"
                   >
                     {t('search.browseAll')}
                   </button>
@@ -259,18 +289,28 @@ export default function SearchPage() {
               )}
             </>
           ) : (
-            <div className="text-center py-20">
-              <Search className="w-16 h-16 text-gray-300 mx-auto mb-6" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <div className="empty-state">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary-50">
+                <Search className="h-8 w-8 text-primary-600" />
+              </div>
+              <h2 className="mb-2 text-2xl font-bold text-slate-950">
                 {t('search.initialTitle')}
               </h2>
-              <p className="text-gray-600">
+              <p className="text-slate-600">
                 {t('search.initialMessage')}
               </p>
             </div>
           )}
         </div>
       </div>
-    </>
+    </Layout>
   );
+}
+
+export async function getStaticProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+    }
+  };
 }

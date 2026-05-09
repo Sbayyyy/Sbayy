@@ -30,6 +30,34 @@ public class EfMessageRepository : IMessageRepository
             .CountAsync(m => m.ChatId == chatId && m.ReceiverId == receiverId && !m.IsRead, ct);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, int>> CountUnreadByChatAsync(IEnumerable<Guid> chatIds, Guid receiverId, CancellationToken ct)
+    {
+        var ids = chatIds?.Where(id => id != Guid.Empty).Distinct().ToArray() ?? Array.Empty<Guid>();
+        if (ids.Length == 0) return new Dictionary<Guid, int>();
+
+        return await _db.Set<Message>()
+            .AsNoTracking()
+            .Where(m => ids.Contains(m.ChatId) && m.ReceiverId == receiverId && !m.IsRead)
+            .GroupBy(m => m.ChatId)
+            .Select(g => new { ChatId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ChatId, x => x.Count, ct);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, Message>> GetLatestByChatAsync(IEnumerable<Guid> chatIds, CancellationToken ct)
+    {
+        var ids = chatIds?.Where(id => id != Guid.Empty).Distinct().ToArray() ?? Array.Empty<Guid>();
+        if (ids.Length == 0) return new Dictionary<Guid, Message>();
+
+        var latest = await _db.Set<Message>()
+            .AsNoTracking()
+            .Where(m => ids.Contains(m.ChatId))
+            .GroupBy(m => m.ChatId)
+            .Select(g => g.OrderByDescending(m => m.CreatedAt).First())
+            .ToListAsync(ct);
+
+        return latest.ToDictionary(m => m.ChatId);
+    }
+
     public async Task<IReadOnlyList<Message>> GetMessagesAsync(Guid chatId, int take, DateTime? before, CancellationToken ct)
     {
         var query = _db.Set<Message>()

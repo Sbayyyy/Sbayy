@@ -48,6 +48,20 @@ public class FirebaseListingRepository : IListingRepository
         if (!doc.Exists)
             return null;
 
+        var listing = Convert(doc);
+        return IsPubliclyAvailable(listing) ? listing : null;
+    }
+
+    public async Task<Listing?> GetByIdForManagementAsync(Guid id, CancellationToken ct)
+    {
+        var doc = await EnsureCompleted(
+            _db.Collection("listings")
+               .Document(id.ToString())
+               .GetSnapshotAsync(ct));
+
+        if (!doc.Exists)
+            return null;
+
         return Convert(doc);
     }
 
@@ -86,6 +100,24 @@ public class FirebaseListingRepository : IListingRepository
     }
 
     public async Task<IReadOnlyList<Listing>> GetBySellerAsync(Guid sellerId, CancellationToken ct)
+    {
+        var snapshot = await EnsureCompleted(
+            _db.Collection("listings")
+               .WhereEqualTo("SellerId", sellerId.ToString())
+               .GetSnapshotAsync(ct));
+
+        if (snapshot == null || snapshot.Count == 0)
+            return Array.Empty<Listing>();
+
+        return snapshot.Documents
+            .Where(d => d.Exists)
+            .Select(Convert)
+            .Where(IsPubliclyAvailable)
+            .OrderByDescending(l => l.CreatedAt)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<Listing>> GetBySellerForManagementAsync(Guid sellerId, CancellationToken ct)
     {
         var snapshot = await EnsureCompleted(
             _db.Collection("listings")
@@ -150,6 +182,7 @@ public class FirebaseListingRepository : IListingRepository
         var skip = (page - 1) * size;
 
         return items
+            .Where(IsPubliclyAvailable)
             .OrderByDescending(l => l.CreatedAt)
             .Skip(skip)
             .Take(size)
@@ -167,6 +200,7 @@ public class FirebaseListingRepository : IListingRepository
         return snapshots
             .Where(d => d.Exists)
             .Select(Convert)
+            .Where(IsPubliclyAvailable)
             .ToList();
     }
 
@@ -177,5 +211,86 @@ public class FirebaseListingRepository : IListingRepository
                .WhereEqualTo("SellerId", sellerId.ToString())
                .GetSnapshotAsync(ct));
         return snapshot?.Count ?? 0;
+    }
+
+    public async Task<bool> TryReserveStockAsync(IReadOnlyDictionary<Guid, int> quantitiesByListingId, CancellationToken ct)
+    {
+        var listings = new List<Listing>();
+        foreach (var pair in quantitiesByListingId)
+        {
+            var listing = await GetByIdForManagementAsync(pair.Key, ct);
+            if (listing is null || !IsPubliclyAvailable(listing) || listing.StockQuantity < pair.Value)
+                return false;
+            listings.Add(listing);
+        }
+
+        var batch = FirestoreWriteContext.Batch ?? _db.StartBatch();
+        foreach (var listing in listings)
+        {
+            var quantity = quantitiesByListingId[listing.Id];
+            var docRef = _db.Collection("listings").Document(listing.Id.ToString());
+            batch.Update(docRef, new Dictionary<string, object>
+            {
+                ["StockQuantity"] = listing.StockQuantity - quantity,
+                ["UpdatedAt"] = DateTime.UtcNow
+            });
+        }
+
+        if (FirestoreWriteContext.Batch == null)
+            await batch.CommitAsync(ct);
+
+        return true;
+    }
+
+    public async Task ReleaseStockAsync(IReadOnlyDictionary<Guid, int> quantitiesByListingId, CancellationToken ct)
+    {
+        if (quantitiesByListingId.Count == 0) return;
+
+        var batch = FirestoreWriteContext.Batch ?? _db.StartBatch();
+        foreach (var pair in quantitiesByListingId)
+        {
+            var listing = await GetByIdForManagementAsync(pair.Key, ct);
+            if (listing is null) continue;
+
+            var docRef = _db.Collection("listings").Document(listing.Id.ToString());
+            batch.Update(docRef, new Dictionary<string, object>
+            {
+                ["StockQuantity"] = listing.StockQuantity + pair.Value,
+                ["UpdatedAt"] = DateTime.UtcNow
+            });
+        }
+
+        if (FirestoreWriteContext.Batch == null)
+            await batch.CommitAsync(ct);
+    }
+
+    public async Task ReplaceImagesAsync(Listing entity, CancellationToken ct)
+    {
+        await UpdateAsync(entity, ct);
+    }
+
+    public async Task SoftDeleteAsync(Guid id, CancellationToken ct)
+    {
+        var docRef = _db.Collection("listings").Document(id.ToString());
+        var batch = FirestoreWriteContext.Batch;
+        var update = new Dictionary<string, object>
+        {
+            ["Status"] = "deleted",
+            ["UpdatedAt"] = DateTime.UtcNow
+        };
+
+        if (batch != null)
+        {
+            batch.Update(docRef, update);
+            return;
+        }
+
+        await EnsureCompleted(docRef.UpdateAsync(update, cancellationToken: ct));
+    }
+
+    private static bool IsPubliclyAvailable(Listing listing)
+    {
+        return string.Equals(listing.Status, "active", StringComparison.OrdinalIgnoreCase)
+               && listing.StockQuantity > 0;
     }
 }

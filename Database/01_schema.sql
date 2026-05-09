@@ -58,10 +58,22 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_ban_until TIMESTAMP
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit INT;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_count INT NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_reset_at TIMESTAMPTZ;
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Categories
 -- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS push_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  platform TEXT,
+  device_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ix_push_tokens_token ON push_tokens(token);
+CREATE INDEX IF NOT EXISTS ix_push_tokens_user_id ON push_tokens(user_id);
+
 CREATE TABLE IF NOT EXISTS categories (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE
@@ -84,6 +96,7 @@ CREATE TABLE IF NOT EXISTS listings (
   stock_quantity INT NOT NULL DEFAULT 1 CHECK (stock_quantity >= 0),
   region TEXT,
   status TEXT NOT NULL DEFAULT 'active',
+  boosted_until TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ,
   thumbnail_url TEXT DEFAULT NULL,
@@ -91,11 +104,13 @@ CREATE TABLE IF NOT EXISTS listings (
   search_vec tsvector
 );
 
+ALTER TABLE IF EXISTS listings ADD COLUMN IF NOT EXISTS boosted_until TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_listings_seller        ON listings(seller_id);
 CREATE INDEX IF NOT EXISTS idx_listings_category      ON listings(category_id);
 CREATE INDEX IF NOT EXISTS idx_listings_category_path ON listings(category_path);
 CREATE INDEX IF NOT EXISTS idx_listings_created_at    ON listings(created_at);
 CREATE INDEX IF NOT EXISTS idx_listings_price_amount  ON listings(price_amount);
+CREATE INDEX IF NOT EXISTS idx_listings_boosted_until ON listings(boosted_until);
 CREATE INDEX IF NOT EXISTS idx_listings_search_gin    ON listings USING GIN (search_vec);
 CREATE INDEX IF NOT EXISTS idx_listings_title_trgm    ON listings USING GIN (title gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_listings_desc_trgm     ON listings USING GIN (description gin_trgm_ops);
@@ -174,6 +189,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_chats_listing_buyer_seller
 CREATE UNIQUE INDEX IF NOT EXISTS ux_chats_buyer_seller_null_listing
   ON chats (buyer_id, seller_id)
   WHERE listing_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_chats_buyer_last_message
+  ON chats (buyer_id, last_message_at DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chats_seller_last_message
+  ON chats (seller_id, last_message_at DESC, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -271,6 +290,7 @@ CREATE TABLE IF NOT EXISTS orders (
 
 CREATE INDEX IF NOT EXISTS idx_orders_seller_status_time ON orders(seller_id, status, created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_time        ON orders(buyer_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_seller_time       ON orders(seller_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS order_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -282,6 +302,93 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+
+CREATE TABLE IF NOT EXISTS payment_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
+  order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  provider TEXT NOT NULL,
+  provider_reference TEXT,
+  purpose TEXT NOT NULL CHECK (purpose IN ('ListingBoost','OrderPayment')),
+  status TEXT NOT NULL CHECK (status IN ('Pending','RequiresAction','Succeeded','Failed','Cancelled','Refunded')),
+  amount NUMERIC(12,2) NOT NULL,
+  currency VARCHAR(8) NOT NULL DEFAULT 'SYP',
+  metadata_json JSONB,
+  checkout_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_payment_transactions_provider_reference
+  ON payment_transactions(provider, provider_reference)
+  WHERE provider_reference IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_payment_transactions_user_id ON payment_transactions(user_id);
+CREATE INDEX IF NOT EXISTS ix_payment_transactions_status ON payment_transactions(status);
+
+CREATE TABLE IF NOT EXISTS listing_boost_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  payment_transaction_id UUID NOT NULL REFERENCES payment_transactions(id) ON DELETE CASCADE,
+  option_id TEXT NOT NULL,
+  starts_at TIMESTAMPTZ,
+  ends_at TIMESTAMPTZ,
+  is_active BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_listing_boost_purchases_payment_transaction
+  ON listing_boost_purchases(payment_transaction_id);
+CREATE INDEX IF NOT EXISTS ix_listing_boost_purchases_listing_id ON listing_boost_purchases(listing_id);
+
+CREATE TABLE IF NOT EXISTS platform_fees (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  basis_amount NUMERIC(12,2) NOT NULL,
+  fee_amount NUMERIC(12,2) NOT NULL,
+  currency VARCHAR(8) NOT NULL DEFAULT 'SYP',
+  rate NUMERIC(8,4) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_platform_fees_order_id ON platform_fees(order_id);
+CREATE INDEX IF NOT EXISTS ix_platform_fees_seller_id ON platform_fees(seller_id);
+
+CREATE TABLE IF NOT EXISTS sponsored_ads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(160) NOT NULL,
+  description VARCHAR(600) NOT NULL,
+  image_url TEXT,
+  cta_text VARCHAR(80) NOT NULL DEFAULT 'Learn more',
+  target_url TEXT NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT FALSE,
+  starts_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ends_at TIMESTAMPTZ,
+  priority INT NOT NULL DEFAULT 0,
+  impressions BIGINT NOT NULL DEFAULT 0,
+  clicks BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  archived_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS ix_sponsored_ads_active_window
+  ON sponsored_ads(is_active, starts_at, ends_at, priority);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_listings_status') THEN
+    ALTER TABLE listings ADD CONSTRAINT ck_listings_status
+      CHECK (status IN ('active','sold','hidden','deleted'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_listings_condition') THEN
+    ALTER TABLE listings ADD CONSTRAINT ck_listings_condition
+      CHECK (condition IN ('Unknown','New','Used','LikeNew','ForParts','Refurbished','Damaged'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_orders_status') THEN
+    ALTER TABLE orders ADD CONSTRAINT ck_orders_status
+      CHECK (status IN ('pending','paid','shipped','completed','cancelled'));
+  END IF;
+END $$;
 
 DROP TRIGGER IF EXISTS trg_orders_updated_at ON orders;
 CREATE TRIGGER trg_orders_updated_at

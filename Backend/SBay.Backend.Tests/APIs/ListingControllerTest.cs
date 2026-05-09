@@ -41,6 +41,8 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
     [Fact]
     public async Task PostListing_ShouldReturnCreated_WithImages()
     {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
         var request = new
         {
             title = "Test Phone 1",
@@ -53,8 +55,8 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
             region = "BW",
             imageUrls = new[]
             {
-                "https://cdn.example.com/img/phone1-1.jpg",
-                "https://cdn.example.com/img/phone1-2.jpg"
+                "/uploads/phone1-1.jpg",
+                "/uploads/phone1-2.jpg"
             }
         };
 
@@ -73,9 +75,9 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         
         result.ImageUrls.Should().NotBeNull();
         result.ImageUrls!.Count.Should().Be(2);
-        result.ImageUrls[0].Should().Be("https://cdn.example.com/img/phone1-1.jpg");
-        result.ImageUrls[1].Should().Be("https://cdn.example.com/img/phone1-2.jpg");
-        result.ThumbnailUrl.Should().Be("https://cdn.example.com/img/phone1-1.jpg");
+        result.ImageUrls[0].Should().Be("/uploads/phone1-1.jpg");
+        result.ImageUrls[1].Should().Be("/uploads/phone1-2.jpg");
+        result.ThumbnailUrl.Should().Be("/uploads/phone1-1.jpg");
     }
 
     [Fact]
@@ -111,7 +113,7 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
             condition = "New",
             categoryPath = "electronics/mobiles",
             region = "BW",
-            imageUrls = new[] { "https://cdn.example.com/img/phone2.jpg" }
+            imageUrls = new[] { "/uploads/phone2.jpg" }
         };
 
         var response = await _client.PostAsJsonAsync("/api/listings", request);
@@ -137,7 +139,7 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
             condition = "New",
             categoryPath = "electronics/mobiles",
             region = "BW",
-            imageUrls = new[] { "https://cdn.example.com/img/phone3.jpg" }
+            imageUrls = new[] { "/uploads/phone3.jpg" }
         };
 
         var response = await client.PostAsJsonAsync("/api/listings", request);
@@ -218,6 +220,46 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
 
         results.Should().NotBeNull();
         results!.Should().HaveCount(2);
-        results.All(r => r.Condition == ItemCondition.Used).Should().BeTrue();
+        results.All(r => r.Condition == ItemCondition.Used.ToString()).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Search_Should_Only_Return_Active_Stocked_Listings()
+    {
+        var active = new Listing(Guid.NewGuid(), "Active", "desc", new Money(100m, "EUR"), stock: 1);
+        var soldOut = new Listing(Guid.NewGuid(), "Sold Out", "desc", new Money(100m, "EUR"), stock: 0);
+        var hidden = new Listing(Guid.NewGuid(), "Hidden", "desc", new Money(100m, "EUR"), stock: 1);
+
+        await SeedListingsAsync(active, soldOut, hidden);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+            var hiddenEntity = await db.Listings.FindAsync(hidden.Id);
+            db.Entry(hiddenEntity!).Property(l => l.Status).CurrentValue = "hidden";
+            await db.SaveChangesAsync();
+        }
+
+        var results = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/listings");
+
+        results.Should().NotBeNull();
+        results!.Select(r => r.Id).Should().BeEquivalentTo(new[] { active.Id });
+    }
+
+    [Fact]
+    public async Task GetById_Should_Not_Expose_Inactive_PublicListing()
+    {
+        var hidden = new Listing(Guid.NewGuid(), "Hidden", "desc", new Money(100m, "EUR"), stock: 1);
+        await SeedListingsAsync(hidden);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+            var hiddenEntity = await db.Listings.FindAsync(hidden.Id);
+            db.Entry(hiddenEntity!).Property(l => l.Status).CurrentValue = "hidden";
+            await db.SaveChangesAsync();
+        }
+
+        var res = await _client.GetAsync($"/api/listings/{hidden.Id}");
+
+        res.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

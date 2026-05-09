@@ -1,0 +1,108 @@
+# Production Docker Compose for IONOS VPS
+
+name: sbay
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sbay
+      POSTGRES_USER: sbay
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./Database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sbay -d sbay"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+
+  backend:
+    build:
+      context: ./Backend/SBay.Backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: ${CONNECTION_STRING}
+      Jwt__Issuer: ${JWT_ISSUER:-SBay}
+      Jwt__Audience: ${JWT_AUDIENCE:-SBayClients}
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__ExpMinutes: ${JWT_EXP_MINUTES:-60}
+      Redis__Host: redis
+      Redis__Port: 6379
+      App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-https://${DOMAIN_NAME}}
+      Storage__Provider: local
+      Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-https://${DOMAIN_NAME}/uploads}
+      Cors__AllowAnyOrigin: "false"
+      Cors__AllowedOrigins__0: ${FRONTEND_URL:-https://${DOMAIN_NAME}}
+      RateLimits__TrustForwardedFor: "true"
+      Payments__Provider: ${PAYMENTS_PROVIDER:-mock}
+      Payments__Mock__WebhookSecret: ${PAYMENTS_MOCK_WEBHOOK_SECRET}
+      Monetization__Currency: ${MONETIZATION_CURRENCY:-SYP}
+      Monetization__CommissionPercent: ${MONETIZATION_COMMISSION_PERCENT:-5}
+    volumes:
+      - uploads:/app/wwwroot/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  web:
+    build:
+      context: ./Frontend
+      dockerfile: web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api
+        NEXT_PUBLIC_API_PROXY_TARGET: http://backend:8080
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_API_PROXY_TARGET: http://backend:8080
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
+      - /etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem:/etc/nginx/certs/privkey.pem:ro
+    depends_on:
+      web:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:

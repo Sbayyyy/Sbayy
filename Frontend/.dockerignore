@@ -1,0 +1,10 @@
+node_modules/
+web/node_modules/
+packages/*/node_modules/
+web/.next/
+web/out/
+web/coverage/
+web/.env.local
+web/.env.production
+npm-debug.log*
+*.tsbuildinfo

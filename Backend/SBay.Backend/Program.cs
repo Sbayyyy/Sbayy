@@ -1,12 +1,16 @@
 using System.IO;
+using System.Threading.RateLimiting;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SBay.Backend.DataBase.Ef;
 using SBay.Backend.DataBase.Firebase;
 using SBay.Backend.DataBase.Interfaces;
 using SBay.Backend.Messaging;
 using SBay.Backend.Services;
+using SBay.Backend.Services.Payments;
 using Amazon.Runtime;
 using Amazon.S3;
 using SBay.Backend.Utils;
@@ -17,11 +21,6 @@ using SBay.Domain.ValueObjects;
 using Sentry;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Configuration
-    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
-    .AddEnvironmentVariables();
 
 var sentryDsn = builder.Configuration["Sentry:Dsn"];
 var useSentry = !string.IsNullOrWhiteSpace(sentryDsn)
@@ -40,6 +39,8 @@ if (useSentry)
 
 var providerName = builder.Configuration.GetValue<string>("Database:Provider") ?? "ef";
 var useEf = !string.Equals(providerName, "firestore", StringComparison.OrdinalIgnoreCase);
+
+ProductionConfigurationGuard.Validate(builder.Configuration, builder.Environment);
 
 if (useEf)
 {
@@ -140,10 +141,6 @@ builder.Services.AddScoped<IImageStorageProvider>(sp =>
         if (string.IsNullOrWhiteSpace(endpoint))
             throw new InvalidOperationException("Storage:S3:Endpoint is required.");
 
-        var accessKeyMask = accessKey.Length <= 4 ? accessKey : $"{accessKey[..4]}****";
-        var endpointMask = endpoint.Length <= 32 ? endpoint : $"{endpoint[..32]}...";
-        Console.WriteLine($"S3 config loaded. AccessKeyPrefix={accessKeyMask}, Endpoint={endpointMask}");
-
         var s3Config = new AmazonS3Config
         {
             ServiceURL = endpoint,
@@ -158,6 +155,9 @@ builder.Services.AddScoped<IImageStorageProvider>(sp =>
 
     return new LocalImageStorageProvider(env, config);
 });
+builder.Services.AddScoped<MonetizationService>();
+builder.Services.AddSingleton<IPaymentGateway, MockPaymentGateway>();
+builder.Services.AddSingleton<PaymentGatewayRegistry>();
 
 // NEW: Shipping Service
 builder.Services.AddScoped<IShippingService, DhlShippingService>();
@@ -184,18 +184,109 @@ builder.Services.AddSingleton<ITextSanitizer>(sp =>
 );
 
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.Value!.Errors.Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage)
+                        ? "The input was invalid."
+                        : e.ErrorMessage).ToArray());
+
+            var details = new ValidationProblemDetails(errors)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation failed.",
+                Type = "about:blank"
+            };
+            details.Extensions["code"] = "invalid_input";
+            return new BadRequestObjectResult(details);
+        };
+    });
 ConnectAuthenticators.connectAuthenticators(builder);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:Auth:PermitLimit", 10),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Auth:WindowMinutes", 1)),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("registration", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:Registration:PermitLimit", 5),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Registration:WindowMinutes", 10)),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("uploads", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:Uploads:PermitLimit", 20),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Uploads:WindowMinutes", 10)),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("reports", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:Reports:PermitLimit", 10),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Reports:WindowMinutes", 10)),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("chat", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:Chat:PermitLimit", 60),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Chat:WindowMinutes", 1)),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("write", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:Write:PermitLimit", 60),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Write:WindowMinutes", 1)),
+            QueueLimit = 0
+        }));
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(o =>
 {
-    o.AddPolicy("AllowAll", p => p
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowAnyOrigin());
+    o.AddPolicy("AllowAll", p =>
+    {
+        var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? Array.Empty<string>();
+        var allowAnyOrigin = builder.Environment.IsDevelopment()
+            && builder.Configuration.GetValue<bool>("Cors:AllowAnyOrigin");
+        if (allowAnyOrigin)
+        {
+            p.AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowAnyOrigin();
+            return;
+        }
+
+        var origins = configuredOrigins.Length > 0
+            ? configuredOrigins
+            : new[] { "http://localhost:3000", "https://localhost:3000" };
+        p.AllowAnyHeader()
+            .AllowAnyMethod()
+            .WithOrigins(origins);
+    });
 });
 
 var app = builder.Build();
@@ -268,6 +359,7 @@ if (useSentry)
     app.UseSentryTracing();
 }
 app.UseCors("AllowAll");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -314,3 +406,62 @@ else
 app.Run();
 
 public partial class Program { }
+
+internal static class ProductionConfigurationGuard
+{
+    public static void Validate(IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        if (!environment.IsProduction()) return;
+
+        var jwtSecret = configuration["Jwt:Secret"];
+        var jwtExpMinutes = configuration.GetValue("Jwt:ExpMinutes", 60);
+        if (string.IsNullOrWhiteSpace(jwtSecret) ||
+            jwtSecret.Equals("REPLACE_ME", StringComparison.OrdinalIgnoreCase) ||
+            jwtSecret.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase) ||
+            jwtSecret.Length < 32)
+        {
+            throw new InvalidOperationException("Jwt:Secret must be configured with a production-grade secret.");
+        }
+        if (jwtExpMinutes < 5 || jwtExpMinutes > 120)
+            throw new InvalidOperationException("Jwt:ExpMinutes must be between 5 and 120 in production.");
+
+        var connectionString = configuration.GetConnectionString("Default");
+        if (string.IsNullOrWhiteSpace(connectionString) ||
+            connectionString.Contains("postgres_password", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("ConnectionStrings:Default must be configured for production.");
+        }
+
+        if (string.Equals(configuration["Storage:Provider"], "s3", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(configuration["Storage:S3:AccessKey"]) ||
+                string.IsNullOrWhiteSpace(configuration["Storage:S3:SecretKey"]) ||
+                string.IsNullOrWhiteSpace(configuration["Storage:S3:Bucket"]) ||
+                string.IsNullOrWhiteSpace(configuration["Storage:S3:PublicBaseUrl"]))
+            {
+                throw new InvalidOperationException("S3 storage credentials and public base URL must be configured for production.");
+            }
+        }
+    }
+}
+
+internal static class RateLimitKeys
+{
+    public static string ForRequest(HttpContext context)
+    {
+        var subject = context.User?.FindFirst("sub")?.Value;
+        if (!string.IsNullOrWhiteSpace(subject))
+            return $"user:{subject}";
+
+        var configuration = context.RequestServices.GetRequiredService<IConfiguration>();
+        var trustForwardedFor = configuration.GetValue<bool>("RateLimits:TrustForwardedFor");
+        var forwarded = trustForwardedFor
+            ? context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+            : null;
+        var ip = string.IsNullOrWhiteSpace(forwarded)
+            ? context.Connection.RemoteIpAddress?.ToString()
+            : forwarded.Split(',')[0].Trim();
+
+        return string.IsNullOrWhiteSpace(ip) ? "anonymous" : $"ip:{ip}";
+    }
+}

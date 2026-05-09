@@ -4,10 +4,11 @@ import ProductCard from '@/components/ProductCard';
 import { getFavorites, removeFavorite } from '@/lib/api/favorites';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { Product } from '@sbay/shared';
-import { Loader2, Heart, ShoppingBag } from 'lucide-react';
+import { Heart, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function FavoritesPage() {
   const { t } = useTranslation('common');
@@ -38,7 +39,6 @@ export default function FavoritesPage() {
   const handleRemoveFavorite = async (productId: string) => {
     try {
       await removeFavorite(productId);
-      // Update local state
       setFavorites(prev => prev.filter(p => p.id !== productId));
     } catch (err: unknown) {
       console.error('Error removing favorite:', err);
@@ -50,27 +50,23 @@ export default function FavoritesPage() {
   if (loading) {
     return (
       <Layout title={t('favorites.title')}>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">{t('favorites.loading')}</p>
-          </div>
-        </div>
+        <LoadingSpinner fullPage message={t('favorites.loading')} />
       </Layout>
     );
   }
 
   return (
     <Layout title={t('favorites.title')}>
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="app-page py-8">
         <div className="container mx-auto px-4">
-          {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <Heart className="text-red-500" size={32} />
-              <h1 className="text-3xl font-bold">{t('favorites.heading')}</h1>
+            <div className="mb-2 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-500">
+                <Heart size={24} />
+              </div>
+              <h1 className="page-title">{t('favorites.heading')}</h1>
             </div>
-            <p className="text-gray-600">
+            <p className="page-subtitle">
               {favorites.length > 0
                 ? t('favorites.itemCount', { count: favorites.length })
                 : t('favorites.emptyCount')
@@ -80,14 +76,13 @@ export default function FavoritesPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 font-medium text-red-700">
               {error}
             </div>
           )}
 
-          {/* Favorites Grid */}
           {favorites.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {favorites.map(product => (
                 <ProductCard
                   key={product.id}
@@ -98,26 +93,23 @@ export default function FavoritesPage() {
               ))}
             </div>
           ) : (
-            // Empty State
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-              <div className="max-w-md mx-auto">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Heart className="text-gray-400" size={48} />
+            <div className="empty-state">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-50">
+                  <Heart className="text-red-400" size={40} />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                <h3 className="mb-3 text-2xl font-bold text-slate-950">
                   {t('favorites.emptyTitle')}
                 </h3>
-                <p className="text-gray-600 mb-8">
+                <p className="mb-8 text-slate-600">
                   {t('favorites.emptyMessage')}
                 </p>
                 <Link
                   href="/browse"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                  className="btn btn-primary"
                 >
                   <ShoppingBag size={20} />
                   {t('favorites.browseProducts')}
                 </Link>
-              </div>
             </div>
           )}
         </div>

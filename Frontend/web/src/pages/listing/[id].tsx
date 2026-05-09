@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
 import { Heart, Share2, MapPin } from 'lucide-react';
 import { deleteListing, getListingById } from '@/lib/api/listings';
 import { addFavorite, getFavorites, removeFavorite } from '@/lib/api/favorites';
@@ -16,6 +15,7 @@ import { CONDITION_LABEL_MAP, CONDITION_I18N_MAP } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
 import { useRequireAuthAction } from '@/lib/hooks/useRequireAuthAction';
 import { ImageGallery, SellerCard, ListingActions, TrustBadges } from '@/components/listing';
+import Layout from '@/components/Layout';
 
 export default function ListingDetail() {
   const router = useRouter();
@@ -161,17 +161,19 @@ export default function ListingDetail() {
 
   if (error || !listing) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error || t('listing.errors.notFound', 'Listing not found')}</p>
+      <Layout title={t('listing.errors.notFound', 'Listing not found')}>
+        <div className="app-page flex items-center justify-center px-4 py-16">
+          <div className="empty-state">
+            <p className="mb-4 font-medium text-red-600">{error || t('listing.errors.notFound', 'Listing not found')}</p>
           <button
             onClick={() => router.push('/')}
-            className="text-primary-600 hover:underline"
+            className="btn btn-primary"
           >
             {t('listing.actions.backHome', 'Back to home')}
           </button>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
@@ -188,29 +190,23 @@ export default function ListingDetail() {
 
   return (
     <>
-      <Head>
-        <title>{t('listing.meta.title', '{{title}} - SBay', { title: listing.title })}</title>
-        <meta name="description" content={listing.description} />
-      </Head>
-
-      <div className="min-h-screen bg-gray-50 py-8">
+      <Layout title={t('listing.meta.title', '{{title}} - SBay', { title: listing.title })} description={listing.description}>
+      <div className="app-page py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Breadcrumb */}
-          <nav className="mb-4 text-sm">
-            <button onClick={() => router.push('/')} className="text-gray-500 hover:text-gray-700">
+          <nav className="mb-5 text-sm">
+            <button onClick={() => router.push('/')} className="text-slate-500 transition-colors hover:text-slate-900">
               {t('listing.breadcrumbs.home', 'Home')}
             </button>
-            <span className="mx-2 text-gray-400">/</span>
-            <button onClick={() => router.push(`/?category=${listing.categoryPath}`)} className="text-gray-500 hover:text-gray-700">
+            <span className="mx-2 text-slate-400">/</span>
+            <button onClick={() => router.push(`/?category=${listing.categoryPath}`)} className="text-slate-500 transition-colors hover:text-slate-900">
               {listing.categoryPath || t('listing.breadcrumbs.categoryFallback', 'Listings')}
             </button>
-            <span className="mx-2 text-gray-400">/</span>
-            <span className="text-gray-900 truncate max-w-xs inline-block">{listing.title}</span>
+            <span className="mx-2 text-slate-400">/</span>
+            <span className="inline-block max-w-xs truncate text-slate-900">{listing.title}</span>
           </nav>
 
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
-              {/* Image Gallery */}
+          <div className="surface-card overflow-hidden">
+            <div className="grid grid-cols-1 gap-8 p-4 sm:p-6 lg:grid-cols-2">
               <ImageGallery
                 images={listing.imageUrls || []}
                 title={listing.title}
@@ -220,19 +216,18 @@ export default function ListingDetail() {
                 nextLabel={t('listing.images.next', 'Next image')}
               />
 
-              {/* Product Info */}
               <div className="flex flex-col">
                 <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                  <h1 className="mb-4 text-3xl font-bold leading-tight text-slate-950">
                     {listing.title}
                   </h1>
 
-                  <div className="flex items-center gap-4 mb-6">
-                    <span className="text-3xl font-bold text-primary-600">
+                  <div className="mb-6 flex flex-wrap items-center gap-4">
+                    <span className="text-3xl font-bold text-primary-700">
                       {formatPrice(listing.priceAmount, locale, listing.priceCurrency || t('listing.details.currencyFallback', 'SYP'))}
                     </span>
                     {listing.condition && (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                      <span className="status-pill border-slate-200 bg-slate-50 text-slate-700">
                         {conditionLabels[listing.condition] || listing.condition}
                       </span>
                     )}
@@ -242,10 +237,10 @@ export default function ListingDetail() {
                     <button
                       onClick={handleFavoriteToggle}
                       disabled={favoriteLoading}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                      className={`btn ${
                         isFavorite
-                          ? 'bg-red-50 border-red-300 text-red-600'
-                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                          ? 'border border-red-200 bg-red-50 text-red-600'
+                          : 'btn-outline'
                       }`}
                     >
                       <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
@@ -253,39 +248,37 @@ export default function ListingDetail() {
                     </button>
                     <button
                       onClick={handleShare}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all"
+                      className="btn btn-outline"
                     >
                       <Share2 size={20} />
                       {t('listing.actions.share', 'Share')}
                     </button>
                   </div>
 
-                  {/* Description */}
                   <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-2">{t('listing.sections.description', 'Description')}</h2>
-                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    <h2 className="mb-2 text-xl font-bold text-slate-950">{t('listing.sections.description', 'Description')}</h2>
+                    <p className="whitespace-pre-wrap leading-relaxed text-slate-700">
                       {listing.description}
                     </p>
                   </div>
 
-                  {/* Details */}
-                  <div className="border-t pt-4 mb-6">
-                    <h2 className="text-xl font-semibold mb-3">{t('listing.sections.details', 'Details')}</h2>
+                  <div className="mb-6 border-t border-slate-200 pt-4">
+                    <h2 className="mb-3 text-xl font-bold text-slate-950">{t('listing.sections.details', 'Details')}</h2>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-gray-500">{t('listing.details.category', 'Category')}</p>
-                        <p className="font-medium">{listing.categoryPath || t('listing.details.unknown', 'Uncategorized')}</p>
+                        <p className="text-sm text-slate-500">{t('listing.details.category', 'Category')}</p>
+                        <p className="font-semibold text-slate-900">{listing.categoryPath || t('listing.details.unknown', 'Uncategorized')}</p>
                       </div>
                       {listing.condition && (
                         <div>
-                          <p className="text-sm text-gray-500">{t('listing.details.condition', 'Condition')}</p>
-                          <p className="font-medium">{conditionLabels[listing.condition] || listing.condition}</p>
+                          <p className="text-sm text-slate-500">{t('listing.details.condition', 'Condition')}</p>
+                          <p className="font-semibold text-slate-900">{conditionLabels[listing.condition] || listing.condition}</p>
                         </div>
                       )}
                       {listing.region && (
                         <div>
-                          <p className="text-sm text-gray-500">{t('listing.details.region', 'Region')}</p>
-                          <p className="font-medium flex items-center gap-1">
+                          <p className="text-sm text-slate-500">{t('listing.details.region', 'Region')}</p>
+                          <p className="font-semibold text-slate-900 flex items-center gap-1">
                             <MapPin size={16} />
                             {listing.region}
                           </p>
@@ -293,14 +286,13 @@ export default function ListingDetail() {
                       )}
                       {listing.stock !== undefined && (
                         <div>
-                          <p className="text-sm text-gray-500">{t('listing.details.stock', 'Available stock')}</p>
-                          <p className="font-medium">{listing.stock}</p>
+                          <p className="text-sm text-slate-500">{t('listing.details.stock', 'Available stock')}</p>
+                          <p className="font-semibold text-slate-900">{listing.stock}</p>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Seller Info */}
                   {listing.seller && (
                     <SellerCard
                       seller={listing.seller}
@@ -311,7 +303,6 @@ export default function ListingDetail() {
                   )}
                 </div>
 
-                {/* Action Buttons + Trust Badges */}
                 <ListingActions
                   isOwnListing={isOwnListing}
                   isAvailable={isAvailable}
@@ -336,6 +327,7 @@ export default function ListingDetail() {
           </div>
         </div>
       </div>
+      </Layout>
 
       {listing?.id ? (
         <ReportDialog

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Heart, MapPin, Package } from 'lucide-react';
+import { Heart, MapPin, Package, Zap } from 'lucide-react';
 import { Product } from '@sbay/shared';
 import { addFavorite, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store';
@@ -22,36 +22,34 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
   const [isLiked, setIsLiked] = useState(isFavorite);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
+  useEffect(() => {
+    setIsLiked(isFavorite);
+  }, [isFavorite]);
+
   const handleFavoriteClick = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Verhindert Navigation
-    
-    // Check if user is authenticated
+    e.preventDefault();
+
     if (!isAuthenticated) {
       router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
 
-    // Prevent multiple clicks
     if (isTogglingFavorite) return;
 
     try {
       setIsTogglingFavorite(true);
       
       if (isLiked) {
-        // Remove from favorites
         await removeFavorite(product.id);
         setIsLiked(false);
       } else {
-        // Add to favorites
         await addFavorite(product.id);
         setIsLiked(true);
       }
 
-      // Call parent callback if provided
       onFavorite?.(product.id);
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // Revert optimistic update on error
       setIsLiked(isLiked);
     } finally {
       setIsTogglingFavorite(false);
@@ -62,35 +60,52 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
   const isAvailable = product.stock === undefined || product.stock > 0;
 
   return (
-    <Link href={`/listing/${product.id}`}>
-      <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all overflow-hidden cursor-pointer h-full flex flex-col">
-        {/* Image */}
-        <div className="relative aspect-square bg-gray-100 flex-shrink-0">
+    <article className="surface-card surface-card-hover group h-full overflow-hidden">
+      <div className="relative">
+        <Link href={`/listing/${product.id}`} className="block">
+          <div className="relative aspect-square flex-shrink-0 overflow-hidden bg-slate-100">
           {imageUrl ? (
             <img 
               src={imageUrl} 
               alt={product.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              loading="lazy"
+              decoding="async"
+              sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="flex items-center justify-center h-full">
-              <Package size={64} className="text-gray-300" data-testid="package-icon" />
+            <div className="flex h-full items-center justify-center">
+              <Package size={64} className="text-slate-300" data-testid="package-icon" />
             </div>
           )}
 
-          {/* Condition Badge */}
           {product.condition && (
-            <span className="absolute top-2 left-2 px-2 py-1 bg-white/90 rounded-full text-xs">
+            <span className="status-pill absolute left-3 top-3 border-white/70 bg-white/95 text-slate-700 shadow-sm backdrop-blur">
               {t(CONDITION_I18N_MAP[product.condition])}
             </span>
           )}
 
-          {/* Favorite Button */}
+          {product.isBoosted && (
+            <span className="status-pill absolute right-3 bottom-3 border-amber-200 bg-amber-50 text-amber-700 shadow-sm">
+              <Zap size={13} />
+              Boosted
+            </span>
+          )}
+
+          {!isAvailable && (
+            <span className="status-pill absolute bottom-3 left-3 border-red-200 bg-red-500 text-white shadow-sm">
+              {t('productCard.unavailable')}
+            </span>
+          )}
+          </div>
+        </Link>
+
           <button
             onClick={handleFavoriteClick}
             disabled={isTogglingFavorite}
-            className="absolute top-2 right-2 p-2 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+            className="icon-button absolute right-3 top-3 bg-white/95 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100"
             title={isLiked ? t('productCard.removeFromFavorites') : t('productCard.addToFavorites')}
+            aria-label={isLiked ? t('productCard.removeFromFavorites') : t('productCard.addToFavorites')}
           >
             <Heart 
               size={20} 
@@ -99,39 +114,33 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
               } ${isTogglingFavorite ? 'animate-pulse' : ''}`}
             />
           </button>
+      </div>
 
-          {!isAvailable && (
-            <span className="absolute bottom-2 left-2 px-2 py-1 bg-red-500 text-white text-xs rounded">
-              {t('productCard.unavailable')}
-            </span>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="p-4 flex-1 flex flex-col">
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12">
+      <div className="flex flex-1 flex-col p-4">
+        <Link href={`/listing/${product.id}`} className="group/title">
+          <h3 className="mb-2 line-clamp-2 min-h-[3rem] font-semibold leading-6 text-slate-950 transition-colors group-hover/title:text-primary-700">
             {product.title}
           </h3>
+        </Link>
 
-          <div className="flex items-center gap-1 text-sm text-gray-500 mb-3 h-5">
+          <div className="mb-3 flex h-5 items-center gap-1 text-sm text-slate-500">
             {product.region && (
               <>
                 <MapPin size={14} />
-                <span>{product.region}</span>
+                <span className="truncate">{product.region}</span>
               </>
             )}
           </div>
 
-          <div className="flex items-center justify-between mt-auto">
-            <span className="text-2xl font-bold text-primary-600">
+          <div className="mt-auto flex items-end justify-between gap-3">
+            <span className="text-xl font-bold text-primary-700 sm:text-2xl">
               {formatPrice(product.priceAmount)}
             </span>
-            <button className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+            <Link href={`/listing/${product.id}`} className="btn btn-outline px-3 py-2 text-xs opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
               {t('productCard.view')}
-            </button>
+            </Link>
           </div>
         </div>
-      </div>
-    </Link>
+    </article>
   );
 }

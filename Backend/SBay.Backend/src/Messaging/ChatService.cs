@@ -106,18 +106,19 @@ public sealed class ChatService : IChatService
 
     public async Task<IReadOnlyList<Message>> GetMessagesAsync(Guid chatId, int take = 50, DateTime? before = null, CancellationToken ct = default)
     {
-        return await _messages.GetMessagesAsync(chatId, take, before, ct);
+        var normalizedTake = take < 1 ? 50 : Math.Min(take, 100);
+        return await _messages.GetMessagesAsync(chatId, normalizedTake, before, ct);
     }
 
     public async Task<int> MarkReadAsync(Guid chatId, Guid readerId, DateTime upTo, CancellationToken ct = default)
     {
+        var chat = await _chats.GetByIdAsync(chatId, ct)
+                   ?? throw new InvalidOperationException("Chat not found");
+        if (readerId != chat.BuyerId && readerId != chat.SellerId)
+            throw new InvalidOperationException("Forbidden");
+
         var affectedRows = await _messages.MarkReadUpToAsync(chatId, readerId, upTo, ct);
-        Guid? otherUserId = null;
-        var chat = await _chats.GetByIdAsync(chatId, ct);
-        if (chat is not null)
-        {
-            otherUserId = readerId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
-        }
+        var otherUserId = readerId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
         await _events.MessagesReadAsync(chatId, readerId, otherUserId, ct);
         return affectedRows;
     }
@@ -173,13 +174,17 @@ public sealed class ChatService : IChatService
 
     public async Task<IReadOnlyList<ChatSummaryDto>> GetInboxSummaryAsync(Guid me, int take = 20, int skip = 0, CancellationToken ct = default)
     {
-        var chats = await _chats.GetInboxAsync(me, take, skip, ct);
+        var normalizedTake = take < 1 ? 20 : Math.Min(take, 100);
+        var normalizedSkip = Math.Max(0, skip);
+        var chats = await _chats.GetInboxAsync(me, normalizedTake, normalizedSkip, ct);
         var summaries = new List<ChatSummaryDto>(chats.Count);
+        var chatIds = chats.Select(c => c.Id).ToArray();
+        var latestByChat = await _messages.GetLatestByChatAsync(chatIds, ct);
+        var unreadByChat = await _messages.CountUnreadByChatAsync(chatIds, me, ct);
 
         foreach (var chat in chats)
         {
-            var latest = await _messages.GetMessagesAsync(chat.Id, 1, null, ct);
-            var lastMessage = latest.FirstOrDefault();
+            latestByChat.TryGetValue(chat.Id, out var lastMessage);
             var lastMessageDto = lastMessage is null
                 ? null
                 : new MessageDto(
@@ -190,7 +195,7 @@ public sealed class ChatService : IChatService
                     lastMessage.Content,
                     lastMessage.CreatedAt,
                     lastMessage.IsRead);
-            var unreadCount = await _messages.CountUnreadForChatAsync(chat.Id, me, ct);
+            unreadByChat.TryGetValue(chat.Id, out var unreadCount);
             var lastMessageAt = chat.LastMessageAt ?? lastMessage?.CreatedAt ?? chat.CreatedAt;
 
             summaries.Add(new ChatSummaryDto(
@@ -209,6 +214,8 @@ public sealed class ChatService : IChatService
 
     public async Task<IReadOnlyList<Chat>> GetInboxAsync(Guid me, int take = 20, int skip = 0, CancellationToken ct = default)
     {
-        return await _chats.GetInboxAsync(me, take, skip, ct);
+        var normalizedTake = take < 1 ? 20 : Math.Min(take, 100);
+        var normalizedSkip = Math.Max(0, skip);
+        return await _chats.GetInboxAsync(me, normalizedTake, normalizedSkip, ct);
     }
 }

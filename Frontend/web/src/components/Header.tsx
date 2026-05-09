@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { ShoppingCart, User, Menu, X, Heart, Package, MessageCircle } from 'lucide-react';
+import { User, Menu, X, Heart, Package, MessageCircle, Search } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
-import { useCartStore } from '@/lib/cartStore';
+// import { useCartStore } from '@/lib/cartStore';
 import { useTranslation } from 'next-i18next';
 import { createChatConnection, onMessageNew, onMessagesRead, onMessageDeleted, type RealtimeDelete } from '@/lib/realtime/chat';
 import { getUnreadCount } from '@/lib/api/messages';
@@ -13,6 +13,7 @@ export default function Header() {
   const router = useRouter();
   const { t } = useTranslation('common');
   const { user, isAuthenticated, logout } = useAuthStore();
+  // const { itemCount } = useCartStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [unreadTotal, setUnreadTotal] = useState(0);
@@ -23,11 +24,16 @@ export default function Header() {
   const handleLogout = () => {
     logout();
     setUserMenuOpen(false);
+    setMobileMenuOpen(false);
     router.push('/');
   };
 
-  // Mock: Cart item count (später aus Cart Store)
-  const { itemCount, openCart } = useCartStore();
+  const navLinkClass = (href: string) =>
+    `rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
+      router.pathname === href
+        ? 'bg-primary-50 text-primary-700'
+        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+    }`;
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {
@@ -63,7 +69,6 @@ export default function Header() {
         });
         await connection.start();
       } catch {
-        // ignore realtime failures
       }
     };
 
@@ -79,158 +84,95 @@ export default function Header() {
   }, [isAuthenticated, user?.id]);
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 shadow-sm backdrop-blur-xl">
       <div className="container mx-auto px-4">
-        {/* Main Header */}
-        <div className="flex items-center justify-between py-4">
-          {/* Logo & Navigation */}
+        <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-8">
-            <Link href="/" className="text-2xl font-bold text-primary-600 hover:text-primary-700">
+            <Link href="/" className="text-2xl font-extrabold tracking-normal text-primary-600 transition-colors hover:text-primary-700">
               {t('header.brandName')}
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex gap-6">
-              <Link href="/" className="text-gray-700 hover:text-primary-600 transition-colors">
+            <nav className="hidden items-center gap-1 md:flex">
+              <Link href="/" className={navLinkClass('/')}>
                 {t('nav.home')}
               </Link>
-              <Link href="/browse" className="text-gray-700 hover:text-primary-600 transition-colors">
+              <Link href="/browse" className={navLinkClass('/browse')}>
                 {t('nav.browse')}
               </Link>
-              
+              <Link href="/search" className={navLinkClass('/search')} aria-label={t('nav.search', 'Search')}>
+                <Search size={16} />
+              </Link>
             </nav>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3">
-            {/* Sell Button */}
-            <Link
-              href="/listing/sell"
-              className="hidden md:flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-            >
+          <div className="flex items-center gap-2">
+            <Link href="/listing/sell" className="btn btn-primary hidden md:flex">
               <Package size={18} />
               {t('nav.sellNow')}
             </Link>
 
-            {/* Favorites */}
-            <Link
-              href="/favorites"
-              className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label={t('nav.favorites')}
-            >
-              <Heart size={24} />
+            <Link href="/favorites" className="icon-button" aria-label={t('nav.favorites')}>
+              <Heart size={20} />
             </Link>
 
-            <Link
-              href="/messages"
-              className="relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label={t('nav.messages')}
-            >
-              <MessageCircle size={24} />
+            <Link href="/messages" className="icon-button relative" aria-label={t('nav.messages')}>
+              <MessageCircle size={20} />
               {unreadTotal > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
                   {unreadTotal > 99 ? '99+' : unreadTotal}
                 </span>
               )}
             </Link>
 
-            {/* Shopping Cart (hidden for now) */}
-            {/*
-            <button
-              onClick={openCart}
-              className="relative p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label={t('nav.cart')}
-            >
-              <ShoppingCart size={24} />
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                  {itemCount}
-                </span>
-              )}
-            </button>
-            */}
-
-            {/* User Menu */}
+            {/* Cart feature disabled */}
             {isAuthenticated && user ? (
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="relative flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="relative flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-2 pr-1.5 shadow-sm transition-all hover:border-primary-200 hover:shadow-md"
+                  aria-expanded={userMenuOpen}
                 >
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden">
+                  <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary-100 ring-2 ring-white">
                     {user?.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user?.name || t('nav.user')}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={user.avatar} alt={user?.name || t('nav.user')} className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-primary-600 font-bold text-sm">
+                      <span className="text-sm font-bold text-primary-600">
                         {user?.name?.charAt(0).toUpperCase() || 'U'}
                       </span>
                     )}
                   </div>
-                  <span className="hidden lg:block text-sm font-medium">{user?.name || t('nav.user')}</span>
+                  <span className="hidden max-w-28 truncate text-sm font-semibold text-slate-700 lg:block">
+                    {user?.name || t('nav.user')}
+                  </span>
                 </button>
 
-                {/* Dropdown Menu */}
                 {userMenuOpen && (
                   <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setUserMenuOpen(false)}
-                    />
-                    <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-20">
-                      <div className="px-4 py-2 border-b">
-                        <p className="text-sm text-gray-500">{t('nav.welcome')}</p>
-                        <p className="font-semibold text-gray-900">{user?.name || t('nav.user')}</p>
+                    <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
+                    <div className="surface-card absolute left-0 z-20 mt-2 w-56 overflow-hidden py-2">
+                      <div className="border-b border-slate-100 px-4 py-3">
+                        <p className="text-xs text-slate-500">{t('nav.welcome')}</p>
+                        <p className="truncate font-semibold text-slate-900">{user?.name || t('nav.user')}</p>
                       </div>
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
+                      <Link href="/profile" className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" onClick={() => setUserMenuOpen(false)}>
                         {t('nav.profile')}
                       </Link>
-
-                      {/* <Link
-                        href="/dashboard"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        {t('nav.dashboard')}
-                      </Link> */}
-                      <Link
-                        href="/seller/my-listings"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
+                      <Link href="/seller/my-listings" className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" onClick={() => setUserMenuOpen(false)}>
                         {t('nav.myListings')}
                       </Link>
-                      <Link
-                        href="/messages"
-                        className="flex items-center justify-between px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
+                      <Link href="/messages" className="flex items-center justify-between px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" onClick={() => setUserMenuOpen(false)}>
                         <span>{t('nav.messages')}</span>
                         {unreadTotal > 0 && (
-                          <span className="inline-flex items-center justify-center min-w-[18px] h-5 px-1.5 rounded-full bg-primary text-white text-xs font-semibold">
+                          <span className="inline-flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
                             {unreadTotal > 99 ? '99+' : unreadTotal}
                           </span>
                         )}
                       </Link>
-                                            <Link
-                        href="/profile/settings"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
+                      <Link href="/profile/settings" className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" onClick={() => setUserMenuOpen(false)}>
                         {t('profile.accountSettings')}
                       </Link>
-                      <hr className="my-2" />
-                      <button
-                        onClick={handleLogout}
-                        className="block w-full text-right px-4 py-2 text-red-600 hover:bg-gray-100"
-                      >
+                      <hr className="my-2 border-slate-100" />
+                      <button onClick={handleLogout} className="block w-full px-4 py-2.5 text-right text-sm font-medium text-red-600 hover:bg-red-50">
                         {t('nav.logout')}
                       </button>
                     </div>
@@ -238,102 +180,59 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <Link
-                href={loginHref}
-                className="hidden md:flex items-center gap-2 px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-              >
+              <Link href={loginHref} className="btn btn-outline hidden border-primary-200 text-primary-700 hover:bg-primary-50 md:flex">
                 <User size={18} />
                 {t('nav.login')}
               </Link>
             )}
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="icon-button md:hidden" aria-label="Menu">
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-white">
-          <nav className="container mx-auto px-4 py-4 space-y-2">
-            <Link
-              href="/"
-              className="block py-2 text-gray-700 hover:text-primary-600"
-              onClick={() => setMobileMenuOpen(false)}
-            >
+        <div className="animate-fade-up border-t border-slate-200 bg-white md:hidden">
+          <nav className="container mx-auto space-y-1 px-4 py-4">
+            <Link href="/" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-primary-700" onClick={() => setMobileMenuOpen(false)}>
               {t('nav.home')}
             </Link>
-            <Link
-              href="/browse"
-              className="block py-2 text-gray-700 hover:text-primary-600"
-              onClick={() => setMobileMenuOpen(false)}
-            >
+            <Link href="/browse" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-primary-700" onClick={() => setMobileMenuOpen(false)}>
               {t('nav.browse')}
             </Link>
-            <Link
-              href="/categories"
-              className="block py-2 text-gray-700 hover:text-primary-600"
-              onClick={() => setMobileMenuOpen(false)}
-            >
+            <Link href="/categories" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-primary-700" onClick={() => setMobileMenuOpen(false)}>
               {t('nav.categories')}
             </Link>
-            <Link
-              href="/listing/sell"
-              className="block py-2 text-primary-600 font-semibold"
-              onClick={() => setMobileMenuOpen(false)}
-            >
+            <Link href="/listing/sell" className="block rounded-xl px-3 py-2 font-semibold text-primary-700 hover:bg-primary-50" onClick={() => setMobileMenuOpen(false)}>
               {t('nav.sellNow')}
             </Link>
 
             {isAuthenticated && user ? (
               <>
-                <hr className="my-2" />
-                <div className="py-2 px-2 bg-gray-50 rounded">
-                  <p className="text-sm text-gray-500">{t('nav.welcome')}</p>
+                <hr className="my-2 border-slate-100" />
+                <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                  <p className="text-sm text-slate-500">{t('nav.welcome')}</p>
                   <p className="font-semibold">{user?.name || t('nav.user')}</p>
                 </div>
-                <Link
-                  href="/profile"
-                  className="block py-2 text-gray-700"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
+                <Link href="/profile" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50" onClick={() => setMobileMenuOpen(false)}>
                   {t('nav.profile')}
                 </Link>
-                <Link
-                  href="/dashboard"
-                  className="block py-2 text-gray-700"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
+                <Link href="/dashboard" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50" onClick={() => setMobileMenuOpen(false)}>
                   {t('nav.dashboard')}
                 </Link>
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-right py-2 text-red-600"
-                >
+                <button onClick={handleLogout} className="block w-full rounded-xl px-3 py-2 text-right text-red-600 hover:bg-red-50">
                   {t('nav.logout')}
                 </button>
               </>
             ) : (
               <>
-                <hr className="my-2" />
-                <Link
-                  href={loginHref}
-                  className="block py-2 text-gray-700"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
+                <hr className="my-2 border-slate-100" />
+                <Link href={loginHref} className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50" onClick={() => setMobileMenuOpen(false)}>
                   {t('nav.login')}
                 </Link>
-                <Link
-                  href={registerHref}
-                  className="block py-2 text-gray-700"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
+                <Link href={registerHref} className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50" onClick={() => setMobileMenuOpen(false)}>
                   {t('nav.register')}
                 </Link>
               </>

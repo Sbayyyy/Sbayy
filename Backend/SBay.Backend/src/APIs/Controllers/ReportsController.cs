@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SBay.Backend.APIs.Records.Requests;
 using SBay.Backend.APIs.Records.Responses;
 using SBay.Backend.Exceptions;
+using SBay.Backend.Utils;
 using SBay.Domain.Authentication;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -22,6 +24,7 @@ public class ReportsController : ControllerBase
     private readonly ICurrentUserResolver _resolver;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<ReportsController> _logger;
+    private readonly IConfiguration _config;
 
     public ReportsController(
         IReportRepository reports,
@@ -31,7 +34,8 @@ public class ReportsController : ControllerBase
         IUserRepository users,
         ICurrentUserResolver resolver,
         IUnitOfWork uow,
-        ILogger<ReportsController> logger)
+        ILogger<ReportsController> logger,
+        IConfiguration config)
     {
         _reports = reports;
         _blocks = blocks;
@@ -41,10 +45,12 @@ public class ReportsController : ControllerBase
         _resolver = resolver;
         _uow = uow;
         _logger = logger;
+        _config = config;
     }
 
     [HttpPost]
     [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("reports")]
     public async Task<ActionResult<ReportDto>> Create([FromBody] CreateReportRequest req, CancellationToken ct)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
@@ -62,6 +68,12 @@ public class ReportsController : ControllerBase
 
         if (reason == ReportReason.Other && string.IsNullOrWhiteSpace(req.Description))
             throw new InvalidInputException("Description is required for 'Other' reason.");
+        if (req.Description is { Length: > 2000 })
+            throw new InvalidInputException("Description is too long.");
+        if (req.EvidenceUrls is { Count: > 5 })
+            throw new InvalidInputException("A report can include at most 5 evidence files.");
+        if (req.EvidenceUrls != null && req.EvidenceUrls.Any(url => !StoredImageUrlValidator.IsAllowed(url, _config)))
+            throw new InvalidInputException("One or more evidence URLs are invalid.");
 
         Guid? reportedUserId = null;
         switch (targetType)
@@ -84,7 +96,9 @@ public class ReportsController : ControllerBase
             {
                 var message = await _messages.GetByIdAsync(req.TargetId, ct);
                 if (message is null) throw new NotFoundException("Message not found.");
-                reportedUserId = message.SenderId;
+                if (message.SenderId != me.Value && message.ReceiverId != me.Value)
+                    throw new NotFoundException("Message not found.");
+                reportedUserId = message.SenderId == me.Value ? message.ReceiverId : message.SenderId;
                 break;
             }
         }
@@ -107,14 +121,24 @@ public class ReportsController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        await _reports.AddAsync(report, ct);
-
-        if (req.BlockUser && reportedUserId.HasValue)
+        await using var tx = await _uow.BeginTransactionAsync(ct);
+        try
         {
-            await _blocks.AddAsync(me.Value, reportedUserId.Value, DateTimeOffset.UtcNow, ct);
-        }
+            await _reports.AddAsync(report, ct);
 
-        await _uow.SaveChangesAsync(ct);
+            if (req.BlockUser && reportedUserId.HasValue)
+            {
+                await _blocks.AddAsync(me.Value, reportedUserId.Value, DateTimeOffset.UtcNow, ct);
+            }
+
+            await _uow.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
 
         _logger.LogWarning(
             "New report submitted {ReportId} target={TargetType}:{TargetId} reporter={ReporterId} reported={ReportedUserId}",
@@ -124,7 +148,7 @@ public class ReportsController : ControllerBase
             report.ReporterId,
             report.ReportedUserId);
 
-        return Ok(ToDto(report));
+        return Ok(ToReporterDto(report));
     }
 
     [HttpGet("admin")]
@@ -261,5 +285,16 @@ public class ReportsController : ControllerBase
             report.ReviewedAt,
             report.AdminNotes,
             report.CreatedAt);
+    }
+
+    private static ReportDto ToReporterDto(Report report)
+    {
+        return ToDto(report) with
+        {
+            ReportedUserId = null,
+            ReviewedById = null,
+            ReviewedAt = null,
+            AdminNotes = null
+        };
     }
 }

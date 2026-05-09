@@ -17,11 +17,20 @@ public sealed class LocalImageStorageProvider : IImageStorageProvider
         string contentType,
         CancellationToken ct)
     {
+        fileName = Path.GetFileName(fileName);
+        if (string.IsNullOrWhiteSpace(fileName) || fileName.Contains("..", StringComparison.Ordinal))
+            throw new InvalidOperationException("Invalid file name.");
+
         var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
         var uploadsRoot = Path.Combine(webRoot, "uploads");
         Directory.CreateDirectory(uploadsRoot);
 
         var localPath = Path.Combine(uploadsRoot, fileName);
+        var fullUploadsRoot = Path.GetFullPath(uploadsRoot);
+        var fullLocalPath = Path.GetFullPath(localPath);
+        if (!fullLocalPath.StartsWith(fullUploadsRoot, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Invalid file path.");
+
         await using (var fileStream = System.IO.File.Create(localPath))
         {
             await stream.CopyToAsync(fileStream, ct);

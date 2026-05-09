@@ -96,6 +96,14 @@ public sealed class ChatServiceTests
         return m.Object;
     }
 
+    private static IUserBlockRepository Blocks()
+    {
+        var m = new Mock<IUserBlockRepository>();
+        m.Setup(x => x.IsBlockedAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        return m.Object;
+    }
+
     private static ChatService CreateService(EfDbContext db, Guid owner, SBay.Backend.Utils.IClock? clock = null)
     {
         return new ChatService(
@@ -105,7 +113,8 @@ public sealed class ChatServiceTests
             clock ?? Clock(),
             Owner(owner),
             Events(),
-            new EfUnitOfWork(db));
+            new EfUnitOfWork(db),
+            Blocks());
     }
 
     [Fact]

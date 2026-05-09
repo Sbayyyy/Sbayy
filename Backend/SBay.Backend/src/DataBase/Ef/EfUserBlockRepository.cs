@@ -22,6 +22,9 @@ namespace SBay.Domain.Database
 
         public async Task AddAsync(Guid blockerId, Guid blockedUserId, DateTimeOffset createdAt, CancellationToken ct)
         {
+            if (await IsBlockedAsync(blockerId, blockedUserId, ct))
+                return;
+
             var entity = new UserBlock
             {
                 Id = Guid.NewGuid(),
@@ -31,15 +34,6 @@ namespace SBay.Domain.Database
             };
 
             await _db.Set<UserBlock>().AddAsync(entity, ct);
-
-            try
-            {
-                await _db.SaveChangesAsync(ct);
-            }
-            catch (DbUpdateException ex) when (IsUniqueViolation(ex))
-            {
-                _db.Entry(entity).State = EntityState.Detached;
-            }
         }
 
         private static bool IsUniqueViolation(DbUpdateException ex)

@@ -6,7 +6,7 @@
 export function formatPrice(
   amount: number,
   locale: string = 'ar',
-  currency: string = 'ل.س'
+  currency: string = 'SYP'
 ): string {
   const formatted = amount.toLocaleString(locale === 'ar' ? 'ar-SY' : 'en-US');
   return `${formatted} ${currency}`;

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SBay.Backend.APIs.Records;
 using SBay.Backend.APIs.Records.Responses;
+using SBay.Backend.Utils;
 using SBay.Domain.Database;
 using SBay.Domain.Authentication;
 using SBay.Domain.Entities;
@@ -17,17 +19,20 @@ public class UserController : ControllerBase
     private readonly IListingRepository _listings;
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUserResolver _userResolver;
+    private readonly IConfiguration _config;
 
     public UserController(
         IUserRepository users,
         IListingRepository listings,
         IUnitOfWork uow,
-        ICurrentUserResolver userResolver)
+        ICurrentUserResolver userResolver,
+        IConfiguration config)
     {
         _users = users;
         _listings = listings;
         _uow = uow;
         _userResolver = userResolver;
+        _config = config;
     }
 
     [HttpGet("me")]
@@ -91,6 +96,7 @@ public class UserController : ControllerBase
 
     [HttpPut("me")]
     [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
     public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest req, CancellationToken ct)
     {
         var uid = await _userResolver.GetUserIdAsync(User, ct);
@@ -134,6 +140,8 @@ public class UserController : ControllerBase
         if (req.Avatar != null)
         {
             var avatar = string.IsNullOrWhiteSpace(req.Avatar) ? null : req.Avatar.Trim();
+            if (avatar != null && !StoredImageUrlValidator.IsAllowed(avatar, _config))
+                return BadRequest("Avatar URL is invalid.");
             if (!string.Equals(user.AvatarUrl, avatar, StringComparison.Ordinal))
             {
                 user.AvatarUrl = avatar;

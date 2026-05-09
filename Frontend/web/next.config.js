@@ -4,12 +4,18 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   i18n,
   images: {
     domains: ['localhost'],
   },
   transpilePackages: ['@sbay/shared'],
+  webpack(config, { dev }) {
+    if (dev && config.cache) {
+      config.cache = false;
+    }
+    return config;
+  },
   async rewrites() {
     const apiProxyTarget = process.env.NEXT_PUBLIC_API_PROXY_TARGET || 'http://localhost:8080';
     // Proxy /api requests to backend API container

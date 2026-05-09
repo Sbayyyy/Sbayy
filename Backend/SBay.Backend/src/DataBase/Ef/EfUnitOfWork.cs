@@ -1,4 +1,6 @@
 
+using Microsoft.EntityFrameworkCore;
+
 namespace SBay.Domain.Database
 {
     public class EfUnitOfWork : IUnitOfWork
@@ -12,6 +14,8 @@ namespace SBay.Domain.Database
 
         public async Task<IUnitOfWorkTransaction> BeginTransactionAsync(CancellationToken ct)
         {
+            if (!_db.Database.IsRelational())
+                return new NoOpUnitOfWorkTransaction();
             var transaction = await _db.Database.BeginTransactionAsync(ct);
             return new EfUnitOfWorkTransaction(transaction);
         }
@@ -36,5 +40,14 @@ namespace SBay.Domain.Database
         public Task RollbackAsync(CancellationToken ct) => _transaction.RollbackAsync(ct);
 
         public ValueTask DisposeAsync() => _transaction.DisposeAsync();
+    }
+
+    internal sealed class NoOpUnitOfWorkTransaction : IUnitOfWorkTransaction
+    {
+        public Task CommitAsync(CancellationToken ct) => Task.CompletedTask;
+
+        public Task RollbackAsync(CancellationToken ct) => Task.CompletedTask;
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

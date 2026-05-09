@@ -11,7 +11,7 @@ services:
       - ./Backend/SBay.Backend:/app
       - api-nuget:/root/.nuget/packages
     working_dir: /app
-    command: ["dotnet", "watch", "run", "--urls", "http://+:8080"]
+    command: ["dotnet", "watch", "run", "--no-launch-profile", "--urls", "http://+:8080"]
 
   web:
     environment:
@@ -21,10 +21,14 @@ services:
       NEXT_PUBLIC_API_PROXY_TARGET: http://backend:8080
     volumes:
       - ./Frontend:/app
+      - frontend-node-modules:/app/node_modules
       - web-node-modules:/app/web/node_modules
-    working_dir: /app/web
-    command: ["npm", "run", "dev", "--", "-p", "3000", "-H", "0.0.0.0"]
+      - web-shared-node-modules:/app/packages/shared/node_modules
+    working_dir: /app
+    command: ["sh", "-c", "npm install && npm run dev --workspace=web -- -p 3000 -H 0.0.0.0"]
 
 volumes:
   api-nuget:
+  frontend-node-modules:
   web-node-modules:
+  web-shared-node-modules:

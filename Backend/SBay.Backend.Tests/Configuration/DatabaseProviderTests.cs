@@ -32,12 +32,33 @@ public sealed class DatabaseProviderTests
     [Fact]
     public void FirestoreProvider_UsesFirebaseRepositories()
     {
-        using var factory = new FirestoreWebAppFactory();
-        var repo = factory.Services.GetRequiredService<IListingRepository>();
-        repo.Should().BeOfType<FirebaseListingRepository>();
+        var previousProvider = Environment.GetEnvironmentVariable("Database__Provider");
+        var previousProject = Environment.GetEnvironmentVariable("Firebase__ProjectId");
+        var previousCredentials = Environment.GetEnvironmentVariable("Firebase__CredentialsPath");
+        var previousReports = Environment.GetEnvironmentVariable("EnableFirestoreReports");
+        var previousBlocks = Environment.GetEnvironmentVariable("EnableFirestoreUserBlocks");
+        try
+        {
+            Environment.SetEnvironmentVariable("Database__Provider", "firestore");
+            Environment.SetEnvironmentVariable("Firebase__ProjectId", "test-project");
+            Environment.SetEnvironmentVariable("Firebase__CredentialsPath", string.Empty);
+            Environment.SetEnvironmentVariable("EnableFirestoreReports", "true");
+            Environment.SetEnvironmentVariable("EnableFirestoreUserBlocks", "true");
+            using var factory = new FirestoreWebAppFactory();
+            var repo = factory.Services.GetRequiredService<IListingRepository>();
+            repo.Should().BeOfType<FirebaseListingRepository>();
 
-        var analytics = factory.Services.GetRequiredService<IUserAnalyticsService>();
-        analytics.Should().BeOfType<FirebaseUserAnalyticsService>();
+            var analytics = factory.Services.GetRequiredService<IUserAnalyticsService>();
+            analytics.Should().BeOfType<FirebaseUserAnalyticsService>();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("Database__Provider", previousProvider);
+            Environment.SetEnvironmentVariable("Firebase__ProjectId", previousProject);
+            Environment.SetEnvironmentVariable("Firebase__CredentialsPath", previousCredentials);
+            Environment.SetEnvironmentVariable("EnableFirestoreReports", previousReports);
+            Environment.SetEnvironmentVariable("EnableFirestoreUserBlocks", previousBlocks);
+        }
     }
 
     private sealed class FirestoreWebAppFactory : WebApplicationFactory<Program>
@@ -51,7 +72,9 @@ public sealed class DatabaseProviderTests
                 {
                     ["Database:Provider"] = "firestore",
                     ["Firebase:ProjectId"] = "test-project",
-                    ["Firebase:CredentialsPath"] = string.Empty
+                    ["Firebase:CredentialsPath"] = string.Empty,
+                    ["EnableFirestoreReports"] = "true",
+                    ["EnableFirestoreUserBlocks"] = "true"
                 };
                 config.AddInMemoryCollection(overrides);
             });

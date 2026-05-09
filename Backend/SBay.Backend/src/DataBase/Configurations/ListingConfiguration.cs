@@ -88,6 +88,9 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
          .HasMaxLength(50)
          .HasDefaultValue("active");
 
+        e.Property(x => x.BoostedUntil)
+         .HasColumnName("boosted_until");
+
         e.Property(x => x.CreatedAt)
          .HasColumnName("created_at")
          .HasDefaultValueSql("now()");
@@ -113,5 +116,6 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
 
         e.HasIndex(x => x.CreatedAt).HasDatabaseName("idx_listings_created_at");
         e.HasIndex(x => x.CategoryPath).HasDatabaseName("idx_listings_category_path");
+        e.HasIndex(x => x.BoostedUntil).HasDatabaseName("idx_listings_boosted_until");
     }
 }
