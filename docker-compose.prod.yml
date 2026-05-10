@@ -67,7 +67,7 @@ services:
     ports:
       - "127.0.0.1:${API_HOST_PORT:-5000}:8080"
     volumes:
-      - ${UPLOADS_HOST_PATH:-/opt/apps/sbay/Sbay/uploads}:${STORAGE_LOCAL_PATH:-/app/uploads}
+      - ${UPLOADS_HOST_PATH:-./uploads}:${STORAGE_LOCAL_PATH:-/app/uploads}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready"]
       interval: 30s
