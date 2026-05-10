@@ -45,6 +45,33 @@ namespace SBay.Backend.Tests.DB
         }
 
         [Fact]
+        public async Task GetByExternalIdAsync_Returns_User()
+        {
+            Assert.True(await Db.Database.CanConnectAsync(), "DB not reachable");
+
+            var repo = new EfUserRepository(Db);
+            var externalId = $"external-{Guid.NewGuid():N}";
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "external.user@example.com",
+                ExternalId = externalId,
+                DisplayName = "ExternalUser",
+                IsSeller = false,
+                CreatedAt = DateTime.UtcNow,
+                PasswordHash = "hashed_password"
+            };
+
+            await repo.AddAsync(user, CancellationToken.None);
+            await Db.SaveChangesAsync(CancellationToken.None);
+
+            var fetched = await repo.GetByExternalIdAsync(externalId, CancellationToken.None);
+
+            Assert.NotNull(fetched);
+            Assert.Equal(user.Id, fetched!.Id);
+        }
+
+        [Fact]
         public async Task UnitOfWork_SaveChangesAsync_Persists_Changes()
         {
             Assert.True(await Db.Database.CanConnectAsync(), "DB not reachable");

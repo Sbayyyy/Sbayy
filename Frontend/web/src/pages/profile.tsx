@@ -242,6 +242,19 @@ export default function ProfilePage() {
     setWatchlist(prev => prev.filter(item => item.id !== id));
   };
 
+  if (isAuthed === undefined) {
+    return (
+      <Layout title={t('profile.title')}>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">{t('profile.loading')}</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!isAuthed) return null;
 
   if (isLoading) {

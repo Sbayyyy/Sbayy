@@ -128,30 +128,30 @@ export default function ReportDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={onClose} />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        className="relative bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6"
+        className="surface-card relative mx-4 w-full max-w-lg p-6"
       >
         <button
           onClick={onClose}
           aria-label="Close dialog"
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="icon-button absolute right-4 top-4 h-9 w-9"
         >
           <X size={20} />
         </button>
 
-        <h3 className="text-lg font-bold text-gray-900 mb-4">{title}</h3>
+        <h3 className="mb-4 text-lg font-bold text-slate-950">{title}</h3>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               {t('report.fields.reason', { defaultValue: 'Reason' })}
             </label>
             <select
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
               value={reason}
               onChange={(event) => setReason(event.target.value as ReportPayload['reason'])}
             >
@@ -164,11 +164,11 @@ export default function ReportDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               {t('report.fields.description', { defaultValue: 'Details (optional)' })}
             </label>
             <textarea
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 min-h-[100px]"
+              className="input min-h-[100px]"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder={t('report.fields.descriptionPlaceholder', {
@@ -178,7 +178,7 @@ export default function ReportDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
               {t('report.fields.evidence', { defaultValue: 'Evidence (optional)' })}
             </label>
             <div className="flex items-center gap-3">
@@ -193,7 +193,7 @@ export default function ReportDialog({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="btn btn-outline"
                 disabled={uploading}
               >
                 <UploadCloud size={16} />
@@ -201,7 +201,7 @@ export default function ReportDialog({
                   ? t('report.actions.uploading', { defaultValue: 'Uploading...' })
                   : t('report.actions.addEvidence', { defaultValue: 'Add images' })}
               </button>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-slate-500">
                 {t('report.fields.evidenceHint', { defaultValue: 'Up to 5 images.' })}
               </span>
             </div>
@@ -209,13 +209,13 @@ export default function ReportDialog({
               <div className="flex flex-wrap gap-3 mt-3">
                 {evidence.map((item, index) => (
                   <div key={`${item.url}-${index}`} className="relative">
-                    <img src={item.url} alt="evidence" className="w-20 h-20 rounded-lg object-cover" />
+                    <img src={item.url} alt="evidence" className="h-20 w-20 rounded-xl object-cover shadow-sm ring-1 ring-slate-200" />
                     <button
                       type="button"
                       onClick={() =>
                         setEvidence((prev) => prev.filter((_, i) => i !== index))
                       }
-                      className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow"
+                      className="absolute -right-2 -top-2 rounded-full bg-white p-1 shadow ring-1 ring-slate-200 transition-colors hover:bg-red-50 hover:text-red-600"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -225,7 +225,7 @@ export default function ReportDialog({
             )}
           </div>
 
-          <label className="flex items-center gap-3 text-sm text-gray-700">
+          <label className="flex items-center gap-3 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={blockUser}
@@ -237,20 +237,20 @@ export default function ReportDialog({
             })}
           </label>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         </div>
 
         <div className="flex gap-3 justify-end mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="btn btn-outline"
           >
             {t('report.actions.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-70"
+            className="btn btn-danger"
           >
             {submitting
               ? t('report.actions.submitting', { defaultValue: 'Submitting...' })

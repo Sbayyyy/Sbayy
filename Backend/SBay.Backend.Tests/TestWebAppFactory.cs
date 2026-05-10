@@ -1,10 +1,13 @@
 using System.Linq;
+using System.Text;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 
@@ -20,6 +23,11 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
         {
             cfg.AddJsonFile("appsettings.json", optional: true)
                .AddJsonFile("appsettings.Testing.json", optional: true)
+               .AddInMemoryCollection(new Dictionary<string, string?>
+               {
+                   ["Storage:Provider"] = "local",
+                   ["Jwt:Secret"] = "test_jwt_secret_32_bytes_minimum_value"
+               })
                .AddEnvironmentVariables();
         });
 
@@ -77,6 +85,12 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             })
             .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
                 TestAuthHandler.SchemeName, _ => { });
+
+            services.PostConfigure<JwtBearerOptions>("SBayJwt", options =>
+            {
+                options.TokenValidationParameters.IssuerSigningKey =
+                    new SymmetricSecurityKey(Encoding.UTF8.GetBytes("test_jwt_secret_32_bytes_minimum_value"));
+            });
 
             // Intentionally skip seeding to avoid forcing provider initialization here.
         });

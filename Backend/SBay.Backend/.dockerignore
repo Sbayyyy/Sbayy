@@ -1,0 +1,10 @@
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+*.DotSettings.user
+secrets/
+wwwroot/uploads/
+appsettings.Development.json
+appsettings.json

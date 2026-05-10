@@ -111,26 +111,24 @@ export default function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
         onClick={danger ? undefined : onClose}
       />
 
-      {/* Dialog */}
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descId}
-        className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 animate-in fade-in zoom-in duration-200"
+        className="surface-card relative mx-4 w-full max-w-md p-6 animate-in fade-in zoom-in duration-200"
       >
         <button
           onClick={onClose}
           ref={closeButtonRef}
           aria-label="Close dialog"
-          className="absolute top-4 right-4 rtl:right-auto rtl:left-4 text-gray-400 hover:text-gray-600"
+          className="icon-button absolute right-4 top-4 h-9 w-9 rtl:left-4 rtl:right-auto"
         >
           <X size={20} />
         </button>
@@ -143,22 +141,22 @@ export default function ConfirmDialog({
           )}
 
           <div className="flex-1">
-            <h3 id={titleId} className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-            <p id={descId} className="text-gray-600 mb-6">{message}</p>
+            <h3 id={titleId} className="mb-2 text-lg font-bold text-slate-950">{title}</h3>
+            <p id={descId} className="mb-6 text-slate-600">{message}</p>
 
             <div className="flex gap-3 justify-end">
               <button
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="btn btn-outline"
               >
                 {resolvedCancelText}
               </button>
               <button
                 onClick={handleConfirm}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`btn ${
                   danger
-                    ? 'bg-red-600 text-white hover:bg-red-700'
-                    : 'bg-primary-600 text-white hover:bg-primary-700'
+                    ? 'btn-danger'
+                    : 'btn-primary'
                 }`}
               >
                 {resolvedConfirmText}

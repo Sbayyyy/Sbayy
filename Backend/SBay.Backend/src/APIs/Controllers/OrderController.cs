@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SBay.Backend.APIs.Records;
 using SBay.Backend.DataBase.Interfaces;
 using SBay.Backend.Services;
@@ -20,6 +21,7 @@ public sealed class OrdersController : ControllerBase
     private readonly IOrderRepository _orders;
     private readonly IAddressRepository _addresses;
     private readonly IShippingService _shipping;
+    private readonly MonetizationService _monetization;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<OrdersController> _logger;
 
@@ -30,6 +32,7 @@ public sealed class OrdersController : ControllerBase
         IOrderRepository orders,
         IAddressRepository addresses,
         IShippingService shipping,
+        MonetizationService monetization,
         IUnitOfWork uow,
         ILogger<OrdersController> logger)
     {
@@ -39,17 +42,23 @@ public sealed class OrdersController : ControllerBase
         _orders = orders;
         _addresses = addresses;
         _shipping = shipping;
+        _monetization = monetization;
         _uow = uow;
         _logger = logger;
     }
 
     [HttpPost]
     [Authorize(Policy = ScopePolicies.OrdersWrite)]
+    [EnableRateLimiting("write")]
     public async Task<ActionResult<OrderDto>> Create([FromBody] CreateOrderReq req, CancellationToken ct)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
         if (req.Items == null || req.Items.Count == 0) return ValidationProblem("At least one item is required.");
+        if (req.Items.Any(i => i.ListingId == Guid.Empty))
+            return ValidationProblem("ListingId required for each item.");
+        if (req.Items.Any(i => i.Quantity <= 0))
+            return ValidationProblem("Item quantity must be greater than 0.");
 
         // ===== NEW: Validate Payment Method =====
         var paymentMethodValue = req.PaymentMethod?.Trim().ToLowerInvariant();
@@ -138,8 +147,12 @@ public sealed class OrdersController : ControllerBase
         {
             var found = listings.Select(l => l.Id).ToHashSet();
             var missing = listingIds.Where(id => !found.Contains(id));
-            return ValidationProblem($"One or more listings not found: {string.Join(", ", missing)}");
+            return ValidationProblem($"One or more listings are unavailable: {string.Join(", ", missing)}");
         }
+
+        var requestedQuantities = req.Items
+            .GroupBy(i => i.ListingId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
         var sellers = listings.Select(l => l.SellerId).Distinct().ToList();
         if (sellers.Count != 1) return ValidationProblem("All items in an order must belong to the same seller.");
@@ -156,20 +169,31 @@ public sealed class OrdersController : ControllerBase
             return ValidationProblem("All items in an order must have the same currency.");
         var currency = currencies[0];
 
+        foreach (var listing in listings)
+        {
+            var requested = requestedQuantities[listing.Id];
+            if (!string.Equals(listing.Status, "active", StringComparison.OrdinalIgnoreCase))
+                return ValidationProblem("One or more listings are not active.");
+            if (listing.StockQuantity <= 0)
+                return ValidationProblem("One or more listings are out of stock.");
+            if (requested > listing.StockQuantity)
+                return ValidationProblem($"Requested quantity exceeds available stock for listing {listing.Id}.");
+        }
+
         // ===== NEW: Calculate Shipping =====
         ShippingQuote? shippingQuote = null;
         if (address != null)
         {
             const decimal DefaultItemWeightKg = 1.0m;
-            if (req.Items.Any(i => i.WeightKg is null))
-                _logger.LogWarning("Some items are missing weight; using default weight for shipping calculation.");
             var totalWeightKg = req.Items
                 .Where(i => i.Quantity > 0)
-                .Sum(i => i.Quantity * (i.WeightKg ?? DefaultItemWeightKg));
+                .Sum(i => i.Quantity * DefaultItemWeightKg);
             shippingQuote = await _shipping.CalculateShippingAsync(address.City, totalWeightKg, ct);
         }
 
         await using var tx = await _uow.BeginTransactionAsync(ct);
+        try
+        {
 
         if (newAddress != null)
         {
@@ -178,6 +202,13 @@ public sealed class OrdersController : ControllerBase
             if (newAddress.Id == Guid.Empty)
                 throw new InvalidOperationException("Failed to persist shipping address.");
             addressId = newAddress.Id;
+        }
+
+        var reserved = await _listings.TryReserveStockAsync(requestedQuantities, ct);
+        if (!reserved)
+        {
+            await tx.RollbackAsync(ct);
+            return Conflict("One or more listings no longer have enough stock.");
         }
 
         var listingById = listings.ToDictionary(l => l.Id);
@@ -234,10 +265,17 @@ public sealed class OrdersController : ControllerBase
 
         var dto = ToDto(order, address);
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, dto);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
     }
 
     [HttpPatch("{id:guid}/status")]
     [Authorize(Policy = ScopePolicies.OrdersWrite)]
+    [EnableRateLimiting("write")]
     public async Task<ActionResult<OrderDto>> UpdateStatus(Guid id, [FromBody] UpdateOrderStatusRequest req, CancellationToken ct)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
@@ -266,6 +304,8 @@ public sealed class OrdersController : ControllerBase
         var previousStatus = order.Status;
         if (previousStatus == newStatus.Value)
             return Ok(ToDto(order, order.ShippingAddress));
+        if (!IsAllowedTransition(previousStatus, newStatus.Value))
+            return Conflict($"Invalid order status transition from {previousStatus} to {newStatus.Value}.");
 
         order.Status = newStatus.Value;
         order.UpdatedAt = DateTime.UtcNow;
@@ -274,6 +314,9 @@ public sealed class OrdersController : ControllerBase
         await using var tx = await _uow.BeginTransactionAsync(ct);
         try
         {
+            if (newStatus == OrderStatus.Cancelled)
+                await _listings.ReleaseStockAsync(GetOrderQuantities(order), ct);
+
             if (sellerUser != null)
             {
                 if (previousStatus == OrderStatus.Pending && newStatus != OrderStatus.Pending)
@@ -289,6 +332,7 @@ public sealed class OrdersController : ControllerBase
             }
 
             await _orders.UpdateAsync(order, ct);
+            await _monetization.EnsureCommissionAsync(order, ct);
             await _uow.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         }
@@ -303,6 +347,46 @@ public sealed class OrdersController : ControllerBase
             address = await _addresses.GetByIdAsync(order.ShippingAddressId.Value, ct);
 
         return Ok(ToDto(order, address));
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = ScopePolicies.OrdersWrite)]
+    [EnableRateLimiting("write")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
+    {
+        var me = await _resolver.GetUserIdAsync(User, ct);
+        if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
+
+        var order = await _orders.GetWithItemsAsync(id, ct);
+        if (order == null) return NotFound();
+        if (order.BuyerId != me.Value && !User.IsInRole("admin")) return Forbid();
+        if (order.Status != OrderStatus.Pending) return Conflict("Only pending orders can be cancelled by the buyer.");
+
+        await using var tx = await _uow.BeginTransactionAsync(ct);
+        try
+        {
+            order.Status = OrderStatus.Cancelled;
+            order.UpdatedAt = DateTime.UtcNow;
+            await _listings.ReleaseStockAsync(GetOrderQuantities(order), ct);
+
+            var sellerUser = await _users.GetByIdAsync(order.SellerId, ct);
+            if (sellerUser != null)
+            {
+                sellerUser.PendingOrders = Math.Max(0, sellerUser.PendingOrders - 1);
+                await _users.UpdateAsync(sellerUser, ct);
+            }
+
+            await _orders.UpdateAsync(order, ct);
+            await _uow.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+
+        return NoContent();
     }
 
     [HttpGet("{id:guid}")]
@@ -329,7 +413,7 @@ public sealed class OrdersController : ControllerBase
 
     [HttpGet("my-purchases")]
     [Authorize(Policy = ScopePolicies.OrdersRead)]
-    public async Task<ActionResult<object>> GetMyPurchases([FromQuery] int page = 1, [FromQuery] int limit = 20, CancellationToken ct = default)
+    public async Task<ActionResult<OrdersPageResponse>> GetMyPurchases([FromQuery] int page = 1, [FromQuery] int limit = 20, CancellationToken ct = default)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
@@ -358,12 +442,12 @@ public sealed class OrdersController : ControllerBase
             dtos.Add(ToDto(order, address));
         }
 
-        return Ok(new { orders = dtos, total });
+        return Ok(new OrdersPageResponse(dtos, dtos, total, pageValue, limitValue));
     }
 
     [HttpGet("my-sales")]
     [Authorize(Policy = ScopePolicies.OrdersRead)]
-    public async Task<ActionResult<object>> GetMySales([FromQuery] int page = 1, [FromQuery] int limit = 20, CancellationToken ct = default)
+    public async Task<ActionResult<OrdersPageResponse>> GetMySales([FromQuery] int page = 1, [FromQuery] int limit = 20, CancellationToken ct = default)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
@@ -392,7 +476,7 @@ public sealed class OrdersController : ControllerBase
             dtos.Add(ToDto(order, address));
         }
 
-        return Ok(new { orders = dtos, total });
+        return Ok(new OrdersPageResponse(dtos, dtos, total, pageValue, limitValue));
     }
 
     // ===== UPDATED: ToDto with Address and ShippingInfo =====
@@ -449,5 +533,26 @@ public sealed class OrdersController : ControllerBase
         var normalizedPage = page < 1 ? 1 : page;
         var normalizedLimit = limit < 1 ? 20 : Math.Min(limit, 100);
         return (normalizedPage, normalizedLimit);
+    }
+
+    private static bool IsAllowedTransition(OrderStatus from, OrderStatus to)
+    {
+        return from switch
+        {
+            OrderStatus.Pending => to is OrderStatus.Paid or OrderStatus.Cancelled,
+            OrderStatus.Paid => to is OrderStatus.Shipped or OrderStatus.Cancelled,
+            OrderStatus.Shipped => to is OrderStatus.Completed,
+            OrderStatus.Completed => false,
+            OrderStatus.Cancelled => false,
+            _ => false
+        };
+    }
+
+    private static IReadOnlyDictionary<Guid, int> GetOrderQuantities(Order order)
+    {
+        return order.Items
+            .Where(i => i.ListingId.HasValue && i.Quantity > 0)
+            .GroupBy(i => i.ListingId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
     }
 }

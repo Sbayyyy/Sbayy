@@ -27,31 +27,31 @@ export default function ImageGallery({
 
   return (
     <div>
-      <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
+      <div className="relative mb-4 aspect-square overflow-hidden rounded-2xl bg-slate-100">
         {images.length > 0 ? (
           <>
             <img
               src={images[selectedIndex]}
               alt={title}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500"
             />
             {images.length > 1 && (
               <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all"
+                  className="icon-button absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur"
                   aria-label={prevLabel}
                 >
                   <ChevronLeft size={24} />
                 </button>
                 <button
                   onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all"
+                  className="icon-button absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur"
                   aria-label={nextLabel}
                 >
                   <ChevronRight size={24} />
                 </button>
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-slate-950/60 px-3 py-1 text-sm font-semibold text-white backdrop-blur">
                   {selectedIndex + 1} / {images.length}
                 </div>
               </>
@@ -59,7 +59,7 @@ export default function ImageGallery({
           </>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <Package size={64} className="text-gray-300" />
+            <Package size={64} className="text-slate-300" />
           </div>
         )}
       </div>
@@ -71,10 +71,10 @@ export default function ImageGallery({
             <button
               key={index}
               onClick={() => onSelectIndex(index)}
-              className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+              className={`aspect-square overflow-hidden rounded-xl border-2 transition-all ${
                 selectedIndex === index
                   ? 'border-primary-600 ring-2 ring-primary-200'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-slate-200 hover:border-primary-200'
               }`}
             >
               <img

@@ -7,6 +7,8 @@ namespace SBay.Domain.Database
         Task<int> CountSentSinceAsync(Guid senderId, DateTime from, CancellationToken ct);
         Task<int> CountUnreadAsync(Guid receiverId, CancellationToken ct);
         Task<int> CountUnreadForChatAsync(Guid chatId, Guid receiverId, CancellationToken ct);
+        Task<IReadOnlyDictionary<Guid, int>> CountUnreadByChatAsync(IEnumerable<Guid> chatIds, Guid receiverId, CancellationToken ct);
+        Task<IReadOnlyDictionary<Guid, Message>> GetLatestByChatAsync(IEnumerable<Guid> chatIds, CancellationToken ct);
         Task<IReadOnlyList<Message>> GetMessagesAsync(Guid chatId, int take, DateTime? before, CancellationToken ct);
         Task<int> MarkReadUpToAsync(Guid chatId, Guid readerId, DateTime upTo, CancellationToken ct);
     }

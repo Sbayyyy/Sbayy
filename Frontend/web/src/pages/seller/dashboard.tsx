@@ -7,13 +7,11 @@ import StatusCard from '@/components/seller/StatusCard';
 import RecentOrdersTable from '@/components/seller/RecentOrdersTable';
 import { SellerStats, SellerOrderSummary, DailyRevenue, WeeklySales } from '@sbay/shared';
 import { getSellerStats, getRecentOrders, getDailyRevenue, getWeeklySales } from '@/lib/api/seller';
-import { DollarSign, ShoppingCart, Users, TrendingUp, Package, CheckCircle, Clock } from 'lucide-react';
+import { AlertCircle, DollarSign, ShoppingCart, Users, TrendingUp, Package, CheckCircle, Clock } from 'lucide-react';
 import { formatPrice } from '@/lib/cartStore';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-
-
 
 export default function SellerDashboard() {
   const isAuthed = useRequireAuth();
@@ -23,6 +21,7 @@ export default function SellerDashboard() {
   const [dailyRevenue, setDailyRevenue] = useState<DailyRevenue[]>([]);
   const [weeklySales, setWeeklySales] = useState<WeeklySales[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -32,8 +31,6 @@ export default function SellerDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-
-      // Parallel API calls für bessere Performance
       const [statsData, ordersData, revenueData, salesData] = await Promise.all([
         getSellerStats(),
         getRecentOrders(10),
@@ -45,8 +42,10 @@ export default function SellerDashboard() {
       setRecentOrders(ordersData);
       setDailyRevenue(revenueData);
       setWeeklySales(salesData);
+      setError('');
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      setError(t('sellerDashboard.loadError', { defaultValue: 'Unable to load seller dashboard.' }));
     } finally {
       setLoading(false);
     }
@@ -55,10 +54,21 @@ export default function SellerDashboard() {
   if (loading) {
     return (
       <Layout title={t('sellerDashboard.title')}>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">{t('sellerDashboard.loading')}</p>
+        <div className="app-page px-4 py-8">
+          <div className="container mx-auto">
+            <div className="mb-8">
+              <div className="skeleton mb-3 h-8 w-64" />
+              <div className="skeleton h-5 w-96 max-w-full" />
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="surface-card p-6">
+                  <div className="skeleton mb-4 h-10 w-10 rounded-2xl" />
+                  <div className="skeleton mb-2 h-4 w-24" />
+                  <div className="skeleton h-7 w-32" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </Layout>
@@ -67,71 +77,73 @@ export default function SellerDashboard() {
 
   return (
     <Layout title={t('sellerDashboard.title')}>
-      <div className="bg-gray-50 min-h-screen">
-        {/* Header */}
-        <div className="bg-white border-b">
+      <div className="app-page">
+        <div className="border-b border-slate-200/80 bg-white/80 backdrop-blur">
           <div className="container mx-auto px-4 py-6">
-            <h1 className="text-3xl font-bold">
-              {t('sellerDashboard.welcome')} 👋
-            </h1>
-            <p className="text-gray-600">
-              {t('sellerDashboard.subtitle')}
-            </p>
+            <p className="page-kicker">{t('nav.dashboard')}</p>
+            <h1 className="page-title">{t('sellerDashboard.welcome')}</h1>
+            <p className="page-subtitle">{t('sellerDashboard.subtitle')}</p>
           </div>
         </div>
 
         <div className="container mx-auto px-4 py-8">
-          {/* KPI Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {error && (
+            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                <p>{error}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             <KPICard
               title={t('sellerDashboard.totalRevenue')}
               value={formatPrice(stats?.totalRevenue || 0, 'SYP')}
               change={stats?.revenueChange || 0}
               icon={<DollarSign size={24} />}
-              iconBgColor="bg-green-100"
-              iconColor="text-green-600"
+              iconBgColor="bg-emerald-100"
+              iconColor="text-emerald-600"
             />
             <KPICard
               title={t('sellerDashboard.totalOrders')}
               value={stats?.totalOrders || 0}
               change={stats?.ordersChange || 0}
               icon={<ShoppingCart size={24} />}
-              iconBgColor="bg-blue-100"
-              iconColor="text-blue-600"
+              iconBgColor="bg-primary-100"
+              iconColor="text-primary-600"
             />
             <KPICard
               title={t('sellerDashboard.newCustomers')}
               value={stats?.newCustomers || 0}
               change={stats?.customersChange || 0}
               icon={<Users size={24} />}
-              iconBgColor="bg-purple-100"
-              iconColor="text-purple-600"
+              iconBgColor="bg-violet-100"
+              iconColor="text-violet-600"
             />
             <KPICard
               title={t('sellerDashboard.conversionRate')}
               value={`${stats?.conversionRate || 0}%`}
               change={stats?.conversionChange || 0}
               icon={<TrendingUp size={24} />}
-              iconBgColor="bg-orange-100"
-              iconColor="text-orange-600"
+              iconBgColor="bg-amber-100"
+              iconColor="text-amber-600"
             />
           </div>
 
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <RevenueChart data={dailyRevenue} />
             <SalesChart data={weeklySales} />
           </div>
 
-          {/* Status Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             <StatusCard
               title={t('sellerDashboard.activeProducts')}
               value={stats?.activeProducts || 0}
               subtitle={t('sellerDashboard.activeProductsSub')}
               icon={<Package size={24} />}
-              iconBgColor="bg-blue-100"
-              iconColor="text-blue-600"
+              iconBgColor="bg-primary-100"
+              iconColor="text-primary-600"
               percentage={82}
             />
             <StatusCard
@@ -139,8 +151,8 @@ export default function SellerDashboard() {
               value={stats?.ordersCompleted || 0}
               subtitle={t('sellerDashboard.completedOrdersSub')}
               icon={<CheckCircle size={24} />}
-              iconBgColor="bg-green-100"
-              iconColor="text-green-600"
+              iconBgColor="bg-emerald-100"
+              iconColor="text-emerald-600"
               percentage={86}
             />
             <StatusCard
@@ -148,12 +160,11 @@ export default function SellerDashboard() {
               value={stats?.awaitingShipment || 0}
               subtitle={t('sellerDashboard.awaitingShipmentSub')}
               icon={<Clock size={24} />}
-              iconBgColor="bg-orange-100"
-              iconColor="text-orange-600"
+              iconBgColor="bg-amber-100"
+              iconColor="text-amber-600"
             />
           </div>
 
-          {/* Recent Orders Table */}
           <RecentOrdersTable orders={recentOrders} />
         </div>
       </div>

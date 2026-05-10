@@ -48,6 +48,8 @@ export interface Product {
   stock: number;              // Backend field name
   thumbnailUrl?: string;      // Backend field name
   createdAt: string;
+  boostedUntil?: string;
+  isBoosted?: boolean;
   
   // Optional frontend helper properties
   seller?: {
@@ -287,8 +289,11 @@ export interface ShippingInfo {
  */
 export interface OrderItem {
   productId: string;
+  listingId?: string;
   quantity: number;
-  price: number;          // Preis pro Stück zum Zeitpunkt des Orders
+  price: number;
+  priceAmount?: number;
+  priceCurrency?: string;
 }
 
 /**

@@ -7,7 +7,8 @@ import { normalizeListingsResponse } from './transforms';
  */
 export const searchProducts = async (
   query: string,
-  filters?: SearchFilters
+  filters?: SearchFilters,
+  signal?: AbortSignal
 ): Promise<SearchResponse> => {
   const page = filters?.page || 1;
   const limit = filters?.limit || 20;
@@ -21,7 +22,8 @@ export const searchProducts = async (
       region: filters?.region,
       page,
       pageSize: limit
-    }
+    },
+    signal
   });
 
   return normalizeListingsResponse(response.data, page, limit);

@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+using System.Net;
+using System.Text.RegularExpressions;
 using Ganss.Xss;
 
 namespace SBay.Backend.Messaging;
@@ -9,13 +10,16 @@ public sealed class HtmlTextSanitizer : ITextSanitizer
         "<script\\b[^<]*(?:(?!</script>)<[^<]*)*</script>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled,
         TimeSpan.FromMilliseconds(200));
+    private static readonly Regex HtmlTags = new Regex(
+        "<[^>]+>",
+        RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(200));
 
     private readonly HtmlSanitizer _s;
 
     public HtmlTextSanitizer()
     {
         _s = new HtmlSanitizer();
-        _s.AllowedTags.Clear();
         _s.AllowedAttributes.Clear();
         _s.AllowedCssProperties.Clear();
         _s.AllowedAtRules.Clear();
@@ -27,6 +31,8 @@ public sealed class HtmlTextSanitizer : ITextSanitizer
     {
         var s = input ?? string.Empty;
         s = ScriptBlocks.Replace(s, string.Empty);
-        return _s.Sanitize(s).Trim();
+        s = _s.Sanitize(s);
+        s = HtmlTags.Replace(s, string.Empty);
+        return WebUtility.HtmlDecode(s).Trim();
     }
 }

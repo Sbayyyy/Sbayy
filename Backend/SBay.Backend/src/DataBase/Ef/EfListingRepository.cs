@@ -23,6 +23,14 @@ namespace SBay.Domain.Database
             return await _db.Set<Listing>()
                 .Include(l => l.Images)
                 .AsNoTracking()
+                .FirstOrDefaultAsync(l => l.Id == id && l.Status == "active" && l.StockQuantity > 0, ct);
+        }
+
+        public async Task<Listing?> GetByIdForManagementAsync(Guid id, CancellationToken ct = default)
+        {
+            return await _db.Set<Listing>()
+                .Include(l => l.Images)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(l => l.Id == id, ct);
         }
 
@@ -34,6 +42,16 @@ namespace SBay.Domain.Database
         }
 
         public async Task<IReadOnlyList<Listing>> GetBySellerAsync(Guid sellerId, CancellationToken ct = default)
+        {
+            return await _db.Set<Listing>()
+                .Include(l => l.Images)
+                .AsNoTracking()
+                .Where(l => l.SellerId == sellerId && l.Status == "active" && l.StockQuantity > 0)
+                .OrderByDescending(l => l.CreatedAt)
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<Listing>> GetBySellerForManagementAsync(Guid sellerId, CancellationToken ct = default)
         {
             return await _db.Set<Listing>()
                 .Include(l => l.Images)
@@ -51,7 +69,9 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
     var size = q.PageSize is < 1 or > 100 ? 24 : q.PageSize;
     var skip = (page - 1) * size;
 
-    IQueryable<Listing> query = _db.Listings.AsNoTracking();
+    IQueryable<Listing> query = _db.Listings
+        .AsNoTracking()
+        .Where(l => l.Status == "active" && l.StockQuantity > 0);
     var isPostgres = _isPostgres;
 
     if (!string.IsNullOrEmpty(q.Category))
@@ -90,25 +110,31 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
                 .OrderByDescending(l =>
                     EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
                         .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
-                
                 .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts, @"\"))
                 .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, @"\"))
+                .ThenByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
                 .ThenByDescending(l => l.CreatedAt);
         }
         else
         {
             var escaped = EscapeLike(text);
             var pattern = "%" + escaped.ToLowerInvariant() + "%";
+            var startsPattern = escaped.ToLowerInvariant() + "%";
             query = query
                 .Where(l =>
                     EF.Functions.Like(l.Title.ToLower(), pattern, @"\")
                     || EF.Functions.Like((l.Description ?? string.Empty).ToLower(), pattern, @"\"))
-                .OrderByDescending(l => l.CreatedAt);
+                .OrderByDescending(l => EF.Functions.Like(l.Title.ToLower(), startsPattern, @"\"))
+                .ThenByDescending(l => EF.Functions.Like(l.Title.ToLower(), pattern, @"\"))
+                .ThenByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
+                .ThenByDescending(l => l.CreatedAt);
         }
     }
     else
     {
-        query = query.OrderByDescending(l => l.CreatedAt);
+        query = query
+            .OrderByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
+            .ThenByDescending(l => l.CreatedAt);
     }
  
 
@@ -128,7 +154,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             return await _db.Set<Listing>()
                 .Include(l => l.Images)
                 .AsNoTracking()
-                .Where(l => idsArray.Contains(l.Id))
+                .Where(l => idsArray.Contains(l.Id) && l.Status == "active" && l.StockQuantity > 0)
                 .ToListAsync(ct);
         }
 
@@ -146,10 +172,10 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
         {
             if (entity is null) throw new ArgumentNullException(nameof(entity));
             _db.Set<Listing>().Update(entity);
-            return ReplaceImagesAsync(entity, ct);
+            return Task.CompletedTask;
         }
 
-        private async Task ReplaceImagesAsync(Listing entity, CancellationToken ct)
+        public async Task ReplaceImagesAsync(Listing entity, CancellationToken ct)
         {
             if (entity.Images == null) return;
 
@@ -167,6 +193,119 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             if (entity is null) throw new ArgumentNullException(nameof(entity));
             _db.Set<Listing>().Remove(entity);
             return Task.CompletedTask;
+        }
+
+        public async Task SoftDeleteAsync(Guid id, CancellationToken ct = default)
+        {
+            if (_db.Database.IsRelational())
+            {
+                await _db.Set<Listing>()
+                    .Where(l => l.Id == id)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(l => l.Status, "deleted")
+                        .SetProperty(l => l.UpdatedAt, DateTime.UtcNow), ct);
+                return;
+            }
+
+            var listing = await _db.Set<Listing>().FirstOrDefaultAsync(l => l.Id == id, ct);
+            if (listing is null) return;
+            _db.Entry(listing).Property(l => l.Status).CurrentValue = "deleted";
+            _db.Entry(listing).Property(l => l.UpdatedAt).CurrentValue = DateTime.UtcNow;
+        }
+
+        public async Task<bool> TryReserveStockAsync(IReadOnlyDictionary<Guid, int> quantitiesByListingId, CancellationToken ct)
+        {
+            if (quantitiesByListingId.Count == 0) return false;
+
+            if (_db.Database.IsRelational())
+            {
+                var ownsTransaction = _db.Database.CurrentTransaction is null;
+                await using var tx = ownsTransaction
+                    ? await _db.Database.BeginTransactionAsync(ct)
+                    : null;
+
+                try
+                {
+                    foreach (var pair in quantitiesByListingId)
+                    {
+                        var affected = await _db.Set<Listing>()
+                            .Where(l => l.Id == pair.Key && l.Status == "active" && l.StockQuantity >= pair.Value)
+                            .ExecuteUpdateAsync(s => s
+                                .SetProperty(l => l.StockQuantity, l => l.StockQuantity - pair.Value)
+                                .SetProperty(l => l.UpdatedAt, DateTime.UtcNow), ct);
+                        if (affected != 1)
+                        {
+                            if (tx is not null)
+                                await tx.RollbackAsync(ct);
+                            return false;
+                        }
+                    }
+
+                    if (tx is not null)
+                        await tx.CommitAsync(ct);
+                    return true;
+                }
+                catch
+                {
+                    if (tx is not null)
+                        await tx.RollbackAsync(ct);
+                    throw;
+                }
+            }
+
+            var ids = quantitiesByListingId.Keys.ToArray();
+            var listings = await _db.Set<Listing>()
+                .Where(l => ids.Contains(l.Id))
+                .ToListAsync(ct);
+            if (listings.Count != quantitiesByListingId.Count)
+                return false;
+
+            foreach (var listing in listings)
+            {
+                var quantity = quantitiesByListingId[listing.Id];
+                if (listing.Status != "active" || listing.StockQuantity < quantity)
+                    return false;
+            }
+
+            foreach (var listing in listings)
+            {
+                var quantity = quantitiesByListingId[listing.Id];
+                _db.Entry(listing).Property(l => l.StockQuantity).CurrentValue = listing.StockQuantity - quantity;
+                _db.Entry(listing).Property(l => l.UpdatedAt).CurrentValue = DateTime.UtcNow;
+            }
+
+            return true;
+        }
+
+        public async Task ReleaseStockAsync(IReadOnlyDictionary<Guid, int> quantitiesByListingId, CancellationToken ct)
+        {
+            if (quantitiesByListingId.Count == 0) return;
+
+            if (_db.Database.IsRelational())
+            {
+                foreach (var pair in quantitiesByListingId)
+                {
+                    await _db.Set<Listing>()
+                        .Where(l => l.Id == pair.Key)
+                        .ExecuteUpdateAsync(s => s
+                            .SetProperty(l => l.StockQuantity, l => l.StockQuantity + pair.Value)
+                            .SetProperty(l => l.UpdatedAt, DateTime.UtcNow), ct);
+                }
+
+                return;
+            }
+
+            var ids = quantitiesByListingId.Keys.ToArray();
+            var listings = await _db.Set<Listing>()
+                .Where(l => ids.Contains(l.Id))
+                .ToListAsync(ct);
+
+            foreach (var listing in listings)
+            {
+                var quantity = quantitiesByListingId[listing.Id];
+                _db.Entry(listing).Property(l => l.StockQuantity).CurrentValue = listing.StockQuantity + quantity;
+                _db.Entry(listing).Property(l => l.UpdatedAt).CurrentValue = DateTime.UtcNow;
+            }
         }
     }
 }

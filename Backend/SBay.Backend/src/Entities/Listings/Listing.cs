@@ -22,6 +22,7 @@ public class Listing :
 
     public ItemCondition Condition { get; private set; } = ItemCondition.Unknown;
     public string Status { get; private set; } = "active";
+    public DateTime? BoostedUntil { get; private set; }
 
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; private set; }
@@ -112,6 +113,13 @@ public class Listing :
         }
 
         ThumbnailUrl = distinct.Count > 0 ? distinct[0] : null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ActivateBoost(DateTime until)
+    {
+        if (until <= DateTime.UtcNow) throw new ArgumentOutOfRangeException(nameof(until));
+        BoostedUntil = until;
         UpdatedAt = DateTime.UtcNow;
     }
 }

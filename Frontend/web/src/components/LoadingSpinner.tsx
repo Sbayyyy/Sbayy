@@ -20,13 +20,13 @@ export default function LoadingSpinner({
   const content = (
     <div className="text-center">
       <Loader2 className={`${sizeClasses[size]} text-primary-600 animate-spin mx-auto`} />
-      {message && <p className="mt-4 text-gray-600">{message}</p>}
+      {message && <p className="mt-4 font-medium text-slate-600">{message}</p>}
     </div>
   );
 
   if (fullPage) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="app-page flex min-h-screen items-center justify-center px-4">
         {content}
       </div>
     );

@@ -16,6 +16,8 @@
         public string? Region { get; init; }
 
         public DateTimeOffset CreatedAt { get; init; }
+        public DateTimeOffset? BoostedUntil { get; init; }
+        public bool IsBoosted { get; init; }
 
         public required string Title { get; init; }
         public required string Description { get; init; }

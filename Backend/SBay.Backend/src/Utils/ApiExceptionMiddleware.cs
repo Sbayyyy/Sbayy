@@ -28,7 +28,7 @@ public class ApiExceptionMiddleware
             if (context.Response.HasStarted) throw;
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = status;
-            var payload = new { code, message, details };
+            var payload = new { status, code, message, details };
             await context.Response.WriteAsync(JsonSerializer.Serialize(payload));
         }
     }
@@ -39,45 +39,45 @@ public class ApiExceptionMiddleware
             return (api.StatusCode, api.Code, api.Message, api.Details);
 
         if (ex is UnauthorizedAccessException)
-            return (401, "unauthorized", ex.Message, ex.InnerException?.Message);
+            return (401, "unauthorized", "Unauthorized.", null);
 
         if (ex is ArgumentException or ArgumentOutOfRangeException or FormatException)
-            return (400, "invalid_input", ex.Message, ex.InnerException?.Message);
+            return (400, "invalid_input", ex.Message, null);
 
         if (ex is KeyNotFoundException)
-            return (404, "not_found", ex.Message, ex.InnerException?.Message);
+            return (404, "not_found", ex.Message, null);
 
         if (ex is TimeoutException)
-            return (408, "timeout", ex.Message, ex.InnerException?.Message);
+            return (408, "timeout", "The request timed out.", null);
 
         if (ex is DbUpdateException)
-            return (409, "conflict", ex.Message, ex.InnerException?.Message);
+            return (409, "conflict", "A database conflict occurred.", null);
 
         if (ex is NotImplementedException)
-            return (501, "method_not_allowed", ex.Message, ex.InnerException?.Message);
+            return (501, "method_not_allowed", "This operation is not available.", null);
 
         if (ex is NotSupportedException)
-            return (400, "not_acceptable", ex.Message, ex.InnerException?.Message);
+            return (400, "not_acceptable", ex.Message, null);
 
         if (ex is InvalidOperationException invalidOp)
         {
             var msg = invalidOp.Message ?? string.Empty;
             if (msg.Contains("Forbidden", StringComparison.OrdinalIgnoreCase))
-                return (403, "forbidden", invalidOp.Message, invalidOp.InnerException?.Message);
+                return (403, "forbidden", "Forbidden.", null);
             if (msg.Contains("not found", StringComparison.OrdinalIgnoreCase))
-                return (404, "not_found", invalidOp.Message, invalidOp.InnerException?.Message);
+                return (404, "not_found", invalidOp.Message, null);
             if (msg.Contains("Rate limited", StringComparison.OrdinalIgnoreCase))
-                return (429, "too_many_requests", invalidOp.Message, invalidOp.InnerException?.Message);
+                return (429, "too_many_requests", invalidOp.Message, null);
             if (msg.Contains("Empty message", StringComparison.OrdinalIgnoreCase)
                 || msg.Contains("Message too long", StringComparison.OrdinalIgnoreCase)
                 || msg.Contains("Edit window expired", StringComparison.OrdinalIgnoreCase)
                 || msg.Contains("Delete window expired", StringComparison.OrdinalIgnoreCase))
-                return (402, "invalid_input", invalidOp.Message, invalidOp.InnerException?.Message);
+                return (400, "invalid_input", invalidOp.Message, null);
             if (msg.Contains("Invalid participants", StringComparison.OrdinalIgnoreCase))
-                return (409, "conflict", invalidOp.Message, invalidOp.InnerException?.Message);
-            return (400, "bad_request", invalidOp.Message, invalidOp.InnerException?.Message);
+                return (409, "conflict", invalidOp.Message, null);
+            return (500, "internal_error", "An unexpected error occurred.", null);
         }
 
-        return (400, "bad_request", ex.Message, ex.InnerException?.Message);
+        return (500, "internal_error", "An unexpected error occurred.", null);
     }
 }

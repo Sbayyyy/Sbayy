@@ -26,6 +26,7 @@ import {
 import Head from 'next/head';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
+import { toast } from '@/lib/toast';
 
 const parseReplyContent = (content: string) => {
   const match = content.match(/^\[\[reply:([^\]]+)\]\]\n?/);
@@ -61,6 +62,7 @@ export default function ChatPage() {
   const connectionRef = useRef<Awaited<ReturnType<typeof createChatConnection>> | null>(null);
   const lastMessageIdRef = useRef<string | null>(null);
   const messagesRef = useRef<Message[]>([]);
+  const pollingRef = useRef(false);
 
   const menuStyle = useMemo(() => {
     if (!menu || typeof window === 'undefined') return {};
@@ -117,7 +119,9 @@ export default function ChatPage() {
 
     const fetchLatest = async () => {
       if (document.visibilityState !== "visible") return;
+      if (pollingRef.current) return;
       try {
+        pollingRef.current = true;
         const data = await getMessages(chatIdValue, 50);
         const ordered = [...data].sort(
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -141,6 +145,8 @@ export default function ChatPage() {
         }
       } catch {
         // ignore polling failures
+      } finally {
+        pollingRef.current = false;
       }
     };
 
@@ -204,7 +210,6 @@ export default function ChatPage() {
     };
 
     void connect();
-    void fetchLatest();
     pollTimer = setInterval(fetchLatest, 5000);
 
     return () => {
@@ -259,10 +264,11 @@ export default function ChatPage() {
       );
       setMessages(ordered);
       
-      // Mark as read
-      if (ordered.length > 0) {
-        const lastMessage = ordered[ordered.length - 1];
-        await markAsRead(chatIdValue as string, lastMessage.id);
+      const lastIncoming = [...ordered]
+        .reverse()
+        .find((m) => m.senderId !== user?.id);
+      if (lastIncoming) {
+        await markAsRead(chatIdValue as string, lastIncoming.id);
       }
       
       setError('');
@@ -281,7 +287,7 @@ export default function ChatPage() {
       const trimmed = newMessage.trim();
       const validation = defaultTextInputValidator.validate(trimmed);
       if (!validation.isValid) {
-        alert(validation.message ?? t('chat.disallowedContent'));
+        toast.warning(validation.message ?? t('chat.disallowedContent'));
         return;
       }
 
@@ -305,7 +311,7 @@ export default function ChatPage() {
       inputRef.current?.focus();
     } catch (err) {
       console.error('Error sending message:', err);
-      alert(t('chat.sendError'));
+      toast.error(t('chat.sendError'));
     } finally {
       setSending(false);
     }
@@ -429,7 +435,7 @@ export default function ChatPage() {
   if (loading) {
     return (
       <Layout hideHeader hideFooter>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="app-page flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </Layout>
@@ -439,13 +445,13 @@ export default function ChatPage() {
   if (error || !chat) {
     return (
       <Layout hideHeader hideFooter>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
+        <div className="app-page flex items-center justify-center px-4">
+          <div className="surface-card p-8 text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
+            <h2 className="text-xl font-bold text-slate-950 mb-2">
               {error || t('chat.notFound')}
             </h2>
-            <Link href="/messages" className="btn-primary mt-4">
+            <Link href="/messages" className="btn btn-primary mt-4">
               {t('chat.backToMessages')}
             </Link>
           </div>
@@ -460,56 +466,54 @@ export default function ChatPage() {
         <title>{t('chat.title', { name: getOtherUserName() })}</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* Chat Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="app-page flex h-screen flex-col overflow-hidden">
+        <div className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
           <div className="max-w-4xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Link 
                   href="/messages"
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="icon-button"
                 >
-                  <ArrowLeft className="w-5 h-5 text-gray-600" />
+                  <ArrowLeft className="w-5 h-5" />
                 </Link>
 
-                {/* User Info */}
                 <div className="flex items-center gap-3">
                   {getOtherUserId() ? (
                     <Link
                       href={`/seller/${getOtherUserId()}`}
-                      className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-2 ring-white shadow-sm"
                     >
                       {otherUserAvatar ? (
                         <img
                           src={otherUserAvatar}
                           alt={getOtherUserName()}
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                         />
                       ) : (
-                        <User className="w-5 h-5 text-gray-500" />
+                          <User className="w-5 h-5 text-slate-500" />
                       )}
                     </Link>
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-5 h-5 text-gray-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 ring-2 ring-white shadow-sm">
+                      <User className="w-5 h-5 text-slate-500" />
                     </div>
                   )}
                   <div>
                     {getOtherUserId() ? (
                       <Link
                         href={`/seller/${getOtherUserId()}`}
-                        className="font-medium text-gray-900 hover:underline"
+                        className="font-semibold text-slate-950 hover:text-primary-700"
                       >
                         {getOtherUserName()}
                       </Link>
                     ) : (
-                      <h2 className="font-medium text-gray-900">
+                      <h2 className="font-semibold text-slate-950">
                         {getOtherUserName()}
                       </h2>
                     )}
                     {listingTitle ? (
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <div className="flex max-w-[16rem] items-center gap-1 text-xs text-slate-500">
                         <Package className="w-3 h-3" />
                         <span className="truncate">{listingTitle}</span>
                       </div>
@@ -522,13 +526,12 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Messages Container */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-6">
           {messages.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">{t('chat.emptyMessages')}</p>
-              <p className="text-sm text-gray-400 mt-1">{t('chat.startConversation')}</p>
+            <div className="mx-auto mt-10 max-w-md rounded-2xl border border-slate-200 bg-white/80 p-8 text-center shadow-sm">
+              <p className="font-semibold text-slate-700">{t('chat.emptyMessages')}</p>
+              <p className="mt-1 text-sm text-slate-500">{t('chat.startConversation')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -542,7 +545,7 @@ export default function ChatPage() {
                     {/* Date Separator */}
                     {showDate && (
                       <div className="flex justify-center my-4">
-                        <span className="px-3 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200">
                           {formatDate(message.createdAt)}
                         </span>
                       </div>
@@ -553,10 +556,10 @@ export default function ChatPage() {
                       className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] rounded-2xl px-4 pt-6 pb-2 ${
+                        className={`max-w-[82%] rounded-3xl px-4 pb-2 pt-6 shadow-sm ${
                           isOwn
                             ? 'message-bubble-primary'
-                            : 'bg-white text-gray-900 shadow-sm'
+                            : 'bg-white text-slate-900 ring-1 ring-slate-200'
                         } relative ${isOwn ? 'pl-8' : 'pr-8'}`}
                       >
                         <button
@@ -564,7 +567,7 @@ export default function ChatPage() {
                           className={`absolute top-2 ${
                             isOwn ? 'left-2' : 'right-2'
                           } rounded-full p-1 text-xs ${
-                            isOwn ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                            isOwn ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-slate-700'
                           }`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -590,11 +593,11 @@ export default function ChatPage() {
                                   className={`mb-2 rounded-lg px-3 py-2 text-xs ${
                                     isOwn
                                       ? 'bg-white/15 text-white/90'
-                                      : 'bg-gray-100 text-gray-600'
+                                      : 'bg-slate-100 text-slate-600'
                                   }`}
                                 >
                                   <div className={`text-[11px] font-semibold ${
-                                    isOwn ? 'text-white/90' : 'text-blue-600'
+                                    isOwn ? 'text-white/90' : 'text-primary-700'
                                   }`}>
                                     {t('chat.replyLabel')}
                                   </div>
@@ -610,7 +613,7 @@ export default function ChatPage() {
                           );
                         })()}
                         <div className={`flex items-center gap-1 mt-1 justify-end ${
-                          isOwn ? 'text-white/80' : 'text-gray-500'
+                          isOwn ? 'text-white/80' : 'text-slate-500'
                         }`}>
                           <span className="text-xs">
                             {formatTime(message.createdAt)}
@@ -633,30 +636,30 @@ export default function ChatPage() {
                 if (!selected) return null;
                 return (
                   <div
-                    className="fixed z-50 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1"
+                    className="surface-card fixed z-50 w-44 overflow-hidden py-1"
                     style={menuStyle}
                   >
                     <button
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
                       onClick={() => handleCopy(selected)}
                     >
                       {t('chat.copy')}
                     </button>
                     <button
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
                       onClick={() => handleReply(selected)}
                     >
                       {t('chat.replyLabel')}
                     </button>
                     <button
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 disabled:text-gray-400"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:text-slate-400"
                       onClick={() => handleEdit(selected)}
                       disabled={!canEdit(selected)}
                     >
                       {t('chat.edit')}
                     </button>
                     <button
-                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100 disabled:text-gray-400"
+                      className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:text-slate-400"
                       onClick={() => handleDelete(selected)}
                       disabled={!canDelete(selected)}
                     >
@@ -664,7 +667,7 @@ export default function ChatPage() {
                     </button>
                     {selected.senderId !== user?.id && (
                       <button
-                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                        className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                         onClick={() => handleReport(selected)}
                       >
                         {t('chat.report')}
@@ -687,12 +690,11 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Message Input */}
-        <div className="bg-white border-t border-gray-200">
+        <div className="border-t border-slate-200/80 bg-white/90 backdrop-blur-xl">
           <div className="max-w-4xl mx-auto px-4 py-3">
             <form onSubmit={handleSend} className="flex flex-col gap-2">
               {(editingMessageId || replyTo) && (
-                <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
                   <span>
                     {editingMessageId
                       ? t('chat.editingMessage')
@@ -700,7 +702,7 @@ export default function ChatPage() {
                   </span>
                   <button
                     type="button"
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-slate-500 hover:text-slate-700"
                     onClick={() => {
                       setEditingMessageId(null);
                       setEditingReplyId(null);
@@ -719,13 +721,13 @@ export default function ChatPage() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={t('chat.placeholder')}
-                className="flex-1 resize-none rounded-2xl border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-h-32"
+                className="input max-h-32 flex-1 resize-none rounded-2xl"
                 rows={1}
               />
               <button
                 type="submit"
                 disabled={!newMessage.trim() || sending}
-                className="btn-primary h-11 w-11 p-0 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn btn-primary h-11 w-11 rounded-full p-0"
               >
                 {sending ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SBay.Backend.APIs.Records;
 using SBay.Backend.DataBase.Interfaces;
+using SBay.Backend.Utils;
 using SBay.Domain.Authentication;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -19,7 +21,7 @@ public class AddressesController : ControllerBase
     private readonly IAddressRepository _addresses;
     private readonly ICurrentUserResolver _resolver;
     private readonly IUnitOfWork _uow;
-    
+
     public AddressesController(
         IAddressRepository addresses,
         ICurrentUserResolver resolver,
@@ -29,7 +31,7 @@ public class AddressesController : ControllerBase
         _resolver = resolver;
         _uow = uow;
     }
-    
+
     /// <summary>
     /// GET /api/addresses - Get all saved addresses for current user
     /// </summary>
@@ -39,11 +41,11 @@ public class AddressesController : ControllerBase
     {
         var userId = await _resolver.GetUserIdAsync(User, ct);
         if (!userId.HasValue) return Unauthorized();
-        
+
         var addresses = await _addresses.GetByUserIdAsync(userId.Value, ct);
         return Ok(addresses.Select(ToDto).ToList());
     }
-    
+
     /// <summary>
     /// GET /api/addresses/{id} - Get address by ID
     /// </summary>
@@ -53,36 +55,37 @@ public class AddressesController : ControllerBase
     {
         var userId = await _resolver.GetUserIdAsync(User, ct);
         if (!userId.HasValue) return Unauthorized();
-        
+
         var address = await _addresses.GetByIdAsync(id, ct);
         if (address == null) return NotFound();
         if (address.UserId != userId.Value) return Forbid();
-        
+
         return Ok(ToDto(address));
     }
-    
+
     /// <summary>
     /// POST /api/addresses - Create new address
     /// </summary>
     [HttpPost]
     [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
     public async Task<ActionResult<AddressDto>> Create(
-        [FromBody] SaveAddressRequest req, 
+        [FromBody] SaveAddressRequest req,
         CancellationToken ct)
     {
         var userId = await _resolver.GetUserIdAsync(User, ct);
         if (!userId.HasValue) return Unauthorized();
-        
+
         // Validation
         if (string.IsNullOrWhiteSpace(req.Name))
-            return BadRequest("Name is required");
+            return ValidationProblem(ApiProblemDetails.Validation("Name is required.", nameof(req.Name)));
         if (string.IsNullOrWhiteSpace(req.Phone))
-            return BadRequest("Phone is required");
+            return ValidationProblem(ApiProblemDetails.Validation("Phone is required.", nameof(req.Phone)));
         if (string.IsNullOrWhiteSpace(req.Street))
-            return BadRequest("Street is required");
+            return ValidationProblem(ApiProblemDetails.Validation("Street is required.", nameof(req.Street)));
         if (string.IsNullOrWhiteSpace(req.City))
-            return BadRequest("City is required");
-        
+            return ValidationProblem(ApiProblemDetails.Validation("City is required.", nameof(req.City)));
+
         var address = new Address
         {
             UserId = userId.Value,
@@ -92,77 +95,79 @@ public class AddressesController : ControllerBase
             City = req.City.Trim(),
             Region = req.Region?.Trim()
         };
-        
+
         await _addresses.AddAsync(address, ct);
         await _uow.SaveChangesAsync(ct);
-        
+
         return CreatedAtAction(
-            nameof(GetById), 
-            new { id = address.Id }, 
+            nameof(GetById),
+            new { id = address.Id },
             ToDto(address)
         );
     }
-    
+
     /// <summary>
     /// PUT /api/addresses/{id} - Update existing address
     /// </summary>
     [HttpPut("{id:guid}")]
     [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
     public async Task<ActionResult<AddressDto>> Update(
-        Guid id, 
-        [FromBody] SaveAddressRequest req, 
+        Guid id,
+        [FromBody] SaveAddressRequest req,
         CancellationToken ct)
     {
         var userId = await _resolver.GetUserIdAsync(User, ct);
         if (!userId.HasValue) return Unauthorized();
-        
+
         var address = await _addresses.GetByIdAsync(id, ct);
         if (address == null) return NotFound();
         if (address.UserId != userId.Value) return Forbid();
-        
+
         // Validation
         if (string.IsNullOrWhiteSpace(req.Name))
-            return BadRequest("Name is required");
+            return ValidationProblem(ApiProblemDetails.Validation("Name is required.", nameof(req.Name)));
         if (string.IsNullOrWhiteSpace(req.Phone))
-            return BadRequest("Phone is required");
+            return ValidationProblem(ApiProblemDetails.Validation("Phone is required.", nameof(req.Phone)));
         if (string.IsNullOrWhiteSpace(req.Street))
-            return BadRequest("Street is required");
+            return ValidationProblem(ApiProblemDetails.Validation("Street is required.", nameof(req.Street)));
         if (string.IsNullOrWhiteSpace(req.City))
-            return BadRequest("City is required");
-        
+            return ValidationProblem(ApiProblemDetails.Validation("City is required.", nameof(req.City)));
+
         // Update fields
         address.Name = req.Name.Trim();
         address.Phone = req.Phone.Trim();
         address.Street = req.Street.Trim();
         address.City = req.City.Trim();
         address.Region = req.Region?.Trim();
-        
+
         await _addresses.UpdateAsync(address, ct);
         await _uow.SaveChangesAsync(ct);
-        
+
         return Ok(ToDto(address));
     }
-    
+
     /// <summary>
     /// DELETE /api/addresses/{id} - Delete address
     /// </summary>
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var userId = await _resolver.GetUserIdAsync(User, ct);
         if (!userId.HasValue) return Unauthorized();
-        
+
         var address = await _addresses.GetByIdAsync(id, ct);
         if (address == null) return NotFound();
         if (address.UserId != userId.Value) return Forbid();
-        
+
         await _addresses.DeleteAsync(id, ct);
         await _uow.SaveChangesAsync(ct);
-        
+
         return NoContent();
     }
-    
+
     // Helper: Entity → DTO
     private static AddressDto ToDto(Address a) => new(
         a.Id,

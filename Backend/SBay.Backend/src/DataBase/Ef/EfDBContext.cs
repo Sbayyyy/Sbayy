@@ -15,6 +15,10 @@ using ReviewHelpful = SBay.Domain.Entities.ReviewHelpful;
 using PushToken = SBay.Domain.Entities.PushToken;
 using Report = SBay.Domain.Entities.Report;
 using UserBlock = SBay.Domain.Entities.UserBlock;
+using PaymentTransaction = SBay.Domain.Entities.PaymentTransaction;
+using ListingBoostPurchase = SBay.Domain.Entities.ListingBoostPurchase;
+using PlatformFee = SBay.Domain.Entities.PlatformFee;
+using SponsoredAd = SBay.Domain.Entities.SponsoredAd;
 
 namespace SBay.Domain.Database
 {
@@ -35,6 +39,10 @@ namespace SBay.Domain.Database
         public DbSet<PushToken> PushTokens => Set<PushToken>();
         public DbSet<Report> Reports => Set<Report>();
         public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
+        public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+        public DbSet<ListingBoostPurchase> ListingBoostPurchases => Set<ListingBoostPurchase>();
+        public DbSet<PlatformFee> PlatformFees => Set<PlatformFee>();
+        public DbSet<SponsoredAd> SponsoredAds => Set<SponsoredAd>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -84,8 +92,12 @@ namespace SBay.Domain.Database
                     .HasDefaultValue(0);
                 e.Property(x => x.ListingLimitResetAt)
                     .HasColumnName("listing_limit_reset_at");
+                e.Property(x => x.ExternalId)
+                    .HasColumnName("external_id")
+                    .HasMaxLength(128)
+                    .IsRequired(false);
                 e.HasIndex(x => x.Email).IsUnique();
-                e.Ignore(x => x.ExternalId);
+                e.HasIndex(x => x.ExternalId).IsUnique().HasFilter("external_id IS NOT NULL");
                 e.Ignore(x => x.Region);
                 e.Ignore(x => x.UserName);
                 e.Ignore(x => x.Cart);
@@ -170,6 +182,23 @@ namespace SBay.Domain.Database
                 e.HasIndex(x => new { x.BlockerId, x.BlockedUserId }).IsUnique();
                 e.HasIndex(x => x.BlockedUserId);
             });
+            modelBuilder.Entity<FavoriteListing>(e =>
+            {
+                e.ToTable("favorites");
+                e.HasKey(x => new { x.UserId, x.ListingId });
+                e.Property(x => x.UserId).HasColumnName("user_id");
+                e.Property(x => x.ListingId).HasColumnName("listing_id");
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                e.HasIndex(x => new { x.UserId, x.CreatedAt }).HasDatabaseName("idx_favorites_user_time");
+                e.HasOne<Listing>()
+                    .WithMany()
+                    .HasForeignKey(x => x.ListingId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
             modelBuilder.Entity<Category>(e =>
             {
                 e.ToTable("categories");
@@ -237,6 +266,85 @@ namespace SBay.Domain.Database
                 .Property(x => x.Id)
                 .HasDefaultValueSql("gen_random_uuid()")
                 .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity<PaymentTransaction>(e =>
+            {
+                e.ToTable("payment_transactions");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.UserId).HasColumnName("user_id");
+                e.Property(x => x.ListingId).HasColumnName("listing_id");
+                e.Property(x => x.OrderId).HasColumnName("order_id");
+                e.Property(x => x.Provider).HasColumnName("provider").HasMaxLength(64).IsRequired();
+                e.Property(x => x.ProviderReference).HasColumnName("provider_reference").HasMaxLength(256);
+                e.Property(x => x.Purpose).HasColumnName("purpose").HasConversion<string>().HasMaxLength(64);
+                e.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(64);
+                e.Property(x => x.Amount).HasColumnName("amount").HasColumnType("numeric(12,2)");
+                e.Property(x => x.Currency).HasColumnName("currency").HasMaxLength(8);
+                e.Property(x => x.MetadataJson).HasColumnName("metadata_json").HasColumnType("jsonb");
+                e.Property(x => x.CheckoutUrl).HasColumnName("checkout_url");
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                e.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");
+                e.HasIndex(x => new { x.Provider, x.ProviderReference }).IsUnique().HasFilter("provider_reference IS NOT NULL");
+                e.HasIndex(x => x.UserId);
+                e.HasIndex(x => x.Status);
+            });
+
+            modelBuilder.Entity<ListingBoostPurchase>(e =>
+            {
+                e.ToTable("listing_boost_purchases");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.ListingId).HasColumnName("listing_id");
+                e.Property(x => x.SellerId).HasColumnName("seller_id");
+                e.Property(x => x.PaymentTransactionId).HasColumnName("payment_transaction_id");
+                e.Property(x => x.OptionId).HasColumnName("option_id").HasMaxLength(64);
+                e.Property(x => x.StartsAt).HasColumnName("starts_at");
+                e.Property(x => x.EndsAt).HasColumnName("ends_at");
+                e.Property(x => x.IsActive).HasColumnName("is_active");
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                e.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");
+                e.HasIndex(x => x.ListingId);
+                e.HasIndex(x => x.PaymentTransactionId).IsUnique();
+            });
+
+            modelBuilder.Entity<PlatformFee>(e =>
+            {
+                e.ToTable("platform_fees");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.OrderId).HasColumnName("order_id");
+                e.Property(x => x.SellerId).HasColumnName("seller_id");
+                e.Property(x => x.BasisAmount).HasColumnName("basis_amount").HasColumnType("numeric(12,2)");
+                e.Property(x => x.FeeAmount).HasColumnName("fee_amount").HasColumnType("numeric(12,2)");
+                e.Property(x => x.Currency).HasColumnName("currency").HasMaxLength(8);
+                e.Property(x => x.Rate).HasColumnName("rate").HasColumnType("numeric(8,4)");
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                e.HasIndex(x => x.OrderId).IsUnique();
+                e.HasIndex(x => x.SellerId);
+            });
+
+            modelBuilder.Entity<SponsoredAd>(e =>
+            {
+                e.ToTable("sponsored_ads");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.Title).HasColumnName("title").HasMaxLength(160);
+                e.Property(x => x.Description).HasColumnName("description").HasMaxLength(600);
+                e.Property(x => x.ImageUrl).HasColumnName("image_url");
+                e.Property(x => x.CtaText).HasColumnName("cta_text").HasMaxLength(80);
+                e.Property(x => x.TargetUrl).HasColumnName("target_url");
+                e.Property(x => x.IsActive).HasColumnName("is_active");
+                e.Property(x => x.StartsAt).HasColumnName("starts_at");
+                e.Property(x => x.EndsAt).HasColumnName("ends_at");
+                e.Property(x => x.Priority).HasColumnName("priority");
+                e.Property(x => x.Impressions).HasColumnName("impressions");
+                e.Property(x => x.Clicks).HasColumnName("clicks");
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                e.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");
+                e.Property(x => x.ArchivedAt).HasColumnName("archived_at");
+                e.HasIndex(x => new { x.IsActive, x.StartsAt, x.EndsAt, x.Priority });
+            });
             
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfiguration(new AddressConfiguration());

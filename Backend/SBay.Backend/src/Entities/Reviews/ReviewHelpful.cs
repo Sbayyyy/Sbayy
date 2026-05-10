@@ -1,5 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace SBay.Domain.Entities;
 
+[PrimaryKey(nameof(ReviewId), nameof(UserId))]
 public sealed class ReviewHelpful
 {
     public Guid ReviewId { get; set; }

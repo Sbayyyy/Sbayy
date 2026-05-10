@@ -69,6 +69,19 @@ export default function SellPage() {
     region: defaultTextInputValidator
   };
 
+  if (isAuthed === undefined) {
+    return (
+      <Layout title={t('common.loading')}>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!isAuthed) {
     return null;
   }

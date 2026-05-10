@@ -1,10 +1,13 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
+using System.Collections.Concurrent;
+using System.Net.Mail;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SBay.Domain.Authentication;
@@ -21,6 +24,12 @@ namespace SBay.Backend.Api.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
+    private static readonly ConcurrentDictionary<string, LoginAttempt> LoginAttempts = new();
+    private static readonly User DummyUser = new() { Id = Guid.Empty, Email = "dummy@example.invalid" };
+    private static readonly PasswordHasher<User> DummyHasher = new();
+    private static readonly string DummyPasswordHash = DummyHasher.HashPassword(DummyUser, "DummyPassword1!");
+    private static readonly TimeSpan LoginAttemptWindow = TimeSpan.FromMinutes(15);
+    private const int MaxLoginAttempts = 10;
     private readonly IUserRepository _users;
     private readonly IUnitOfWork _uow;
     private readonly IPasswordHasher<User> _hasher;
@@ -39,14 +48,19 @@ public class AuthController : ControllerBase
     
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("registration")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req?.Email) || string.IsNullOrWhiteSpace(req?.Password))
             return BadRequest("Email and password are required.");
+        if (!IsValidEmail(req.Email))
+            return BadRequest("Email is invalid.");
+        if (!IsStrongPassword(req.Password))
+            return BadRequest("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
 
         var email = req.Email.Trim().ToLowerInvariant();
         var exists = await _users.EmailExistsAsync(email, ct);
-        if (exists) return Conflict("Email already in use.");
+        if (exists) return Conflict("Registration could not be completed.");
 
         var user = new User
         {
@@ -81,6 +95,7 @@ public class AuthController : ControllerBase
     
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req, CancellationToken ct)
     {
         var email = (req?.Email ?? string.Empty).Trim().ToLowerInvariant();
@@ -88,14 +103,26 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pwd))
             return BadRequest("Email and password are required.");
+        if (!IsValidEmail(email) || pwd.Length > 128)
+            return Unauthorized("Invalid email or password.");
+        var attemptKey = $"{email}:{HttpContext.Connection.RemoteIpAddress}";
+        if (IsLoginRateLimited(attemptKey))
+            return StatusCode(StatusCodes.Status429TooManyRequests, "Too many login attempts. Please try again later.");
 
         var user = await _users.GetByEmailAsync(email, ct);
         if (user is null)
+        {
+            DummyHasher.VerifyHashedPassword(DummyUser, DummyPasswordHash, pwd);
+            TrackFailedLogin(attemptKey);
             return Unauthorized("Invalid email or password.");
+        }
 
         var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, pwd);
         if (result == PasswordVerificationResult.Failed)
+        {
+            TrackFailedLogin(attemptKey);
             return Unauthorized("Invalid email or password.");
+        }
 
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
@@ -106,6 +133,7 @@ public class AuthController : ControllerBase
 
         var dto = user.ToDto();
         var token = GenerateJwt(user);
+        LoginAttempts.TryRemove(attemptKey, out _);
         return Ok(new AuthResponse(dto, token));
     }
 
@@ -125,12 +153,13 @@ public class AuthController : ControllerBase
 
     [HttpPost("change-password")]
     [Authorize(AuthenticationSchemes = "SBayJwt")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req?.CurrentPassword) || string.IsNullOrWhiteSpace(req?.NewPassword))
             return BadRequest("Current and new password are required.");
 
-        if (!Regex.IsMatch(req.NewPassword, @"(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"))
+        if (!IsStrongPassword(req.NewPassword))
             return BadRequest("New password must be at least 8 characters and include uppercase, lowercase, and a number.");
 
         var sub = User.FindFirstValue("sub");
@@ -175,4 +204,47 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private static bool IsStrongPassword(string password)
+        => password.Length <= 128 && Regex.IsMatch(password, @"(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}");
+
+    private static bool IsValidEmail(string email)
+    {
+        var trimmed = email.Trim();
+        if (trimmed.Length is < 3 or > 254) return false;
+        try
+        {
+            var parsed = new MailAddress(trimmed);
+            return string.Equals(parsed.Address, trimmed, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsLoginRateLimited(string key)
+    {
+        if (!LoginAttempts.TryGetValue(key, out var attempt))
+            return false;
+        if (attempt.ResetAt <= DateTimeOffset.UtcNow)
+        {
+            LoginAttempts.TryRemove(key, out _);
+            return false;
+        }
+        return attempt.Count >= MaxLoginAttempts;
+    }
+
+    private static void TrackFailedLogin(string key)
+    {
+        var now = DateTimeOffset.UtcNow;
+        LoginAttempts.AddOrUpdate(
+            key,
+            _ => new LoginAttempt(1, now.Add(LoginAttemptWindow)),
+            (_, existing) => existing.ResetAt <= now
+                ? new LoginAttempt(1, now.Add(LoginAttemptWindow))
+                : existing with { Count = existing.Count + 1 });
+    }
+
+    private readonly record struct LoginAttempt(int Count, DateTimeOffset ResetAt);
 }

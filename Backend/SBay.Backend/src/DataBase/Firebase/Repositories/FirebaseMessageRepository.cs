@@ -64,6 +64,28 @@ public class FirebaseMessageRepository : IMessageRepository
         return snapshot?.Count ?? 0;
     }
 
+    public async Task<IReadOnlyDictionary<Guid, int>> CountUnreadByChatAsync(IEnumerable<Guid> chatIds, Guid receiverId, CancellationToken ct)
+    {
+        var result = new Dictionary<Guid, int>();
+        foreach (var chatId in chatIds.Where(id => id != Guid.Empty).Distinct())
+        {
+            result[chatId] = await CountUnreadForChatAsync(chatId, receiverId, ct);
+        }
+        return result;
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, Message>> GetLatestByChatAsync(IEnumerable<Guid> chatIds, CancellationToken ct)
+    {
+        var result = new Dictionary<Guid, Message>();
+        foreach (var chatId in chatIds.Where(id => id != Guid.Empty).Distinct())
+        {
+            var messages = await GetMessagesAsync(chatId, 1, null, ct);
+            var latest = messages.FirstOrDefault();
+            if (latest != null) result[chatId] = latest;
+        }
+        return result;
+    }
+
     public async Task<IReadOnlyList<Message>> GetMessagesAsync(Guid chatId, int take, DateTime? before, CancellationToken ct)
     {
         var query = _db.Collection("messages")

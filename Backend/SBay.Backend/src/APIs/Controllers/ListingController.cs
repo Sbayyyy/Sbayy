@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.RateLimiting;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 using SBay.Domain.ValueObjects;
@@ -8,6 +9,7 @@ using System.Security.Claims;
 using SBay.Backend.APIs.Records;
 using SBay.Backend.DataBase.Queries;
 using SBay.Backend.APIs.Records.Responses;
+using SBay.Backend.Utils;
 using SBay.Domain.Authentication;
 
 [ApiController]
@@ -69,6 +71,8 @@ public sealed class ListingsController : ControllerBase
             CategoryPath = l.CategoryPath,
             Region = l.Region,
             CreatedAt = new DateTimeOffset(l.CreatedAt),
+            BoostedUntil = l.BoostedUntil.HasValue ? new DateTimeOffset(l.BoostedUntil.Value) : null,
+            IsBoosted = l.BoostedUntil.HasValue && l.BoostedUntil.Value > DateTime.UtcNow,
             ThumbnailUrl = l.ThumbnailUrl,
             Images = images,
             ImageUrls = images.Select(i => i.Url).ToList(),
@@ -78,14 +82,19 @@ public sealed class ListingsController : ControllerBase
 
     [HttpPost]
     [Authorize(Policy = ScopePolicies.ListingsWrite)]
+    [EnableRateLimiting("write")]
     public async Task<ActionResult<ListingResponse>> Create([FromBody] AddListingRequest body, CancellationToken ct)
     {
+        if (body == null) return ValidationProblem("Listing payload is required.");
         
         if (string.IsNullOrWhiteSpace(body.Title))         return ValidationProblem("Title is required.");
         if (string.IsNullOrWhiteSpace(body.Description))   return ValidationProblem("Description is required.");
         if (body.PriceAmount <= 0)                         return ValidationProblem("Price must be greater than 0.");
         if (body.Stock < 0)                                return ValidationProblem("Stock cannot be negative.");
         if (string.IsNullOrWhiteSpace(body.PriceCurrency)) return ValidationProblem("Price currency is required.");
+        if (body.ImageUrls.Count > 10)                     return ValidationProblem("A listing can have at most 10 images.");
+        if (body.ImageUrls.Any(url => !StoredImageUrlValidator.IsAllowed(url, _config)))
+            return ValidationProblem("One or more image URLs are invalid.");
 
         
         var sellerIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
@@ -156,7 +165,7 @@ public sealed class ListingsController : ControllerBase
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
 
-        var items = await _repo.GetBySellerAsync(me.Value, ct);
+        var items = await _repo.GetBySellerForManagementAsync(me.Value, ct);
         return items.Select(l => ToResponse(l, null)).ToList();
     }
 
@@ -178,12 +187,14 @@ public sealed class ListingsController : ControllerBase
 
     [HttpPut("{id:guid}")]
     [Authorize(Policy = ScopePolicies.ListingsWrite)]
+    [EnableRateLimiting("write")]
     public async Task<ActionResult<ListingResponse>> Update(Guid id, [FromBody] UpdateListingRequest body, CancellationToken ct)
     {
+        if (body == null) return ValidationProblem("Listing payload is required.");
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
 
-        var listing = await _repo.GetByIdAsync(id, ct);
+        var listing = await _repo.GetByIdForManagementAsync(id, ct);
         if (listing is null) return NotFound();
         if (listing.SellerId != me.Value && !User.IsInRole("admin")) return Forbid();
 
@@ -195,6 +206,13 @@ public sealed class ListingsController : ControllerBase
             return BadRequest("Price must be greater than 0.");
         if (body.Stock.HasValue && body.Stock.Value < 0)
             return BadRequest("Stock cannot be negative.");
+        if (body.ImageUrls != null)
+        {
+            if (body.ImageUrls.Count > 10)
+                return BadRequest("A listing can have at most 10 images.");
+            if (body.ImageUrls.Any(url => !StoredImageUrlValidator.IsAllowed(url, _config)))
+                return BadRequest("One or more image URLs are invalid.");
+        }
 
         ItemCondition? condition = null;
         if (!string.IsNullOrWhiteSpace(body.Condition))
@@ -224,10 +242,12 @@ public sealed class ListingsController : ControllerBase
             body.CategoryPath,
             body.Region);
 
-        if (body.ImageUrls != null)
-            listing.ReplaceImages(body.ImageUrls);
-
         await _repo.UpdateAsync(listing, ct);
+        if (body.ImageUrls != null)
+        {
+            listing.ReplaceImages(body.ImageUrls);
+            await _repo.ReplaceImagesAsync(listing, ct);
+        }
         await _uow.SaveChangesAsync(ct);
 
         var seller = await _users.GetByIdAsync(listing.SellerId, ct);
@@ -236,16 +256,17 @@ public sealed class ListingsController : ControllerBase
 
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = ScopePolicies.ListingsWrite)]
+    [EnableRateLimiting("write")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
 
-        var listing = await _repo.GetByIdAsync(id, ct);
+        var listing = await _repo.GetByIdForManagementAsync(id, ct);
         if (listing is null) return NotFound();
         if (listing.SellerId != me.Value && !User.IsInRole("admin")) return Forbid();
 
-        await _repo.RemoveAsync(listing, ct);
+        await _repo.SoftDeleteAsync(id, ct);
         await _uow.SaveChangesAsync(ct);
         return NoContent();
     }
@@ -263,6 +284,11 @@ public sealed class ListingsController : ControllerBase
         }
 
         var items = await _repo.SearchAsync(q, ct);
+        var page = q.Page <= 0 ? 1 : q.Page;
+        var limit = q.PageSize is < 1 or > 100 ? 24 : q.PageSize;
+        Response.Headers["X-Page"] = page.ToString();
+        Response.Headers["X-Limit"] = limit.ToString();
+        Response.Headers["X-Count"] = items.Count.ToString();
         return items.Select(l => ToResponse(l, null)).ToList();
     }
 }

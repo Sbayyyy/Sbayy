@@ -8,3 +8,4 @@ ENV POSTGRES_PASSWORD=1234
 # Ensure execution order via file names
 COPY 01_schema.sql     /docker-entrypoint-initdb.d/01_schema.sql
 COPY 02_demo.sql  /docker-entrypoint-initdb.d/02_demo.sql
+COPY 03_ecommerce.sql  /docker-entrypoint-initdb.d/03_ecommerce.sql

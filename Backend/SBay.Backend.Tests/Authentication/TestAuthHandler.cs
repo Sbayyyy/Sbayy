@@ -31,15 +31,17 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             : "seller";
 
         var isSeller = Request.Headers.TryGetValue("X-Test-IsSeller", out var sellerHeader)
-            && bool.TryParse(sellerHeader.ToString(), out var parsedSeller)
-            && parsedSeller;
+            ? bool.TryParse(sellerHeader.ToString(), out var parsedSeller) && parsedSeller
+            : string.Equals(role, "seller", StringComparison.OrdinalIgnoreCase);
 
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, SellerId.ToString()),
             new Claim("sub", SellerId.ToString()),
             new Claim(ClaimTypes.Role, role),
-            new Claim("is_seller", isSeller.ToString().ToLowerInvariant())
+            new Claim("role", role),
+            new Claim("is_seller", isSeller.ToString().ToLowerInvariant()),
+            new Claim(Scopes.ClaimType, Scopes.ToClaimValue(Scopes.ForRole(role, isSeller)))
         };
 
         if (Request.Headers.TryGetValue("X-Test-Scopes", out var scopesHeader) &&
