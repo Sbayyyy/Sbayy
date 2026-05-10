@@ -21,7 +21,7 @@ import ImageUpload from '../../components/imageUpload';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { SELL_CATEGORIES, FILTER_CONDITIONS } from '@/lib/constants';
+import { SELL_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
 
 // Extended type for form state to allow empty strings for numeric fields
 interface ProductFormData {
@@ -40,7 +40,7 @@ export default function SellPage() {
   const router = useRouter();
   const { isAuthenticated, setUser } = useAuthStore();
   const isAuthed = useRequireAuth();
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
@@ -348,7 +348,7 @@ export default function SellPage() {
                   >
                     <option value="">{t('sell.fields.categoryPlaceholder')}</option>
                     {SELL_CATEGORIES.map(cat => (
-                      <option key={cat.slug} value={cat.slug}>{cat.name}</option>
+                      <option key={cat.slug} value={cat.slug}>{getCategoryName(cat, i18n.language)}</option>
                     ))}
                   </select>
                   {errors.categoryPath && (

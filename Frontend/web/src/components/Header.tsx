@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { User, Menu, X, Heart, Package, MessageCircle, Search } from 'lucide-react';
+import { User, Menu, X, Heart, Package, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 // import { useCartStore } from '@/lib/cartStore';
 import { useTranslation } from 'next-i18next';
@@ -98,9 +98,6 @@ export default function Header() {
               </Link>
               <Link href="/browse" className={navLinkClass('/browse')}>
                 {t('nav.browse')}
-              </Link>
-              <Link href="/search" className={navLinkClass('/search')} aria-label={t('nav.search', 'Search')}>
-                <Search size={16} />
               </Link>
             </nav>
           </div>

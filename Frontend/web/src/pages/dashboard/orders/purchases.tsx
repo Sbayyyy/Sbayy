@@ -22,7 +22,7 @@ import Head from 'next/head';
 
 export default function PurchasesPage() {
   const isAuthed = useRequireAuth();
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
 
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +114,7 @@ export default function PurchasesPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ar-SY', {
+    return date.toLocaleDateString(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -122,7 +122,7 @@ export default function PurchasesPage() {
   };
 
   const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat('ar-SY', {
+    return new Intl.NumberFormat(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
       style: 'currency',
       currency: 'SYP',
       minimumFractionDigits: 0

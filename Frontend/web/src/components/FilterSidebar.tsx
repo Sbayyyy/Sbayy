@@ -1,6 +1,6 @@
 import { SlidersHorizontal, X } from 'lucide-react';
 import type { SearchFilters } from '@sbay/shared';
-import { FILTER_CATEGORIES, FILTER_CONDITIONS } from '@/lib/constants';
+import { FILTER_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
 import { handlePriceKeyDown, createPriceChangeHandler } from '@/lib/hooks/usePriceFilter';
 import { useTranslation } from 'next-i18next';
 
@@ -24,7 +24,7 @@ function FilterContent({
   priceError,
   onClose,
 }: Omit<FilterSidebarProps, 'isMobile'>) {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const handlePriceChange = createPriceChangeHandler(onFilterChange);
   const optionClass = (active: boolean) =>
     `block w-full rounded-xl px-3 py-2 text-right text-sm font-medium transition-all ${
@@ -76,7 +76,7 @@ function FilterContent({
                 }}
                 className={optionClass(filters.category === cat.slug)}
               >
-                {cat.name}
+                {getCategoryName(cat, i18n.language)}
               </button>
             ))}
           </div>
@@ -111,7 +111,7 @@ function FilterContent({
         <div className="space-y-2">
           {[
             { value: undefined as string | undefined, label: t('filters.allConditions') },
-            ...FILTER_CONDITIONS.map(c => ({ value: c.value as string | undefined, label: c.labelAr }))
+            ...FILTER_CONDITIONS.map(c => ({ value: c.value as string | undefined, label: t(c.i18nKey) }))
           ].map(item => (
             <label key={item.label} className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-50">
               <input

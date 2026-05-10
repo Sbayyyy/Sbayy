@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-PROJECT_DIR="/opt/sbay"
+PROJECT_DIR="/opt/apps/sbay/Sbay"
 COMPOSE_FILE="docker-compose.prod.yml"
-ENV_FILE=".env.prod"
+ENV_FILE=".env.production"
 
 echo "Starting SBay deployment for IONOS VPS"
 
@@ -26,7 +26,7 @@ sudo chown "$USER:$USER" "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
 if [ ! -f "$ENV_FILE" ]; then
-  echo "$ENV_FILE is missing. Copy .env.prod.example to .env.prod and set your IONOS domain and secrets."
+  echo "$ENV_FILE is missing. Copy .env.production.example to .env.production and set your IONOS domain and secrets."
   exit 1
 fi
 
@@ -39,17 +39,12 @@ if [ -z "${DOMAIN_NAME:-}" ]; then
   exit 1
 fi
 
-if [ ! -d "Backend" ] || [ ! -d "Frontend" ] || [ ! -d "Database" ] || [ ! -f "$COMPOSE_FILE" ] || [ ! -f "nginx.conf" ]; then
-  echo "Project files are incomplete in $PROJECT_DIR."
-  echo "Upload Backend, Frontend, Database, nginx.conf, $COMPOSE_FILE, and $ENV_FILE before running this script."
-  exit 1
-fi
+mkdir -p "${UPLOADS_HOST_PATH:-/opt/apps/sbay/Sbay/uploads}"
 
-if [ ! -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] || [ ! -f "/etc/letsencrypt/live/$DOMAIN_NAME/privkey.pem" ]; then
-  echo "No Let's Encrypt certificate found for $DOMAIN_NAME."
-  echo "Stopping anything on ports 80/443, then requesting a certificate."
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down || true
-  sudo certbot certonly --standalone -d "$DOMAIN_NAME" --agree-tos --register-unsafely-without-email --non-interactive
+if [ ! -d "Backend" ] || [ ! -d "Frontend" ] || [ ! -d "Database" ] || [ ! -f "$COMPOSE_FILE" ]; then
+  echo "Project files are incomplete in $PROJECT_DIR."
+  echo "Upload Backend, Frontend, Database, $COMPOSE_FILE, and $ENV_FILE before running this script."
+  exit 1
 fi
 
 echo "Validating Docker Compose configuration"
@@ -63,10 +58,10 @@ sleep 20
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
 
 echo "Checking health endpoints"
-curl -fsS "https://$DOMAIN_NAME/health/live" >/dev/null
-curl -fsS "https://$DOMAIN_NAME/health/ready" >/dev/null
+curl -fsS "http://127.0.0.1:${API_HOST_PORT:-5000}/health/ready" >/dev/null
+curl -fsS "http://127.0.0.1:${WEB_HOST_PORT:-3000}/" >/dev/null
 
 echo "Deployment complete"
-echo "Frontend: https://$DOMAIN_NAME"
-echo "API: https://$DOMAIN_NAME/api"
-echo "Uploads: https://$DOMAIN_NAME/uploads"
+echo "Frontend: ${FRONTEND_URL:-https://syrian-bay.com}"
+echo "API: ${APP_PUBLIC_BASE_URL:-https://api.syrian-bay.com}"
+echo "Uploads: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-https://api.syrian-bay.com/uploads}"

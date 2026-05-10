@@ -11,7 +11,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import ReportDialog from '@/components/ReportDialog';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { CONDITION_LABEL_MAP, CONDITION_I18N_MAP } from '@/lib/constants';
+import { CONDITION_LABEL_MAP, CONDITION_I18N_MAP, getCategoryLabelFromValue } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
 import { useRequireAuthAction } from '@/lib/hooks/useRequireAuthAction';
 import { ImageGallery, SellerCard, ListingActions, TrustBadges } from '@/components/listing';
@@ -187,6 +187,7 @@ export default function ListingDetail() {
   const isAvailable = listing.stock === undefined || listing.stock > 0;
   const sellerProfileId = listing.seller?.id || listing.sellerId;
   const isOwnListing = user?.id === sellerProfileId;
+  const categoryLabel = getCategoryLabelFromValue(listing.categoryPath, locale) || t('listing.details.unknown', 'Uncategorized');
 
   return (
     <>
@@ -199,7 +200,7 @@ export default function ListingDetail() {
             </button>
             <span className="mx-2 text-slate-400">/</span>
             <button onClick={() => router.push(`/?category=${listing.categoryPath}`)} className="text-slate-500 transition-colors hover:text-slate-900">
-              {listing.categoryPath || t('listing.breadcrumbs.categoryFallback', 'Listings')}
+              {categoryLabel || t('listing.breadcrumbs.categoryFallback', 'Listings')}
             </button>
             <span className="mx-2 text-slate-400">/</span>
             <span className="inline-block max-w-xs truncate text-slate-900">{listing.title}</span>
@@ -267,7 +268,7 @@ export default function ListingDetail() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-slate-500">{t('listing.details.category', 'Category')}</p>
-                        <p className="font-semibold text-slate-900">{listing.categoryPath || t('listing.details.unknown', 'Uncategorized')}</p>
+                        <p className="font-semibold text-slate-900">{categoryLabel}</p>
                       </div>
                       {listing.condition && (
                         <div>

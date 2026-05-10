@@ -17,7 +17,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onFavorite, isFavorite = false }: ProductCardProps) {
   const router = useRouter();
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const { isAuthenticated } = useAuthStore();
   const [isLiked, setIsLiked] = useState(isFavorite);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
@@ -134,7 +134,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
 
           <div className="mt-auto flex items-end justify-between gap-3">
             <span className="text-xl font-bold text-primary-700 sm:text-2xl">
-              {formatPrice(product.priceAmount)}
+              {formatPrice(product.priceAmount, i18n.language, product.priceCurrency)}
             </span>
             <Link href={`/listing/${product.id}`} className="btn btn-outline px-3 py-2 text-xs opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
               {t('productCard.view')}

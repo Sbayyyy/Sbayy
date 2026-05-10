@@ -9,14 +9,15 @@ import ProductCardSkeleton from '@/components/ProductCardSkeleton';
 import { Search, MapPin, Package } from 'lucide-react';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import { HOMEPAGE_CATEGORIES } from '@/lib/constants';
+import { CITIES, HOMEPAGE_CATEGORIES, getCategoryName } from '@/lib/constants';
 
 export default function Home() {
   const router = useRouter();
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('');
   const [searchError, setSearchError] = useState('');
   
   useEffect(() => {
@@ -49,9 +50,10 @@ export default function Home() {
       setSearchError(validation.message ?? 'Input contains disallowed content');
       return;
     }
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (selectedRegion) params.set('region', selectedRegion);
+    router.push(`/search${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   return (
@@ -60,25 +62,40 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="surface-card p-5 sm:p-6">
             <div className="mx-auto max-w-4xl space-y-4">
-              <form onSubmit={handleSearch} className="relative">
-                <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setSearchQuery(next);
-                    const validation = defaultTextInputValidator.validate(next);
-                    setSearchError(validation.isValid ? '' : validation.message ?? 'Input contains disallowed content');
-                  }}
-                  placeholder={t('home.searchPlaceholder')}
-                  className="input h-14 rounded-2xl pr-11"
-                />
+              <form onSubmit={handleSearch} className="grid gap-3 md:grid-cols-[1fr_15rem]">
+                <div className="relative">
+                  <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setSearchQuery(next);
+                      const validation = defaultTextInputValidator.validate(next);
+                      setSearchError(validation.isValid ? '' : validation.message ?? 'Input contains disallowed content');
+                    }}
+                    placeholder={t('home.searchPlaceholder')}
+                    className="input h-14 rounded-2xl pr-11"
+                  />
+                </div>
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => setSelectedRegion(e.target.value)}
+                  className="input h-14 rounded-2xl"
+                  aria-label={t('home.regionSelect', 'Select region')}
+                >
+                  <option value="">{t('home.allRegions', 'All regions')}</option>
+                  {CITIES.map((city) => (
+                    <option key={city.value} value={city.i18nDefault}>
+                      {t(city.i18nKey, city.i18nDefault)}
+                    </option>
+                  ))}
+                </select>
               </form>
               {searchError && <p className="text-sm font-medium text-red-600">{searchError}</p>}
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <MapPin className="h-4 w-4" />
-                <span>{t('home.locationHint')}</span>
+                <span>{selectedRegion || t('home.allRegions', 'All regions')}</span>
               </div>
             </div>
           </div>
@@ -95,7 +112,7 @@ export default function Home() {
                   className="flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-2xl border border-transparent p-3 text-slate-700 transition-all hover:-translate-y-0.5 hover:border-primary-100 hover:bg-primary-50/60 hover:text-primary-700 hover:shadow-sm"
                 >
                   <span className="text-2xl">{category.icon}</span>
-                  <span className="text-center text-xs font-semibold">{category.name}</span>
+                  <span className="text-center text-xs font-semibold">{getCategoryName(category, i18n.language)}</span>
                 </Link>
               ))}
             </div>

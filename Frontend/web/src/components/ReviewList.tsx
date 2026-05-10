@@ -33,7 +33,7 @@ export default function ReviewList({
   onDelete,
   loading = false
 }: ReviewListProps) {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
@@ -46,7 +46,7 @@ export default function ReviewList({
     if (diffDays < 7) return t('reviewList.daysAgo', { count: diffDays });
     if (diffDays < 30) return t('reviewList.weeksAgo', { count: Math.floor(diffDays / 7) });
 
-    return date.toLocaleDateString('ar-SY', {
+    return date.toLocaleDateString(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

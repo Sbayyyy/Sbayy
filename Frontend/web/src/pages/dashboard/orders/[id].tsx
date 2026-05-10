@@ -31,7 +31,7 @@ export default function OrderDetailsPage() {
   const router = useRouter();
   const { id } = router.query;
   const isAuthed = useRequireAuth();
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,7 +144,7 @@ export default function OrderDetailsPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ar-SY', {
+    return date.toLocaleDateString(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -154,7 +154,7 @@ export default function OrderDetailsPage() {
   };
 
   const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat('ar-SY', {
+    return new Intl.NumberFormat(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
       style: 'currency',
       currency: 'SYP',
       minimumFractionDigits: 0
