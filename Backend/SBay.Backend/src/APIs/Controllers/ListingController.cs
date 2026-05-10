@@ -68,6 +68,7 @@ public sealed class ListingsController : ControllerBase
             PriceCurrency = l.Price.Currency,
             Stock = l.StockQuantity,
             Condition = l.Condition.ToString(),
+            Status = l.Status,
             CategoryPath = l.CategoryPath,
             Region = l.Region,
             CreatedAt = new DateTimeOffset(l.CreatedAt),

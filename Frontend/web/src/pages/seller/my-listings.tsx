@@ -88,9 +88,23 @@ export default function MyListingsPage() {
     }
   };
 
+  const getListingStatus = (listing: Product) => {
+    const status = listing.status?.toLowerCase();
+    if (status === 'deleted') return 'deleted';
+    if (status === 'sold' || (status === 'active' && listing.stock <= 0)) return 'sold';
+    if (status === 'hidden' || status === 'inactive') return 'inactive';
+    return 'active';
+  };
+
+  const visibleListings = listings.filter(listing => getListingStatus(listing) !== 'deleted');
+  const activeListings = visibleListings.filter(listing => getListingStatus(listing) === 'active');
+  const soldListings = visibleListings.filter(listing => getListingStatus(listing) === 'sold');
+
   const filteredListings = listings.filter(listing => {
+    const status = getListingStatus(listing);
+    if (status === 'deleted') return false;
     if (filter === 'all') return true;
-    return listing.status === filter;
+    return status === filter;
   });
 
   if (loading) {
@@ -137,7 +151,7 @@ export default function MyListingsPage() {
                     : 'text-slate-600 hover:text-slate-950'
                 }`}
               >
-                {t('myListings.filterAll', { count: listings.length })}
+                {t('myListings.filterAll', { count: visibleListings.length })}
               </button>
               <button
                 onClick={() => setFilter('active')}
@@ -147,7 +161,7 @@ export default function MyListingsPage() {
                     : 'text-slate-600 hover:text-slate-950'
                 }`}
               >
-                {t('myListings.filterActive', { count: listings.filter(l => l.status === 'active').length })}
+                {t('myListings.filterActive', { count: activeListings.length })}
               </button>
               <button
                 onClick={() => setFilter('sold')}
@@ -157,7 +171,7 @@ export default function MyListingsPage() {
                     : 'text-slate-600 hover:text-slate-950'
                 }`}
               >
-                {t('myListings.filterSold', { count: listings.filter(l => l.status === 'sold').length })}
+                {t('myListings.filterSold', { count: soldListings.length })}
               </button>
             </div>
           </div>
@@ -216,12 +230,12 @@ export default function MyListingsPage() {
                     <div className="absolute top-3 right-3">
                       <span
                         className={`status-pill ${
-                          listing.status === 'active'
+                          getListingStatus(listing) === 'active'
                             ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                             : 'border-slate-200 bg-white/95 text-slate-700'
                         }`}
                       >
-                        {listing.status === 'active' ? t('myListings.statusActive') : t('myListings.statusSold')}
+                        {getListingStatus(listing) === 'active' ? t('myListings.statusActive') : t('myListings.statusSold')}
                       </span>
                     </div>
                   </div>
@@ -259,7 +273,7 @@ export default function MyListingsPage() {
                           setBoostListingId(listing.id);
                           if (!selectedBoostOption) setSelectedBoostOption(boostOptions[0]?.id ?? '');
                         }}
-                        disabled={listing.status !== 'active' || listing.stock <= 0}
+                        disabled={getListingStatus(listing) !== 'active'}
                         className="btn btn-outline border-amber-200 text-amber-700 hover:bg-amber-50"
                       >
                         <Zap size={16} />

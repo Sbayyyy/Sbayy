@@ -130,6 +130,7 @@ public class FirebaseListingRepository : IListingRepository
         return snapshot.Documents
             .Where(d => d.Exists)
             .Select(Convert)
+            .Where(l => !string.Equals(l.Status, "deleted", StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(l => l.CreatedAt)
             .ToList();
     }

@@ -11,6 +11,7 @@
 
         public int Stock { get; init; }
         public required string Condition { get; init; }
+        public required string Status { get; init; }
 
         public string? CategoryPath { get; init; }
         public string? Region { get; init; }

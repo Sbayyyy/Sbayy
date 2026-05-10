@@ -56,7 +56,7 @@ namespace SBay.Domain.Database
             return await _db.Set<Listing>()
                 .Include(l => l.Images)
                 .AsNoTracking()
-                .Where(l => l.SellerId == sellerId)
+                .Where(l => l.SellerId == sellerId && l.Status != "deleted")
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync(ct);
         }
@@ -65,6 +65,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 {
     q ??= new();
     var text = (q.Text ?? string.Empty).Trim();
+    var normalizedText = text.ToLowerInvariant();
     var page = q.Page <= 0 ? 1 : q.Page;
     var size = q.PageSize is < 1 or > 100 ? 24 : q.PageSize;
     var skip = (page - 1) * size;
@@ -107,11 +108,12 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
                         .Matches(EF.Functions.PlainToTsQuery("simple", text))
                     || EF.Functions.ILike(l.Title, patternContains, @"\")
                     || EF.Functions.ILike(l.Description, patternContains, @"\"))
-                .OrderByDescending(l =>
+                .OrderByDescending(l => EF.Functions.ILike(l.Title, patternStarts, @"\"))
+                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, @"\"))
+                .ThenBy(l => l.Title.ToLower().IndexOf(normalizedText))
+                .ThenByDescending(l =>
                     EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
                         .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
-                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternStarts, @"\"))
-                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, @"\"))
                 .ThenByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
                 .ThenByDescending(l => l.CreatedAt);
         }
@@ -126,6 +128,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
                     || EF.Functions.Like((l.Description ?? string.Empty).ToLower(), pattern, @"\"))
                 .OrderByDescending(l => EF.Functions.Like(l.Title.ToLower(), startsPattern, @"\"))
                 .ThenByDescending(l => EF.Functions.Like(l.Title.ToLower(), pattern, @"\"))
+                .ThenBy(l => l.Title.ToLower().IndexOf(normalizedText))
                 .ThenByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
                 .ThenByDescending(l => l.CreatedAt);
         }
