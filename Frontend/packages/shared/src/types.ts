@@ -60,7 +60,7 @@ export interface Product {
     reviewCount?: number;
     city?: string;
   };
-  status?: 'active' | 'sold' | 'inactive';
+  status?: 'active' | 'sold' | 'inactive' | 'hidden' | 'deleted';
   views?: number;
   favorites?: number;
   updatedAt?: string;

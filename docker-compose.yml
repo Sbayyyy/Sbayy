@@ -86,6 +86,7 @@ services:
         NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL:-/api}
         NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET:-http://backend:8080}
         NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-support@syrian-bay.com}
+        NEXT_PUBLIC_LOGO_URL: ${NEXT_PUBLIC_LOGO_URL:-/assets/sbaylogo.png}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
@@ -94,6 +95,8 @@ services:
       NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET:-http://backend:8080}
       NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-support@syrian-bay.com}
       RUNTIME_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-support@syrian-bay.com}
+      NEXT_PUBLIC_LOGO_URL: ${NEXT_PUBLIC_LOGO_URL:-/assets/sbaylogo.png}
+      RUNTIME_LOGO_URL: ${NEXT_PUBLIC_LOGO_URL:-/assets/sbaylogo.png}
     ports:
       - "${WEB_HOST_PORT:-3000}:${WEB_PORT:-3000}"
     depends_on:

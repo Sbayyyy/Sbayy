@@ -8,6 +8,7 @@ import { useTranslation } from 'next-i18next';
 import { createChatConnection, onMessageNew, onMessagesRead, onMessageDeleted, type RealtimeDelete } from '@/lib/realtime/chat';
 import { getUnreadCount } from '@/lib/api/messages';
 import type { Message } from '@sbay/shared';
+import { config } from '@/lib/config';
 
 export default function Header() {
   const router = useRouter();
@@ -88,8 +89,12 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-8">
-            <Link href="/" className="text-2xl font-extrabold tracking-normal text-primary-600 transition-colors hover:text-primary-700">
-              {t('header.brandName')}
+            <Link href="/" className="flex items-center" aria-label={t('header.brandName')}>
+              <img
+                src={config.logoUrl}
+                alt={t('header.brandName')}
+                className="h-8 w-auto max-w-[7.5rem] object-contain sm:h-9"
+              />
             </Link>
 
             <nav className="hidden items-center gap-1 md:flex">
