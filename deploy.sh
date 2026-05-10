@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="/opt/apps/sbay/Sbay"
+PROJECT_DIR="${HOME}/apps/sbay/Sbayy"
 COMPOSE_FILE="docker-compose.prod.yml"
 ENV_FILE=".env.production"
 
@@ -39,7 +39,7 @@ if [ -z "${DOMAIN_NAME:-}" ]; then
   exit 1
 fi
 
-mkdir -p "${UPLOADS_HOST_PATH:-/opt/apps/sbay/Sbay/uploads}"
+mkdir -p "${UPLOADS_HOST_PATH:-${HOME}/apps/sbay/Sbayy/uploads}"
 
 if [ ! -d "Backend" ] || [ ! -d "Frontend" ] || [ ! -d "Database" ] || [ ! -f "$COMPOSE_FILE" ]; then
   echo "Project files are incomplete in $PROJECT_DIR."
