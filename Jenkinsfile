@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         COMPOSE_FILE = 'docker-compose.prod.yml'
+        DEPLOY_DIR = '/var/jenkins_home/apss/sbay/Sbayy'
     }
 
     stages {
@@ -16,6 +17,10 @@ pipeline {
             steps {
                 sh '''
                     set -eu
+                    mkdir -p "$DEPLOY_DIR"
+                    tar --exclude='.git' --exclude='Frontend/node_modules' --exclude='Frontend/web/.next' --exclude='Backend/**/bin' --exclude='Backend/**/obj' -cf - . | tar -xf - -C "$DEPLOY_DIR"
+                    cd "$DEPLOY_DIR"
+
                     if [ -n "${PROD_ENV_FILE:-}" ] && [ -f "$PROD_ENV_FILE" ]; then
                         echo "$PROD_ENV_FILE" > .jenkins-env-file
                     elif [ -f /var/jenkins_home/workspace/sbay-deploy/.env.production ]; then
@@ -32,7 +37,7 @@ pipeline {
                         echo ".env.prod" > .jenkins-env-file
                     else
                         echo "Missing production env file."
-                        echo "Checked PROD_ENV_FILE=${PROD_ENV_FILE:-unset}, /var/jenkins_home/workspace/sbay-deploy/.env.production, /var/jenkins_home/workspace/sbay-deploy/.env.prod, /var/sbay/.env.production, /var/sbay/.env.prod, $(pwd)/.env.production, and $(pwd)/.env.prod"
+                        echo "Checked PROD_ENV_FILE=${PROD_ENV_FILE:-unset}, /var/jenkins_home/workspace/sbay-deploy/.env.production, /var/jenkins_home/workspace/sbay-deploy/.env.prod, /var/sbay/.env.production, /var/sbay/.env.prod, $DEPLOY_DIR/.env.production, and $DEPLOY_DIR/.env.prod"
                         ls -la
                         exit 1
                     fi
@@ -54,20 +59,45 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'ENV_FILE=$(cat .jenkins-env-file) && COMPOSE_CMD=$(cat .jenkins-compose-command) && $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build'
+                sh 'cd "$DEPLOY_DIR" && ENV_FILE=$(cat .jenkins-env-file) && COMPOSE_CMD=$(cat .jenkins-compose-command) && $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build'
             }
         }
 
         stage('Deploy') {
-            when {
-                branch 'main'
-            }
-
             steps {
-                sh 'ENV_FILE=$(cat .jenkins-env-file) && COMPOSE_CMD=$(cat .jenkins-compose-command) && $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build'
-                sh 'ENV_FILE=$(cat .jenkins-env-file) && COMPOSE_CMD=$(cat .jenkins-compose-command) && $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps'
-                sh 'curl -fsS http://127.0.0.1:5000/health/ready'
-                sh 'curl -fsS http://127.0.0.1:3000/ >/dev/null'
+                sh '''
+                    set -eu
+                    cd "$DEPLOY_DIR"
+                    ENV_FILE=$(cat .jenkins-env-file)
+                    COMPOSE_CMD=$(cat .jenkins-compose-command)
+
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --force-recreate
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
+                '''
+                sh '''
+                    set -eu
+                    cd "$DEPLOY_DIR"
+                    ENV_FILE=$(cat .jenkins-env-file)
+                    COMPOSE_CMD=$(cat .jenkins-compose-command)
+                    API_PORT=$(grep -E '^API_HOST_PORT=' "$ENV_FILE" | tail -1 | cut -d= -f2- || true)
+                    WEB_PORT=$(grep -E '^WEB_HOST_PORT=' "$ENV_FILE" | tail -1 | cut -d= -f2- || true)
+                    API_PORT=${API_PORT:-5000}
+                    WEB_PORT=${WEB_PORT:-3000}
+
+                    for i in $(seq 1 30); do
+                        if curl -fsS "http://127.0.0.1:${API_PORT}/health/ready" >/dev/null && curl -fsS "http://127.0.0.1:${WEB_PORT}/" >/dev/null; then
+                            echo "Deployment health checks passed."
+                            exit 0
+                        fi
+                        sleep 5
+                    done
+
+                    echo "Deployment health checks failed."
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps || true
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs --tail=120 backend web || true
+                    docker ps -a --filter "name=sbay" || true
+                    exit 1
+                '''
             }
         }
     }
