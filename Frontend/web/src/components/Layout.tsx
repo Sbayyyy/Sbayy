@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Header from './Header';
 import Footer from './Footer';
 import { useTranslation } from 'next-i18next';
+import { config } from '@/lib/config';
 
 interface LayoutProps {
   children: ReactNode;
@@ -30,7 +31,8 @@ export default function Layout({
         <title>{resolvedTitle}</title>
         <meta name="description" content={resolvedDescription} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href={config.logoUrl} />
+        <link rel="shortcut icon" href={config.logoUrl} />
       </Head>
 
       <div className="flex flex-col min-h-screen">
