@@ -4,6 +4,9 @@ export {
   FILTER_CATEGORIES,
   SELL_CATEGORIES,
   CATEGORY_MAP,
+  getCategoryDescription,
+  getCategoryLabelFromValue,
+  getCategoryName,
   type CategoryDefinition,
 } from './categories';
 

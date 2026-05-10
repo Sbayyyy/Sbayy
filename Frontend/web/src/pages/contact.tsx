@@ -3,7 +3,8 @@ import Head from 'next/head';
 import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { Mail, Phone, Clock } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import { config } from '@/lib/config';
 
 export default function ContactPage() {
   const { t } = useTranslation('common');
@@ -14,6 +15,7 @@ export default function ContactPage() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
+  const supportEmail = config.supportEmail;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,39 +57,11 @@ export default function ContactPage() {
                 <div>
                   <h3 className="font-medium text-gray-900">{t('contact.info.email')}</h3>
                   <a
-                    href={`mailto:${t('contact.info.emailValue')}`}
+                    href={`mailto:${supportEmail}`}
                     className="text-primary-600 hover:underline"
                   >
-                    {t('contact.info.emailValue')}
+                    {supportEmail}
                   </a>
-                </div>
-              </div>
-
-              {/* Phone Card */}
-              <div className="bg-white rounded-lg shadow-sm border p-6 flex items-start gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                  <Phone className="w-5 h-5 text-primary-600" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-900">{t('contact.info.phone')}</h3>
-                  <a
-                    href={`tel:${t('contact.info.phoneValue')}`}
-                    className="text-primary-600 hover:underline"
-                  >
-                    {t('contact.info.phoneValue')}
-                  </a>
-                </div>
-              </div>
-
-              {/* Hours Card */}
-              <div className="bg-white rounded-lg shadow-sm border p-6 flex items-start gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-primary-600" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-900">{t('contact.info.hours')}</h3>
-                  <p className="text-gray-600">{t('contact.info.hoursValue')}</p>
-                  <p className="text-gray-500 text-sm">{t('contact.info.hoursClosed')}</p>
                 </div>
               </div>
             </div>

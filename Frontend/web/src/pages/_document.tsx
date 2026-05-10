@@ -17,7 +17,8 @@ export default class Document extends NextDocument<Props> {
     const { locale = 'ar' } = this.props;
     const isRtl = locale === 'ar';
     const runtimeConfig = {
-      apiUrl: process.env.RUNTIME_API_URL || process.env.NEXT_PUBLIC_API_URL || '/api'
+      apiUrl: process.env.RUNTIME_API_URL || process.env.NEXT_PUBLIC_API_URL || '/api',
+      supportEmail: process.env.RUNTIME_SUPPORT_EMAIL || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@syrian-bay.com'
     };
 
     return (

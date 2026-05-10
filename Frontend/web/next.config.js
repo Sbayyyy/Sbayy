@@ -7,7 +7,7 @@ const nextConfig = {
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   i18n,
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'api.syrian-bay.com'],
   },
   transpilePackages: ['@sbay/shared'],
   webpack(config, { dev }) {

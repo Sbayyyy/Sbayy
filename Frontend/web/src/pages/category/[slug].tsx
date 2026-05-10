@@ -8,7 +8,7 @@ import { getAllListings } from '@/lib/api/listings';
 import { Product, SearchFilters } from '@sbay/shared';
 import { Loader2, AlertCircle, Filter, Home, ChevronRight } from 'lucide-react';
 import Head from 'next/head';
-import { CATEGORIES } from '@/lib/constants';
+import { CATEGORIES, getCategoryDescription, getCategoryName } from '@/lib/constants';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
@@ -16,7 +16,7 @@ export default function CategoryPage() {
   const router = useRouter();
   const { slug } = router.query;
   const slugValue = Array.isArray(slug) ? slug[0] : slug;
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,8 @@ export default function CategoryPage() {
 
   // Find current category
   const currentCategory = CATEGORIES.find(cat => cat.slug === slugValue);
+  const currentCategoryName = currentCategory ? getCategoryName(currentCategory, i18n.language) : '';
+  const currentCategoryDescription = currentCategory ? getCategoryDescription(currentCategory, i18n.language) : '';
 
   // Filter State
   const [filters, setFilters] = useState<SearchFilters>({
@@ -149,8 +151,8 @@ export default function CategoryPage() {
   return (
     <Layout>
       <Head>
-        <title>{t('category.title', { name: currentCategory?.name })}</title>
-        <meta name="description" content={currentCategory?.description} />
+        <title>{t('category.title', { name: currentCategoryName })}</title>
+        <meta name="description" content={currentCategoryDescription} />
       </Head>
 
       <div className="bg-white border-b">
@@ -162,15 +164,15 @@ export default function CategoryPage() {
               {t('category.breadcrumbHome')}
             </Link>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 font-medium">{currentCategory?.name}</span>
+            <span className="text-gray-900 font-medium">{currentCategoryName}</span>
           </nav>
 
           {/* Category Header */}
           <div className="flex items-center gap-4 mb-2">
             <div className="text-5xl">{currentCategory?.icon}</div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{currentCategory?.name}</h1>
-              <p className="text-gray-600 mt-1">{currentCategory?.description}</p>
+              <h1 className="text-3xl font-bold text-gray-900">{currentCategoryName}</h1>
+              {currentCategoryDescription && <p className="text-gray-600 mt-1">{currentCategoryDescription}</p>}
             </div>
           </div>
 

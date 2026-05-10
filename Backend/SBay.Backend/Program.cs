@@ -156,6 +156,7 @@ builder.Services.AddScoped<IImageStorageProvider>(sp =>
     return new LocalImageStorageProvider(env, config);
 });
 builder.Services.AddScoped<MonetizationService>();
+builder.Services.AddScoped<ImageCleanupService>();
 builder.Services.AddSingleton<IPaymentGateway, MockPaymentGateway>();
 builder.Services.AddSingleton<PaymentGatewayRegistry>();
 
@@ -352,7 +353,9 @@ if (!app.Environment.IsEnvironment("Testing"))
 
 app.UseStaticFiles();
 var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-var uploadsPath = Path.Combine(webRoot, "uploads");
+var uploadsPath = app.Configuration["Storage:Local:Path"];
+if (string.IsNullOrWhiteSpace(uploadsPath))
+    uploadsPath = Path.Combine(webRoot, "uploads");
 Directory.CreateDirectory(uploadsPath);
 app.UseStaticFiles(new StaticFileOptions
 {

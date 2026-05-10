@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
-import { Facebook, Instagram, Twitter, Mail, Phone } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Mail } from 'lucide-react';
+import { config } from '@/lib/config';
 
 export default function Footer() {
   const { t, i18n } = useTranslation('common');
   const currentLocale = i18n?.language ?? 'en';
+  const supportEmail = config.supportEmail;
   const setLocaleCookie = (locale: string) => {
     document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
   };
@@ -127,20 +129,9 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-gray-400">
                 <Mail size={16} />
-                <a href="mailto:support@sbay.sy" className="hover:text-white transition-colors">
-                  support@sbay.sy
+                <a href={`mailto:${supportEmail}`} className="hover:text-white transition-colors">
+                  {supportEmail}
                 </a>
-              </li>
-              <li className="flex items-center gap-2 text-gray-400">
-                <Phone size={16} />
-                <a href="tel:+963123456789" className="hover:text-white transition-colors">
-                  +963 12 345 6789
-                </a>
-              </li>
-              <li className="text-gray-400 mt-4">
-                <p className="font-medium text-white mb-1">{t('footer.workingHours')}</p>
-                <p>{t('footer.weekdayHours')}</p>
-                <p>{t('footer.fridayClosed')}</p>
               </li>
             </ul>
           </div>

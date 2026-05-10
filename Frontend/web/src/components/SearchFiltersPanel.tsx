@@ -1,5 +1,5 @@
 import { SearchFilters } from '@sbay/shared';
-import { FILTER_CATEGORIES, FILTER_CONDITIONS } from '@/lib/constants';
+import { FILTER_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
 import { useTranslation } from 'next-i18next';
 
 interface SearchFiltersPanelProps {
@@ -15,7 +15,7 @@ export default function SearchFiltersPanel({
   onApply,
   onReset,
 }: SearchFiltersPanelProps) {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   return (
     <div className="toolbar-surface mt-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -26,7 +26,7 @@ export default function SearchFiltersPanel({
         >
           <option value="">{t('filters.allCategories')}</option>
           {FILTER_CATEGORIES.map(cat => (
-            <option key={cat.slug} value={cat.slug}>{cat.name}</option>
+            <option key={cat.slug} value={cat.slug}>{getCategoryName(cat, i18n.language)}</option>
           ))}
         </select>
 
@@ -52,7 +52,7 @@ export default function SearchFiltersPanel({
         >
           <option value="">{t('filters.allConditions')}</option>
           {FILTER_CONDITIONS.map(cond => (
-            <option key={cond.value} value={cond.value}>{cond.labelAr}</option>
+            <option key={cond.value} value={cond.value}>{t(cond.i18nKey)}</option>
           ))}
         </select>
       </div>

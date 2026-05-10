@@ -21,8 +21,11 @@ public sealed class LocalImageStorageProvider : IImageStorageProvider
         if (string.IsNullOrWhiteSpace(fileName) || fileName.Contains("..", StringComparison.Ordinal))
             throw new InvalidOperationException("Invalid file name.");
 
+        var configuredPath = _config["Storage:Local:Path"];
         var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
-        var uploadsRoot = Path.Combine(webRoot, "uploads");
+        var uploadsRoot = string.IsNullOrWhiteSpace(configuredPath)
+            ? Path.Combine(webRoot, "uploads")
+            : configuredPath;
         Directory.CreateDirectory(uploadsRoot);
 
         var localPath = Path.Combine(uploadsRoot, fileName);

@@ -274,6 +274,8 @@
     "title": "Home - SBay",
     "searchPlaceholder": "Search for products...",
     "locationHint": "Damascus and surrounding areas",
+    "regionSelect": "Select region",
+    "allRegions": "All regions",
     "browseCategories": "Browse categories",
     "featuredListings": "Featured listings",
     "noProductsAvailable": "No products available at the moment"
@@ -295,9 +297,6 @@
     "sellerProtection": "Seller protection",
     "sellingTips": "Selling tips",
     "contactHeading": "Get in touch",
-    "workingHours": "Working hours:",
-    "weekdayHours": "Saturday - Thursday: 9:00 AM - 6:00 PM",
-    "fridayClosed": "Friday: Closed",
     "copyright": "© {{year}} SBay. All rights reserved.",
     "privacy": "Privacy",
     "terms": "Terms",
@@ -1121,7 +1120,7 @@
       },
       "contactSupport": {
         "question": "How do I contact support?",
-        "answer": "You can reach us via email at support@sbay.sy or through the 'Contact Us' page. We work Saturday through Thursday from 9 AM to 6 PM."
+        "answer": "You can reach us through the Contact Us page."
       }
     },
     "stillNeedHelp": "Still need help?",
@@ -1132,13 +1131,7 @@
     "title": "Contact Us",
     "subtitle": "We're here to help. Reach out to us in any way that suits you.",
     "info": {
-      "email": "Email",
-      "emailValue": "support@sbay.sy",
-      "phone": "Phone",
-      "phoneValue": "+963 12 345 6789",
-      "hours": "Working Hours",
-      "hoursValue": "Saturday - Thursday: 9:00 AM - 6:00 PM",
-      "hoursClosed": "Friday: Closed"
+      "email": "Email"
     },
     "form": {
       "title": "Send Us a Message",

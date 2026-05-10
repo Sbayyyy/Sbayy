@@ -6,12 +6,13 @@
 
 declare global {
   interface Window {
-    __RUNTIME_CONFIG__?: { apiUrl?: string };
+    __RUNTIME_CONFIG__?: { apiUrl?: string; supportEmail?: string };
   }
 }
 
 interface Config {
   apiUrl: string;
+  supportEmail: string;
   apiTimeout: number;
   maxRetries: number;
   isDevelopment: boolean;
@@ -32,10 +33,15 @@ const getConfig = (): Config => {
       ? window.__RUNTIME_CONFIG__?.apiUrl
       : process.env.RUNTIME_API_URL;
   const rawApiUrl = runtimeApiUrl || process.env.NEXT_PUBLIC_API_URL || '/api';
+  const runtimeSupportEmail =
+    typeof window !== 'undefined'
+      ? window.__RUNTIME_CONFIG__?.supportEmail
+      : process.env.RUNTIME_SUPPORT_EMAIL;
   
   return {
     // API Configuration
     apiUrl: normalizeApiUrl(rawApiUrl),
+    supportEmail: runtimeSupportEmail || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@syrian-bay.com',
     apiTimeout: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000', 10),
     maxRetries: parseInt(process.env.NEXT_PUBLIC_MAX_RETRIES || '3', 10),
     

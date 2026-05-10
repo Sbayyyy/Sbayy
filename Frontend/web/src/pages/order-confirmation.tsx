@@ -27,7 +27,7 @@ import { GetServerSideProps } from 'next';
 export default function OrderConfirmationPage() {
   const router = useRouter();
   const { orderId } = router.query;
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,7 +133,12 @@ export default function OrderConfirmationPage() {
               <div className="flex justify-between items-center py-3">
                 <span className="text-gray-600">{t('orderConfirmation.totalAmount')}</span>
                 <span className="font-bold text-blue-600 text-xl">
-                  {order.total.toLocaleString('ar-SY')} ل.س
+                  {new Intl.NumberFormat(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
+                    style: 'currency',
+                    currency: 'SYP',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  }).format(order.total)}
                 </span>
               </div>
             </div>
