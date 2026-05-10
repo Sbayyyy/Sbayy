@@ -25,6 +25,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                .AddJsonFile("appsettings.Testing.json", optional: true)
                .AddInMemoryCollection(new Dictionary<string, string?>
                {
+                   ["ConnectionStrings:Default"] = "Host=localhost;Port=5432;Database=sbay_tests;Username=sbay;Password=sbay_tests",
                    ["Storage:Provider"] = "local",
                    ["Jwt:Secret"] = "test_jwt_secret_32_bytes_minimum_value"
                })
