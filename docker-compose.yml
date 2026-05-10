@@ -58,7 +58,7 @@ services:
       Redis__Port: 6379
       App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-http://localhost:8080}
       Storage__Provider: ${STORAGE_PROVIDER:-local}
-      Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-http://localhost:8080/uploads}
+      Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-http://localhost:8080}
       Payments__Provider: ${PAYMENTS_PROVIDER:-mock}
       Payments__Mock__WebhookSecret: ${PAYMENTS_MOCK_WEBHOOK_SECRET:-dev_mock_webhook_secret}
       Monetization__Currency: ${MONETIZATION_CURRENCY:-SYP}

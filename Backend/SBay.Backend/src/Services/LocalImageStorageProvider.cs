@@ -46,6 +46,6 @@ public sealed class LocalImageStorageProvider : IImageStorageProvider
             return $"/uploads/{fileName}";
         }
 
-        return $"{baseUrl.TrimEnd('/')}/uploads/{fileName}";
+        return $"{baseUrl.TrimEnd('/')}/{fileName}";
     }
 }
