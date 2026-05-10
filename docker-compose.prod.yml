@@ -55,7 +55,7 @@ services:
       App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-https://api.syrian-bay.com}
       Storage__Provider: local
       Storage__Local__Path: ${STORAGE_LOCAL_PATH:-/app/uploads}
-      Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-https://api.syrian-bay.com/uploads}
+      Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-https://api.syrian-bay.com}
       Cors__AllowAnyOrigin: "false"
       Cors__AllowedOrigins__0: ${FRONTEND_URL:-https://syrian-bay.com}
       Cors__AllowedOrigins__1: ${FRONTEND_WWW_URL:-https://www.syrian-bay.com}
