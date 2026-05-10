@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SBay.FirestoreTools")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0302192a7e8f79f931c2f7faf81c4f3bf7a20cc7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+730c23901ce634cc2f3b380daa0e736f13bec1a3")]
 [assembly: System.Reflection.AssemblyProductAttribute("SBay.FirestoreTools")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SBay.FirestoreTools")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -32,8 +32,10 @@ namespace SBay.Domain.Database
 
         public async Task<User?> GetByExternalIdAsync(string externalId, CancellationToken ct)
         {
-            await Task.CompletedTask;
-            return null;
+            if (string.IsNullOrWhiteSpace(externalId)) return null;
+            return await _db.Set<User>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.ExternalId == externalId, ct);
         }
 
         public async Task<User> GetByIdAsync(Guid id, CancellationToken ct)

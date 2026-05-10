@@ -92,8 +92,12 @@ namespace SBay.Domain.Database
                     .HasDefaultValue(0);
                 e.Property(x => x.ListingLimitResetAt)
                     .HasColumnName("listing_limit_reset_at");
+                e.Property(x => x.ExternalId)
+                    .HasColumnName("external_id")
+                    .HasMaxLength(128)
+                    .IsRequired(false);
                 e.HasIndex(x => x.Email).IsUnique();
-                e.Ignore(x => x.ExternalId);
+                e.HasIndex(x => x.ExternalId).IsUnique().HasFilter("external_id IS NOT NULL");
                 e.Ignore(x => x.Region);
                 e.Ignore(x => x.UserName);
                 e.Ignore(x => x.Cart);

@@ -27,5 +27,18 @@ public class ShippingControllerTests : IClassFixture<TestWebAppFactory>
         body.EstimatedDays.Should().BeGreaterThan(0);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(101)]
+    public async Task Calculate_RejectsInvalidWeight(decimal weightKg)
+    {
+        var client = _factory.CreateClient();
+
+        var res = await client.PostAsJsonAsync("/api/shipping/calculate", new { city = "Damascus", weightKg });
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     private sealed record ShippingQuoteResponse(decimal Cost, string Carrier, int EstimatedDays, string? TrackingNumber);
 }

@@ -251,6 +251,14 @@ builder.Services.AddRateLimiter(options =>
             Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Chat:WindowMinutes", 1)),
             QueueLimit = 0
         }));
+    options.AddPolicy("shipping", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:Shipping:PermitLimit", 60),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Shipping:WindowMinutes", 1)),
+            QueueLimit = 0
+        }));
     options.AddPolicy("write", context => RateLimitPartition.GetFixedWindowLimiter(
         RateLimitKeys.ForRequest(context),
         _ => new FixedWindowRateLimiterOptions

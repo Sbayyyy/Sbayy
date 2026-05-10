@@ -215,6 +215,40 @@ public class FirebaseListingRepository : IListingRepository
 
     public async Task<bool> TryReserveStockAsync(IReadOnlyDictionary<Guid, int> quantitiesByListingId, CancellationToken ct)
     {
+        if (quantitiesByListingId.Count == 0) return false;
+
+        var activeBatch = FirestoreWriteContext.Batch;
+        if (activeBatch == null)
+        {
+            return await EnsureCompleted(_db.RunTransactionAsync(async transaction =>
+            {
+                var docs = new List<(DocumentReference Ref, Listing Listing, int Quantity)>();
+                foreach (var pair in quantitiesByListingId)
+                {
+                    var docRef = _db.Collection("listings").Document(pair.Key.ToString());
+                    var snapshot = await transaction.GetSnapshotAsync(docRef, ct);
+                    if (!snapshot.Exists) return false;
+
+                    var listing = Convert(snapshot);
+                    if (!IsPubliclyAvailable(listing) || listing.StockQuantity < pair.Value)
+                        return false;
+
+                    docs.Add((docRef, listing, pair.Value));
+                }
+
+                foreach (var item in docs)
+                {
+                    transaction.Update(item.Ref, new Dictionary<string, object>
+                    {
+                        ["StockQuantity"] = item.Listing.StockQuantity - item.Quantity,
+                        ["UpdatedAt"] = DateTime.UtcNow
+                    });
+                }
+
+                return true;
+            }, cancellationToken: ct));
+        }
+
         var listings = new List<Listing>();
         foreach (var pair in quantitiesByListingId)
         {
@@ -224,20 +258,16 @@ public class FirebaseListingRepository : IListingRepository
             listings.Add(listing);
         }
 
-        var batch = FirestoreWriteContext.Batch ?? _db.StartBatch();
         foreach (var listing in listings)
         {
             var quantity = quantitiesByListingId[listing.Id];
             var docRef = _db.Collection("listings").Document(listing.Id.ToString());
-            batch.Update(docRef, new Dictionary<string, object>
+            activeBatch.Update(docRef, new Dictionary<string, object>
             {
                 ["StockQuantity"] = listing.StockQuantity - quantity,
                 ["UpdatedAt"] = DateTime.UtcNow
             });
         }
-
-        if (FirestoreWriteContext.Batch == null)
-            await batch.CommitAsync(ct);
 
         return true;
     }
@@ -246,22 +276,40 @@ public class FirebaseListingRepository : IListingRepository
     {
         if (quantitiesByListingId.Count == 0) return;
 
-        var batch = FirestoreWriteContext.Batch ?? _db.StartBatch();
+        var activeBatch = FirestoreWriteContext.Batch;
+        if (activeBatch == null)
+        {
+            await EnsureCompleted(_db.RunTransactionAsync(async transaction =>
+            {
+                foreach (var pair in quantitiesByListingId)
+                {
+                    var docRef = _db.Collection("listings").Document(pair.Key.ToString());
+                    var snapshot = await transaction.GetSnapshotAsync(docRef, ct);
+                    if (!snapshot.Exists) continue;
+
+                    var listing = Convert(snapshot);
+                    transaction.Update(docRef, new Dictionary<string, object>
+                    {
+                        ["StockQuantity"] = listing.StockQuantity + pair.Value,
+                        ["UpdatedAt"] = DateTime.UtcNow
+                    });
+                }
+            }, cancellationToken: ct));
+            return;
+        }
+
         foreach (var pair in quantitiesByListingId)
         {
             var listing = await GetByIdForManagementAsync(pair.Key, ct);
             if (listing is null) continue;
 
             var docRef = _db.Collection("listings").Document(listing.Id.ToString());
-            batch.Update(docRef, new Dictionary<string, object>
+            activeBatch.Update(docRef, new Dictionary<string, object>
             {
                 ["StockQuantity"] = listing.StockQuantity + pair.Value,
                 ["UpdatedAt"] = DateTime.UtcNow
             });
         }
-
-        if (FirestoreWriteContext.Batch == null)
-            await batch.CommitAsync(ct);
     }
 
     public async Task ReplaceImagesAsync(Listing entity, CancellationToken ct)

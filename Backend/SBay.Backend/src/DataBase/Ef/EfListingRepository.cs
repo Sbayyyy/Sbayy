@@ -219,18 +219,38 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
 
             if (_db.Database.IsRelational())
             {
-                foreach (var pair in quantitiesByListingId)
-                {
-                    var affected = await _db.Set<Listing>()
-                        .Where(l => l.Id == pair.Key && l.Status == "active" && l.StockQuantity >= pair.Value)
-                        .ExecuteUpdateAsync(s => s
-                            .SetProperty(l => l.StockQuantity, l => l.StockQuantity - pair.Value)
-                            .SetProperty(l => l.UpdatedAt, DateTime.UtcNow), ct);
-                    if (affected != 1)
-                        return false;
-                }
+                var ownsTransaction = _db.Database.CurrentTransaction is null;
+                await using var tx = ownsTransaction
+                    ? await _db.Database.BeginTransactionAsync(ct)
+                    : null;
 
-                return true;
+                try
+                {
+                    foreach (var pair in quantitiesByListingId)
+                    {
+                        var affected = await _db.Set<Listing>()
+                            .Where(l => l.Id == pair.Key && l.Status == "active" && l.StockQuantity >= pair.Value)
+                            .ExecuteUpdateAsync(s => s
+                                .SetProperty(l => l.StockQuantity, l => l.StockQuantity - pair.Value)
+                                .SetProperty(l => l.UpdatedAt, DateTime.UtcNow), ct);
+                        if (affected != 1)
+                        {
+                            if (tx is not null)
+                                await tx.RollbackAsync(ct);
+                            return false;
+                        }
+                    }
+
+                    if (tx is not null)
+                        await tx.CommitAsync(ct);
+                    return true;
+                }
+                catch
+                {
+                    if (tx is not null)
+                        await tx.RollbackAsync(ct);
+                    throw;
+                }
             }
 
             var ids = quantitiesByListingId.Keys.ToArray();

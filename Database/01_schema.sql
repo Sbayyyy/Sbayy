@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone TEXT,
   city TEXT,
   avatar_url TEXT,
+  external_id TEXT UNIQUE,
   role TEXT NOT NULL DEFAULT 'user',
   is_seller BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -58,6 +59,8 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_ban_until TIMESTAMP
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit INT;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_count INT NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_reset_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS external_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_external_id ON users(external_id) WHERE external_id IS NOT NULL;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Categories
 -- ─────────────────────────────────────────────────────────────────────────────

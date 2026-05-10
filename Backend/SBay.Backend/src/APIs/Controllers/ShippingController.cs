@@ -1,6 +1,7 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SBay.Backend.Services;
-using SBay.Backend.Utils;
 
 namespace SBay.Backend.APIs.Controllers;
 
@@ -16,20 +17,21 @@ public sealed class ShippingController : ControllerBase
     }
 
     [HttpPost("calculate")]
+    [EnableRateLimiting("shipping")]
     public async Task<ActionResult<ShippingQuote>> Calculate([FromBody] CalculateShippingRequest req, CancellationToken ct)
     {
-        if (req == null || string.IsNullOrWhiteSpace(req.City))
-            return BadRequest(ApiProblemDetails.Validation("City is required.", nameof(req.City)));
-
-        var weight = req.WeightKg.GetValueOrDefault(1m);
-        if (weight < 0)
-            return BadRequest(ApiProblemDetails.Validation("WeightKg must be >= 0.", nameof(req.WeightKg)));
-        if (weight > 100)
-            return BadRequest(ApiProblemDetails.Validation("WeightKg must be <= 100.", nameof(req.WeightKg)));
-
-        var quote = await _shipping.CalculateShippingAsync(req.City, weight, ct);
+        var quote = await _shipping.CalculateShippingAsync(req.City, req.WeightKg, ct);
         return Ok(quote);
     }
 
-    public sealed record CalculateShippingRequest(string City, decimal? WeightKg);
+    public sealed class CalculateShippingRequest
+    {
+        [Required]
+        [MinLength(1)]
+        [RegularExpression(@".*\S.*")]
+        public string City { get; init; } = string.Empty;
+
+        [Range(1, 100)]
+        public decimal WeightKg { get; init; } = 1m;
+    }
 }
