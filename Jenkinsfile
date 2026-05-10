@@ -71,7 +71,13 @@ pipeline {
                     ENV_FILE=$(cat .jenkins-env-file)
                     COMPOSE_CMD=$(cat .jenkins-compose-command)
 
-                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --force-recreate
+                    if ! $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --force-recreate; then
+                        echo "Compose startup failed."
+                        $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps || true
+                        $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs --tail=160 backend web || true
+                        docker ps -a --filter "name=sbay" || true
+                        exit 1
+                    fi
                     $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
                 '''
                 sh '''
