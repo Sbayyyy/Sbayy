@@ -37,13 +37,24 @@ pipeline {
                         exit 1
                     fi
                     echo "Using env file: $(cat .jenkins-env-file)"
+
+                    if command -v docker-compose >/dev/null 2>&1; then
+                        echo "docker-compose" > .jenkins-compose-command
+                    elif docker compose version >/dev/null 2>&1; then
+                        echo "docker compose" > .jenkins-compose-command
+                    else
+                        echo "Docker Compose is not available in the Jenkins environment."
+                        echo "Install docker-compose or Docker CLI with the compose plugin in the Jenkins container."
+                        exit 1
+                    fi
+                    echo "Using compose command: $(cat .jenkins-compose-command)"
                 '''
             }
         }
 
         stage('Build') {
             steps {
-                sh 'ENV_FILE=$(cat .jenkins-env-file) && docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build'
+                sh 'ENV_FILE=$(cat .jenkins-env-file) && COMPOSE_CMD=$(cat .jenkins-compose-command) && $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build'
             }
         }
 
@@ -53,8 +64,8 @@ pipeline {
             }
 
             steps {
-                sh 'ENV_FILE=$(cat .jenkins-env-file) && docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build'
-                sh 'ENV_FILE=$(cat .jenkins-env-file) && docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps'
+                sh 'ENV_FILE=$(cat .jenkins-env-file) && COMPOSE_CMD=$(cat .jenkins-compose-command) && $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build'
+                sh 'ENV_FILE=$(cat .jenkins-env-file) && COMPOSE_CMD=$(cat .jenkins-compose-command) && $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps'
                 sh 'curl -fsS http://127.0.0.1:5000/health/ready'
                 sh 'curl -fsS http://127.0.0.1:3000/ >/dev/null'
             }
