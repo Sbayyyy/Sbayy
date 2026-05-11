@@ -22,6 +22,7 @@ import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { SELL_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
+import { Select } from '@/components/ui/select';
 
 // Extended type for form state to allow empty strings for numeric fields
 interface ProductFormData {
@@ -338,19 +339,19 @@ export default function SellPage() {
                   <label htmlFor="categoryPath" className="block text-sm font-medium mb-2">
                     {t('sell.fields.category')}
                   </label>
-                  <select
+                  <Select
                     id="categoryPath"
                     name="categoryPath"
                     value={formData.categoryPath}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className={`w-full input ${errors.categoryPath ? 'border-2 border-red-500' : ''}`}
+                    className={errors.categoryPath ? '!border-red-500 focus:!border-red-500 focus:!ring-red-100' : ''}
                   >
                     <option value="">{t('sell.fields.categoryPlaceholder')}</option>
                     {SELL_CATEGORIES.map(cat => (
                       <option key={cat.slug} value={cat.slug}>{getCategoryName(cat, i18n.language)}</option>
                     ))}
-                  </select>
+                  </Select>
                   {errors.categoryPath && (
                     <p className="mt-1 text-sm text-red-500">{errors.categoryPath}</p>
                   )}
@@ -360,18 +361,17 @@ export default function SellPage() {
                   <label htmlFor="condition" className="block text-sm font-medium mb-2">
                     {t('sell.fields.condition')}
                   </label>
-                  <select
+                  <Select
                     id="condition"
                     name="condition"
                     value={formData.condition}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className="w-full input"
                   >
                     {FILTER_CONDITIONS.map(cond => (
                       <option key={cond.value} value={cond.value}>{t(cond.i18nKey)}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               </div>
 

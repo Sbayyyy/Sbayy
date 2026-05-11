@@ -9,6 +9,7 @@ import { useRequireAuth } from '@/lib/useRequireAuth';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { Select } from '@/components/ui/select';
 
 interface ProductFormData {
   title: string;
@@ -292,13 +293,12 @@ export default function EditListingPage() {
                   <label htmlFor="categoryPath" className="block text-sm font-medium mb-2">
                     {t('editListing.fields.category')}
                   </label>
-                  <select
+                  <Select
                     id="categoryPath"
                     name="categoryPath"
                     value={formData.categoryPath}
                     onChange={handleChange}
                     disabled={submitting}
-                    className="w-full input"
                   >
                     <option value="">{t('editListing.fields.categoryPlaceholder')}</option>
                     <option value="electronics">{t('editListing.categories.electronics')}</option>
@@ -307,26 +307,25 @@ export default function EditListingPage() {
                     <option value="cars">{t('editListing.categories.cars')}</option>
                     <option value="real-estate">{t('editListing.categories.realEstate')}</option>
                     <option value="other">{t('editListing.categories.other')}</option>
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label htmlFor="condition" className="block text-sm font-medium mb-2">
                     {t('editListing.fields.condition')}
                   </label>
-                  <select
+                  <Select
                     id="condition"
                     name="condition"
                     value={formData.condition}
                     onChange={handleChange}
                     disabled={submitting}
-                    className="w-full input"
                   >
                     <option value="New">{t('editListing.conditions.new')}</option>
                     <option value="Used">{t('editListing.conditions.used')}</option>
                     <option value="Refurbished">{t('editListing.conditions.refurbished')}</option>
                     <option value="LikeNew">{t('editListing.conditions.likeNew')}</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 

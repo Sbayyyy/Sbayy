@@ -1,6 +1,7 @@
 import { SearchFilters } from '@sbay/shared';
 import { FILTER_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
 import { useTranslation } from 'next-i18next';
+import { Select } from '@/components/ui/select';
 
 interface SearchFiltersPanelProps {
   filters: SearchFilters;
@@ -19,16 +20,15 @@ export default function SearchFiltersPanel({
   return (
     <div className="toolbar-surface mt-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <select
+        <Select
           value={filters.category}
           onChange={(e) => onFilterChange({ category: e.target.value })}
-          className="input"
         >
           <option value="">{t('filters.allCategories')}</option>
           {FILTER_CATEGORIES.map(cat => (
             <option key={cat.slug} value={cat.slug}>{getCategoryName(cat, i18n.language)}</option>
           ))}
-        </select>
+        </Select>
 
         <input
           type="number"
@@ -45,16 +45,15 @@ export default function SearchFiltersPanel({
           className="input"
         />
 
-        <select
+        <Select
           value={filters.condition || ''}
           onChange={(e) => onFilterChange({ condition: e.target.value as SearchFilters['condition'] })}
-          className="input"
         >
           <option value="">{t('filters.allConditions')}</option>
           {FILTER_CONDITIONS.map(cond => (
             <option key={cond.value} value={cond.value}>{t(cond.i18nKey)}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="mt-4">

@@ -27,6 +27,7 @@ import Head from 'next/head';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import { toast } from '@/lib/toast';
+import { DropdownMenu, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
 const parseReplyContent = (content: string) => {
   const match = content.match(/^\[\[reply:([^\]]+)\]\]\n?/);
@@ -635,45 +636,42 @@ export default function ChatPage() {
                 const selected = messages.find((m) => m.id === menu.id);
                 if (!selected) return null;
                 return (
-                  <div
-                    className="surface-card fixed z-50 w-44 overflow-hidden py-1"
+                  <DropdownMenu
+                    className="fixed z-50 w-44"
                     style={menuStyle}
                   >
-                    <button
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                    <DropdownMenuItem
                       onClick={() => handleCopy(selected)}
                     >
                       {t('chat.copy')}
-                    </button>
-                    <button
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onClick={() => handleReply(selected)}
                     >
                       {t('chat.replyLabel')}
-                    </button>
-                    <button
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:text-slate-400"
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onClick={() => handleEdit(selected)}
                       disabled={!canEdit(selected)}
                     >
                       {t('chat.edit')}
-                    </button>
-                    <button
-                      className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:text-slate-400"
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onClick={() => handleDelete(selected)}
                       disabled={!canDelete(selected)}
+                      danger
                     >
                       {t('chat.delete')}
-                    </button>
+                    </DropdownMenuItem>
                     {selected.senderId !== user?.id && (
-                      <button
-                        className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                      <DropdownMenuItem
                         onClick={() => handleReport(selected)}
+                        danger
                       >
                         {t('chat.report')}
-                      </button>
+                      </DropdownMenuItem>
                     )}
-                  </div>
+                  </DropdownMenu>
                 );
               })()}
               {reportTarget ? (

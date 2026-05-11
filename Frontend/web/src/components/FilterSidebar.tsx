@@ -3,6 +3,7 @@ import type { SearchFilters } from '@sbay/shared';
 import { FILTER_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
 import { handlePriceKeyDown, createPriceChangeHandler } from '@/lib/hooks/usePriceFilter';
 import { useTranslation } from 'next-i18next';
+import { Select } from '@/components/ui/select';
 
 interface FilterSidebarProps {
   filters: SearchFilters;
@@ -38,19 +39,19 @@ function FilterContent({
       {showSort && (
         <section>
           <h4 className="mb-3 text-sm font-semibold text-slate-800">{t('filters.sorting')}</h4>
-          <select
+          <Select
             value={`${filters.sortBy}-${filters.sortOrder}`}
             onChange={(e) => {
               const [sortBy, sortOrder] = e.target.value.split('-');
               onFilterChange({ sortBy: sortBy as SearchFilters['sortBy'], sortOrder: sortOrder as SearchFilters['sortOrder'] });
             }}
-            className="input text-sm"
+            className="text-sm"
           >
             <option value="date-desc">{t('filters.sortNewest')}</option>
             <option value="date-asc">{t('filters.sortOldest')}</option>
             <option value="price-asc">{t('filters.sortPriceAsc')}</option>
             <option value="price-desc">{t('filters.sortPriceDesc')}</option>
-          </select>
+          </Select>
         </section>
       )}
 

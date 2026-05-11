@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import RatingStars from './RatingStars';
 import { User, ThumbsUp, MoreVertical, Trash2, Edit2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
 interface Review {
   id: string;
@@ -160,32 +161,31 @@ export default function ReviewList({
                     />
 
                     {/* Menu */}
-                    <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[150px]">
+                    <DropdownMenu className="absolute right-0 top-full mt-2 min-w-[160px]">
                       {onEdit && (
-                        <button
+                        <DropdownMenuItem
                           onClick={() => {
                             onEdit(review.id);
                             setMenuOpen(null);
                           }}
-                          className="w-full px-4 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                          icon={<Edit2 className="w-4 h-4 text-slate-400" />}
                         >
-                          <Edit2 className="w-4 h-4" />
                           {t('reviewList.edit')}
-                        </button>
+                        </DropdownMenuItem>
                       )}
                       {onDelete && (
-                        <button
+                        <DropdownMenuItem
                           onClick={() => {
                             onDelete(review.id);
                             setMenuOpen(null);
                           }}
-                          className="w-full px-4 py-2 text-right text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                          icon={<Trash2 className="w-4 h-4" />}
+                          danger
                         >
-                          <Trash2 className="w-4 h-4" />
                           {t('reviewList.delete')}
-                        </button>
+                        </DropdownMenuItem>
                       )}
-                    </div>
+                    </DropdownMenu>
                   </>
                 )}
               </div>
