@@ -476,7 +476,15 @@
       "stockInteger": "Quantity must be a whole number",
       "stockMin": "Quantity must be at least 1",
       "imageRequired": "At least one image is required",
-      "unsafeContent": "Input contains disallowed content"
+      "unsafeContent": "Input contains disallowed content",
+      "titleRequired": "Title is required.",
+      "descriptionRequired": "Description is required.",
+      "categoryRequired": "Please select a category.",
+      "locationRequired": "Location is required.",
+      "priceRequired": "Price is required.",
+      "priceMin": "Price must be greater than 0.",
+      "minLength": "Must be at least {{count}} characters.",
+      "maxLength": "Must be at most {{count}} characters."
     }
   },
   "orderConfirmation": {
@@ -1257,5 +1265,11 @@
         "content": "Provide excellent service to every buyer. Positive reviews increase new buyer trust. Be honest and professional in all your dealings."
       }
     }
+  },
+    "validation": {
+    "required": "This field is required.",
+    "profanity": "Please remove profanity.",
+    "sqlInjection": "Input contains disallowed SQL-like patterns.",
+    "xss": "Input contains disallowed HTML or script content."
   }
 }

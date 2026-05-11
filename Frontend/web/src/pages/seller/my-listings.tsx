@@ -107,6 +107,12 @@ export default function MyListingsPage() {
     return status === filter;
   });
 
+  const emptyMessage = filter === 'all'
+    ? t('myListings.emptyAllMessage')
+    : filter === 'active'
+      ? t('myListings.emptyActiveMessage')
+      : t('myListings.emptySoldMessage');
+
   if (loading) {
     return (
       <Layout title={t('myListings.title')}>
@@ -191,14 +197,7 @@ export default function MyListingsPage() {
               <h2 className="mb-2 text-2xl font-bold text-slate-950">
                 {t('myListings.emptyTitle')}
               </h2>
-              <p className="mb-6 text-slate-600">
-                {filter === 'all'
-                  ? t('myListings.emptyAllMessage')
-                  : filter === 'active'
-                    ? t('myListings.emptyActiveMessage')
-                    : t('myListings.emptySoldMessage')
-                }
-              </p>
+              <p className="mb-6 text-slate-600">{emptyMessage}</p>
               <button
                 onClick={() => router.push('/listing/sell')}
                 className="btn btn-primary"
