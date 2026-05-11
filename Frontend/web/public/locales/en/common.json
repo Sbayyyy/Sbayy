@@ -976,43 +976,66 @@
       }
     }
   },
-  "privacy": {
+ "privacy": {
     "pageTitle": "Privacy Policy - SBay",
     "title": "Privacy Policy",
-    "lastUpdated": "Last updated: March 2025",
-    "intro": "At SBay, we respect your privacy and are committed to protecting your personal data. This policy explains how we collect, use, and protect your information.",
+    "lastUpdated": "Last updated: May 2026",
+    "intro": "At SBay, we respect your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, store, and protect your information when you use the SBay platform.",
+
     "sections": {
       "collection": {
         "title": "1. Information We Collect",
-        "content": "We collect information you provide during registration (name, email, phone number, city), transaction information, message content, and usage data such as IP address and browser type."
+        "content": "We may collect information you provide during account registration and platform usage, including your name, email address, phone number, city, uploaded listing images, messages, transaction-related information, and technical usage data such as IP address, browser type, and device information."
       },
+
       "usage": {
-        "title": "2. How We Use Information",
-        "content": "We use your information to provide and improve our services, process transactions, communicate with you about your account, send important notifications, and maintain platform security."
+        "title": "2. How We Use Your Information",
+        "content": "We use your information to operate and improve the SBay platform, process transactions, provide customer support, enable communication between users, personalize your experience, maintain platform security, prevent fraud and abuse, and comply with legal obligations."
       },
+
       "sharing": {
         "title": "3. Information Sharing",
-        "content": "We do not sell your personal data to third parties. We may share limited information with sellers/buyers to complete transactions, with service providers who help us operate the platform, or when legally required."
+        "content": "We do not sell your personal data to third parties. We may share limited information with buyers and sellers as necessary to complete transactions, with trusted service providers who assist in operating the platform, or when required by law, legal process, or security obligations."
       },
+
       "security": {
         "title": "4. Data Security",
-        "content": "We use advanced encryption technologies to protect your data. We regularly update security procedures. However, we cannot guarantee absolute security for any data transmission over the internet."
+        "content": "We use reasonable technical and organizational measures to protect your information, including encrypted data transmission where applicable. While we strive to protect your data, no method of internet transmission or electronic storage can be guaranteed to be completely secure."
       },
+
       "cookies": {
-        "title": "5. Cookies",
-        "content": "We use cookies to improve your experience on the platform, remember your preferences, and analyze usage patterns. You can control cookie settings from your browser."
+        "title": "5. Cookies and Analytics",
+        "content": "We may use cookies and similar technologies to improve platform functionality, remember user preferences, analyze usage patterns, and enhance user experience. You can manage cookie preferences through your browser settings."
       },
+
+      "retention": {
+        "title": "6. Data Retention",
+        "content": "We retain personal information only as long as necessary to provide our services, comply with legal obligations, resolve disputes, enforce agreements, and maintain platform security."
+      },
+
       "rights": {
-        "title": "6. Your Rights",
-        "content": "You have the right to access your personal data, request its correction or deletion, and object to its processing. You can exercise these rights through your account settings or by contacting us."
+        "title": "7. Your Rights",
+        "content": "Depending on your location and applicable laws, you may have the right to access, correct, update, or request deletion of your personal data. You may also object to certain data processing activities. Requests can be submitted by contacting us directly."
       },
+
+      "deletion": {
+        "title": "8. Account and Data Deletion",
+        "content": "Users may request deletion of their account and associated data by visiting the account deletion page or contacting support. After verification, we will process deletion requests within a reasonable timeframe, unless retention is required for legal, fraud prevention, or security purposes."
+      },
+
       "children": {
-        "title": "7. Children's Privacy",
-        "content": "Our platform is not intended for individuals under 18 years of age. We do not knowingly collect information from children. If we become aware of this, we will delete such information immediately."
+        "title": "9. Children's Privacy",
+        "content": "SBay is not intended for individuals under the age of 18. We do not knowingly collect personal information from children. If we become aware that such information has been collected, we will take appropriate steps to delete it."
       },
+
       "changes": {
-        "title": "8. Policy Updates",
-        "content": "We may update this privacy policy from time to time. We will notify you of any material changes via email or a notification on the platform."
+        "title": "10. Changes to This Policy",
+        "content": "We may update this Privacy Policy from time to time. Material changes may be communicated through the platform, email notifications, or other appropriate methods. Continued use of SBay after updates constitutes acceptance of the revised policy."
+      },
+
+      "contact": {
+        "title": "11. Contact Us",
+        "content": "If you have questions about this Privacy Policy, your personal data, or account deletion requests, please contact us at support@syrian-bay.com."
       }
     }
   },
@@ -1271,5 +1294,22 @@
     "profanity": "Please remove profanity.",
     "sqlInjection": "Input contains disallowed SQL-like patterns.",
     "xss": "Input contains disallowed HTML or script content."
-  }
+  },
+  "deleteAccount": {
+  "pageTitle": "Account and Data Deletion - SBay",
+  "title": "Account and Data Deletion",
+  "intro": "Users may request deletion of their SBay account and associated personal data by contacting us at:",
+  "verification": "Please include the email address associated with your SBay account so we can verify and process your request.",
+  "dataTitle": "Data we delete",
+  "data": {
+    "account": "Account information",
+    "listings": "Listings",
+    "images": "Uploaded images",
+    "messages": "Chat messages",
+    "personal": "Associated personal data"
+  },
+  "retentionTitle": "Retention",
+  "retention": "Some data may be retained temporarily where required for legal, security, fraud prevention, or operational purposes.",
+  "processingTime": "Deletion requests are typically processed within 30 days after verification."
+}
 }
