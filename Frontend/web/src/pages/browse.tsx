@@ -11,6 +11,7 @@ import { Product, SearchFilters } from '@sbay/shared';
 import { AlertCircle, Filter, Search } from 'lucide-react';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
+import { Select } from '@/components/ui/select';
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -199,19 +200,19 @@ export default function BrowsePage() {
                   <Filter size={18} />
                   {t('filters.filter')}
                 </button>
-                <select
+                <Select
                   value={`${filters.sortBy}-${filters.sortOrder}`}
                   onChange={(e) => {
                     const [sortBy, sortOrder] = e.target.value.split('-') as [SearchFilters['sortBy'], SearchFilters['sortOrder']];
                     setFilters(prev => ({ ...prev, sortBy, sortOrder }));
                   }}
-                  className="input min-w-[190px] cursor-pointer"
+                  className="min-w-[190px]"
                 >
                   <option value="date-desc">{t('filters.sortNewest')}</option>
                   <option value="price-asc">{t('filters.sortPriceAsc')}</option>
                   <option value="price-desc">{t('filters.sortPriceDesc')}</option>
                   <option value="popular-desc">{t('filters.sortPopular')}</option>
-                </select>
+                </Select>
               </div>
             </div>
           </div>

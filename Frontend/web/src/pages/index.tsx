@@ -10,6 +10,7 @@ import { Search, MapPin, Package } from 'lucide-react';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import { CITIES, HOMEPAGE_CATEGORIES, getCategoryName } from '@/lib/constants';
+import { Select } from '@/components/ui/select';
 
 export default function Home() {
   const router = useRouter();
@@ -78,10 +79,10 @@ export default function Home() {
                     className="input h-14 rounded-2xl pr-11"
                   />
                 </div>
-                <select
+                <Select
                   value={selectedRegion}
                   onChange={(e) => setSelectedRegion(e.target.value)}
-                  className="input h-14 rounded-2xl"
+                  className="h-14 rounded-2xl"
                   aria-label={t('home.regionSelect', 'Select region')}
                 >
                   <option value="">{t('home.allRegions', 'All regions')}</option>
@@ -90,7 +91,7 @@ export default function Home() {
                       {t(city.i18nKey, city.i18nDefault)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </form>
               {searchError && <p className="text-sm font-medium text-red-600">{searchError}</p>}
               <div className="flex items-center gap-2 text-sm text-slate-600">
