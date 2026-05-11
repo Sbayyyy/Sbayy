@@ -35,7 +35,6 @@ interface ApiCallResponse {
   timestamp: string;
   executionTime: number;
 }
-
 const apiEndpoints: Record<ApiTest, ApiEndpoint> = {
   // === ORDERS & SHIPPING ===
   shipping: {
@@ -314,6 +313,7 @@ const apiEndpoints: Record<ApiTest, ApiEndpoint> = {
 
 // Mock Response Generator
 function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown>): Omit<ApiCallResponse, 'timestamp' | 'executionTime'> {
+  const { t } = useTranslation('common');
   const responses: Record<ApiTest, Omit<ApiCallResponse, 'timestamp' | 'executionTime'>> = {
     // === ORDERS & SHIPPING ===
     shipping: {
