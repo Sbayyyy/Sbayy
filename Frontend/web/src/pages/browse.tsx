@@ -207,6 +207,7 @@ export default function BrowsePage() {
                     setFilters(prev => ({ ...prev, sortBy, sortOrder }));
                   }}
                   className="min-w-[190px]"
+                  aria-label={t('filters.sorting')}
                 >
                   <option value="date-desc">{t('filters.sortNewest')}</option>
                   <option value="price-asc">{t('filters.sortPriceAsc')}</option>

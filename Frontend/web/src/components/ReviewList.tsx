@@ -161,7 +161,7 @@ export default function ReviewList({
                     />
 
                     {/* Menu */}
-                    <DropdownMenu className="absolute left-0 top-full mt-2 min-w-[160px]">
+                    <DropdownMenu className="absolute right-0 top-full mt-2 min-w-[160px]">
                       {onEdit && (
                         <DropdownMenuItem
                           onClick={() => {

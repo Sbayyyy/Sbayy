@@ -12,6 +12,19 @@ type DropdownMenuProps = React.HTMLAttributes<HTMLDivElement> & {
   arrowClassName?: string;
 };
 
+/**
+ * Floating dropdown surface for custom action menus.
+ *
+ * @param className - Optional classes merged with the shared menu surface style.
+ * @param children - Menu content, typically DropdownMenuItem elements.
+ * @param showArrow - When true, renders a small pointer arrow above the menu.
+ * @param arrowClassName - Optional classes merged into the pointer arrow.
+ * @param props - Additional div attributes such as style, role, or data attributes.
+ * @returns A styled dropdown container using the shared Sbay menu treatment.
+ *
+ * @example
+ * <DropdownMenu showArrow><DropdownMenuItem>Profile</DropdownMenuItem></DropdownMenu>
+ */
 export function DropdownMenu({
   className,
   children,
@@ -40,6 +53,13 @@ export function DropdownMenu({
   );
 }
 
+/**
+ * Header area for dropdown menus.
+ *
+ * @param className - Optional classes merged with the shared header style.
+ * @param props - Additional div attributes and children for the header content.
+ * @returns A softly highlighted menu header container.
+ */
 export function DropdownMenuHeader({
   className,
   ...props
@@ -47,6 +67,13 @@ export function DropdownMenuHeader({
   return <div className={cn('relative mb-1 rounded-2xl bg-slate-50/90 px-3 py-3', className)} {...props} />;
 }
 
+/**
+ * Divider line for grouping dropdown menu items.
+ *
+ * @param className - Optional classes merged with the shared divider style.
+ * @param props - Additional hr attributes.
+ * @returns A subtle horizontal separator for menu sections.
+ */
 export function DropdownMenuDivider({ className, ...props }: React.HTMLAttributes<HTMLHRElement>) {
   return <hr className={cn('my-2 border-slate-100', className)} {...props} />;
 }
@@ -56,6 +83,20 @@ type DropdownMenuItemProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   danger?: boolean;
 };
 
+/**
+ * Styled button item for dropdown menus.
+ *
+ * @param className - Optional classes merged with the normal or danger item style.
+ * @param children - Label content rendered inside the item.
+ * @param icon - Optional leading icon, usually a lucide-react icon.
+ * @param danger - Uses destructive red styling when true.
+ * @param type - Button type, defaults to "button" to avoid form submission.
+ * @param props - Additional button attributes such as onClick, disabled, or aria props.
+ * @returns A full-width dropdown action button with shared spacing and states.
+ *
+ * @example
+ * <DropdownMenuItem icon={<Settings size={18} />}>Settings</DropdownMenuItem>
+ */
 export function DropdownMenuItem({
   className,
   children,
