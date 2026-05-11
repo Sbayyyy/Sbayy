@@ -472,11 +472,19 @@
     "submitting": "جارٍ النشر...",
     "cancel": "إلغاء",
     "validation": {
-      "stockRequired": "الكمية مطلوبة",
-      "stockInteger": "الكمية يجب أن تكون رقماً صحيحاً",
-      "stockMin": "الكمية يجب أن تكون 1 على الأقل",
-      "imageRequired": "يجب إضافة صورة واحدة على الأقل",
-      "unsafeContent": "Input contains disallowed content"
+      "unsafeContent": "يحتوي الإدخال على محتوى غير آمن.",
+      "titleRequired": "العنوان مطلوب.",
+      "descriptionRequired": "الوصف مطلوب.",
+      "categoryRequired": "يرجى اختيار فئة.",
+      "locationRequired": "الموقع مطلوب.",
+      "priceRequired": "السعر مطلوب.",
+      "priceMin": "يجب أن يكون السعر أكبر من 0.",
+      "stockRequired": "الكمية مطلوبة.",
+      "stockInteger": "يجب أن تكون الكمية رقمًا صحيحًا.",
+      "stockMin": "يجب أن تكون الكمية على الأقل 1.",
+      "imageRequired": "يرجى رفع صورة واحدة على الأقل.",
+      "minLength": "يجب أن يحتوي على {{count}} أحرف على الأقل.",
+      "maxLength": "يجب ألا يتجاوز {{count}} حرفًا."
     }
   },
   "orderConfirmation": {
@@ -1257,5 +1265,10 @@
         "content": "قدم خدمة ممتازة لكل مشتري. التقييمات الإيجابية تزيد من ثقة المشترين الجدد. كن صادقاً ومحترفاً في جميع تعاملاتك."
       }
     }
+  },  "validation": {
+    "required": "هذا الحقل مطلوب.",
+    "profanity": "يرجى إزالة الكلمات غير اللائقة.",
+    "sqlInjection": "يحتوي الإدخال على أنماط غير مسموحة.",
+    "xss": "يحتوي الإدخال على محتوى غير مسموح."
   }
 }

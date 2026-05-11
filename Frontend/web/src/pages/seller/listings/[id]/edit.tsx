@@ -74,7 +74,7 @@ export default function EditListingPage() {
       });
     } catch (err: unknown) {
       console.error('Error loading listing:', err);
-      setError(t('editListing.loadError'));
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

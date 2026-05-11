@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { getEmailValidationMessage, sanitizeInput } from '@sbay/shared';
+import { useState, useMemo } from 'react';
+import {
+  createOptionalTextInputValidator,
+  isValidEmail,
+  sanitizeInput
+} from '@sbay/shared';
 import { forgotPassword } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
@@ -7,27 +11,55 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function ForgotPassword() {
   const { t } = useTranslation('common');
+
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  const textInputValidator = useMemo(
+    () =>
+      createOptionalTextInputValidator({
+        profanityMessage: t('validation.profanity'),
+        sqlInjectionMessage: t('validation.sqlInjection'),
+        xssMessage: t('validation.xss')
+      }),
+    [t]
+  );
+
   const validateForm = (): boolean => {
-    const emailError = getEmailValidationMessage(email);
-    if (emailError) {
-      setError(emailError);
+    const sanitizedEmail = sanitizeInput(email);
+
+    if (!sanitizedEmail) {
+      setError(t('auth.errors.emailRequired'));
       return false;
     }
+
+    if (!isValidEmail(sanitizedEmail)) {
+      setError(t('auth.errors.emailInvalid'));
+      return false;
+    }
+
+    const validation = textInputValidator.validate(sanitizedEmail);
+
+    if (!validation.isValid) {
+      setError(validation.message ?? t('auth.errors.inputUnsafe'));
+      return false;
+    }
+
     setError('');
     return true;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(sanitizeInput(e.target.value));
-    // Clear errors when user starts typing
+    const sanitizedValue = sanitizeInput(e.target.value);
+
+    setEmail(sanitizedValue);
+
     if (error) setError('');
     if (apiError) setApiError('');
+    if (success) setSuccess(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,15 +67,17 @@ export default function ForgotPassword() {
 
     if (!validateForm()) return;
 
+    const sanitizedEmail = sanitizeInput(email);
+
     setIsLoading(true);
     setApiError('');
     setSuccess(false);
 
     try {
-      await forgotPassword(email);
+      await forgotPassword(sanitizedEmail);
 
       setSuccess(true);
-      setEmail(''); // Clear email field on success
+      setEmail('');
     } catch (error: unknown) {
       setApiError(getErrorMessage(error));
     } finally {
@@ -68,7 +102,6 @@ export default function ForgotPassword() {
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        {/* Success Message */}
         {success && (
           <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
             <span className="block sm:inline">
@@ -77,15 +110,13 @@ export default function ForgotPassword() {
           </div>
         )}
 
-        {/* API Error Banner */}
         {apiError && (
           <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
             <span className="block sm:inline">{apiError}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Email Field */}
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div>
             <label htmlFor="email" className="block text-sm/6 font-medium text-black-100">
               {t('forgotPassword.emailLabel')}
@@ -111,7 +142,6 @@ export default function ForgotPassword() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div>
             <button
               type="submit"
@@ -120,22 +150,24 @@ export default function ForgotPassword() {
                 (isLoading || success) ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              {isLoading ? t('forgotPassword.submitting') : success ? t('forgotPassword.submitted') : t('forgotPassword.submit')}
+              {isLoading
+                ? t('forgotPassword.submitting')
+                : success
+                  ? t('forgotPassword.submitted')
+                  : t('forgotPassword.submit')}
             </button>
           </div>
         </form>
 
-        {/* Back to Login Link */}
         <div className="mt-6 text-center">
           <a
-            href="/login"
+            href="/auth/login"
             className="text-sm font-semibold text-primary-500 hover:text-primary-400"
           >
             {t('forgotPassword.backToLogin')}
           </a>
         </div>
 
-        {/* Additional Info */}
         {success && (
           <div className="mt-4 text-center text-xs text-gray-500">
             {t('forgotPassword.spamNote')}

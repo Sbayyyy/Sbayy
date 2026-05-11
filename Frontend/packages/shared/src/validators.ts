@@ -12,6 +12,13 @@ type StringValidatorOptions = {
   allowEmpty?: boolean;
 };
 
+type TextInputValidatorOptions = {
+  requiredMessage?: string;
+  profanityMessage?: string;
+  sqlInjectionMessage?: string;
+  xssMessage?: string;
+};
+
 const isEmptyString = (value: string) => value.trim().length === 0;
 
 const createStringValidator = (
@@ -21,26 +28,33 @@ const createStringValidator = (
 ): IValidator<string> => ({
   validate(value: string): ValidationResult {
     if (options?.allowEmpty && isEmptyString(value)) return { isValid: true };
+
     const ok = validate(value);
-    return ok ? { isValid: true } : { isValid: false, message: options?.message ?? defaultMessage };
-  }
+
+    return ok
+      ? { isValid: true }
+      : { isValid: false, message: options?.message ?? defaultMessage };
+  },
 });
 
 export const combineValidators = <T,>(validators: IValidator<T>[]): IValidator<T> => ({
   validate(value: T): ValidationResult {
     for (const validator of validators) {
       const result = validator.validate(value);
+
       if (!result.isValid) return result;
     }
+
     return { isValid: true };
-  }
+  },
 });
 
 let profanityList: string[] = [];
 let profanityPattern: RegExp | null = null;
 
-const buildProfanityPattern = (list: string[]) => {
+const buildProfanityPattern = (list: string[]): RegExp | null => {
   if (list.length === 0) return null;
+
   const escaped = list.map((word) =>
     word
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -48,22 +62,27 @@ const buildProfanityPattern = (list: string[]) => {
       .map((char) => `${char}+`)
       .join("[^a-z0-9]*")
   );
+
   return new RegExp(`(?:${escaped.join("|")})`, "i");
 };
 
-export const setProfanityList = (list: string[]) => {
+export const setProfanityList = (list: string[]): void => {
   profanityList = list;
   profanityPattern = buildProfanityPattern(list);
 };
 
 export const loadProfanityListFromUrl = async (url: string): Promise<void> => {
   const response = await fetch(url);
+
   if (!response.ok) return;
+
   const text = await response.text();
+
   const list = text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith("#"));
+
   setProfanityList(list);
 };
 
@@ -73,6 +92,7 @@ export const createNoProfanityValidator = (
 ): IValidator<string> => {
   const useList = list ?? profanityList;
   const pattern = list ? buildProfanityPattern(useList) : profanityPattern;
+
   return createStringValidator(
     (value) => (pattern ? !pattern.test(value) : true),
     "Please remove profanity.",
@@ -80,12 +100,6 @@ export const createNoProfanityValidator = (
   );
 };
 
-/**
- * Basic SQL injection detection pattern. Note: this is a defense-in-depth measure
- * and may produce false positives for legitimate inputs containing SQL keywords
- * (e.g., a product titled "select items" or "union jack"). Backend parameterized
- * queries remain the primary protection against SQL injection.
- */
 const sqlInjectionPattern =
   /(\b(select|insert|update|delete|drop|alter|create|truncate|exec|execute|union)\b|--|;|\/\*|\*\/|@@|char\(|nchar\(|varchar\(|nvarchar\(|xp_)/i;
 
@@ -110,15 +124,68 @@ export const createNoXssValidator = (
     options
   );
 
+export const createRequiredFieldValidator = (
+  customMessage?: string
+): IValidator<string> => ({
+  validate(value: string): ValidationResult {
+    const isValid = value.trim().length > 0;
+
+    return {
+      isValid,
+      message: isValid ? undefined : customMessage ?? "This field is required.",
+    };
+  },
+});
+
+export const createTextInputValidator = (
+  options?: TextInputValidatorOptions
+): IValidator<string> => {
+  return combineValidators([
+    createRequiredFieldValidator(options?.requiredMessage),
+    createNoProfanityValidator(undefined, {
+      message: options?.profanityMessage,
+    }),
+    createNoSqlInjectionValidator({
+      message: options?.sqlInjectionMessage,
+    }),
+    createNoXssValidator({
+      message: options?.xssMessage,
+    }),
+  ]);
+};
+
+export const createOptionalTextInputValidator = (
+  options?: Omit<TextInputValidatorOptions, "requiredMessage">
+): IValidator<string> => {
+  return combineValidators([
+    createNoProfanityValidator(undefined, {
+      message: options?.profanityMessage,
+      allowEmpty: true,
+    }),
+    createNoSqlInjectionValidator({
+      message: options?.sqlInjectionMessage,
+      allowEmpty: true,
+    }),
+    createNoXssValidator({
+      message: options?.xssMessage,
+      allowEmpty: true,
+    }),
+  ]);
+};
+
 export const noProfanityValidator: IValidator<string> = {
   validate(value: string): ValidationResult {
     return createNoProfanityValidator().validate(value);
-  }
+  },
 };
+
 export const noSqlInjectionValidator = createNoSqlInjectionValidator();
 export const noXssValidator = createNoXssValidator();
+
 export const defaultTextInputValidator = combineValidators([
   noProfanityValidator,
   noSqlInjectionValidator,
-  noXssValidator
+  noXssValidator,
 ]);
+
+export const flexibleTextInputValidator = createTextInputValidator;
