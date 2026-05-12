@@ -63,6 +63,7 @@ namespace SBay.Domain.Database
                 .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == notificationId, ct);
             if (notification is null) return;
             notification.IsArchived = true;
+            await _db.SaveChangesAsync(ct);
         }
 
         private async Task<int> MarkAllReadTrackedAsync(Guid userId, DateTimeOffset now, CancellationToken ct)
@@ -75,6 +76,11 @@ namespace SBay.Domain.Database
             {
                 notification.IsRead = true;
                 notification.ReadAt = now;
+            }
+
+            if (notifications.Count > 0)
+            {
+                await _db.SaveChangesAsync(ct);
             }
 
             return notifications.Count;
