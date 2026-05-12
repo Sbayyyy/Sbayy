@@ -23,13 +23,17 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
         {
             cfg.AddJsonFile("appsettings.json", optional: true)
                .AddJsonFile("appsettings.Testing.json", optional: true)
+               .AddEnvironmentVariables()
                .AddInMemoryCollection(new Dictionary<string, string?>
                {
+                   ["Database:Provider"] = "ef",
                    ["ConnectionStrings:Default"] = "Host=localhost;Port=5432;Database=sbay_tests;Username=sbay;Password=sbay_tests",
                    ["Storage:Provider"] = "local",
-                   ["Jwt:Secret"] = "test_jwt_secret_32_bytes_minimum_value"
-               })
-               .AddEnvironmentVariables();
+                   ["Jwt:Issuer"] = "SBay",
+                   ["Jwt:Audience"] = "SBayClients",
+                   ["Jwt:Secret"] = "test_jwt_secret_32_bytes_minimum_value",
+                   ["Jwt:ExpMinutes"] = "60"
+               });
         });
 
         builder.ConfigureServices(services =>
