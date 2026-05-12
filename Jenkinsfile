@@ -120,8 +120,8 @@ pipeline {
                     done
 
                     echo "Applying idempotent database schema scripts..."
-                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T postgres psql -v ON_ERROR_STOP=1 -U sbay -d sbay -f /docker-entrypoint-initdb.d/01_schema.sql
-                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T postgres psql -v ON_ERROR_STOP=1 -U sbay -d sbay -f /docker-entrypoint-initdb.d/03_ecommerce.sql
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T postgres psql -v ON_ERROR_STOP=1 -U sbay -d sbay < Database/01_schema.sql
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T postgres psql -v ON_ERROR_STOP=1 -U sbay -d sbay < Database/03_ecommerce.sql
 
                     echo "Current public schema tables:"
                     $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T postgres psql -U sbay -d sbay -c "\\dt public.*"
