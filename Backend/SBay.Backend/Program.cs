@@ -44,8 +44,15 @@ ProductionConfigurationGuard.Validate(builder.Configuration, builder.Environment
 
 if (useEf)
 {
-    var connStr = builder.Configuration.GetConnectionString("Default")
-                  ?? throw new InvalidOperationException("Missing connection string 'Default'.");
+    var connStr = builder.Configuration.GetConnectionString("Default");
+    if (string.IsNullOrWhiteSpace(connStr) && builder.Environment.IsEnvironment("Testing"))
+    {
+        connStr = "Host=localhost;Port=5432;Database=sbay_tests;Username=sbay;Password=sbay_tests";
+    }
+    if (string.IsNullOrWhiteSpace(connStr))
+    {
+        throw new InvalidOperationException("Missing connection string 'Default'.");
+    }
     builder.Services.AddDbContext<EfDbContext>(opt =>
         opt.UseNpgsql(connStr).UseSnakeCaseNamingConvention());
 
@@ -62,6 +69,7 @@ if (useEf)
     builder.Services.AddScoped<IMessageRepository, EfMessageRepository>();
     builder.Services.AddScoped<IAddressRepository, EfAddressRepository>();  // NEW
     builder.Services.AddScoped<IPushTokenRepository, EfPushTokenRepository>();
+    builder.Services.AddScoped<INotificationRepository, EfNotificationRepository>();
     builder.Services.AddScoped<IReportRepository, EfReportRepository>();
     builder.Services.AddScoped<IUserBlockRepository, EfUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
@@ -113,6 +121,7 @@ else
     builder.Services.AddScoped<IAddressRepository, FirebaseAddressRepository>();
     builder.Services.AddScoped<IDataProvider, FirebaseDataProvider>();
     builder.Services.AddScoped<IPushTokenRepository, FirebasePushTokenRepository>();
+    builder.Services.AddScoped<INotificationRepository, FirebaseNotificationRepository>();
     builder.Services.AddScoped<IUserBlockRepository, FirebaseUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, FirestoreUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();
