@@ -46,7 +46,7 @@ public class ChatEvents:IChatEvents
                 m.ReceiverId,
                 "New message",
                 m.Content.Length > 120 ? $"{m.Content[..120]}..." : m.Content,
-                new { chatId = m.ChatId, senderId = m.SenderId },
+                new { type = "chat", chatId = m.ChatId, senderId = m.SenderId },
                 ct);
         }
         catch

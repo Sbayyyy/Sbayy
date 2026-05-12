@@ -139,7 +139,7 @@ public class AuthController : ControllerBase
 
     
     [HttpGet("me")]
-    [Authorize(AuthenticationSchemes = "SBayJwt")]
+    [Authorize]
     public async Task<IActionResult> GetMe(CancellationToken ct)
     {
         
@@ -152,7 +152,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("change-password")]
-    [Authorize(AuthenticationSchemes = "SBayJwt")]
+    [Authorize]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req, CancellationToken ct)
     {

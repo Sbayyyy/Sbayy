@@ -23,7 +23,8 @@ public static class AuthTestClient
                    ?? throw new InvalidOperationException("Register returned no body");
 
         client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", auth.Token);
+            new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");
+        client.DefaultRequestHeaders.Add("X-Test-UserId", auth.User.Id.ToString());
 
         return (client, auth);
     }

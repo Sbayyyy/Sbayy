@@ -10,15 +10,18 @@ namespace SBay.Backend.Services
         private static readonly Uri Endpoint = new("https://exp.host/--/api/v2/push/send");
         private readonly HttpClient _http;
         private readonly IPushTokenRepository _tokens;
+        private readonly IUnitOfWork _uow;
         private readonly ILogger<ExpoPushNotificationService> _logger;
 
         public ExpoPushNotificationService(
             HttpClient http,
             IPushTokenRepository tokens,
+            IUnitOfWork uow,
             ILogger<ExpoPushNotificationService> logger)
         {
             _http = http;
             _tokens = tokens;
+            _uow = uow;
             _logger = logger;
         }
 
@@ -80,6 +83,7 @@ namespace SBay.Backend.Services
                 }
 
                 var nextRetry = new List<PushPayload>();
+                var removedInvalidToken = false;
                 var count = Math.Min(parsed.Data.Length, pending.Count);
 
                 for (var i = 0; i < count; i++)
@@ -99,11 +103,17 @@ namespace SBay.Backend.Services
                     if (string.Equals(errorCode, "DeviceNotRegistered", StringComparison.OrdinalIgnoreCase))
                     {
                         await _tokens.RemoveAsync(userId, pending[i].Token, ct);
+                        removedInvalidToken = true;
                     }
                     else if (IsTransient(errorCode))
                     {
                         nextRetry.Add(pending[i]);
                     }
+                }
+
+                if (removedInvalidToken)
+                {
+                    await _uow.SaveChangesAsync(ct);
                 }
 
                 if (parsed.Data.Length != pending.Count)
