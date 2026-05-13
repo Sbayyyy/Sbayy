@@ -178,6 +178,14 @@ public class FirebaseListingRepository : IListingRepository
                 .ToList();
         }
 
+        if (listingQuery.Featured)
+        {
+            var now = DateTime.UtcNow;
+            items = items
+                .Where(l => l.BoostedUntil.HasValue && l.BoostedUntil.Value > now)
+                .ToList();
+        }
+
         var page = listingQuery.Page <= 0 ? 1 : listingQuery.Page;
         var size = listingQuery.PageSize is < 1 or > 100 ? 24 : listingQuery.PageSize;
         var skip = (page - 1) * size;

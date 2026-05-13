@@ -94,6 +94,12 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             query = query.Where(l => l.Condition == parsedCondition);
     }
 
+    if (q.Featured)
+    {
+        var now = DateTime.UtcNow;
+        query = query.Where(l => l.BoostedUntil != null && l.BoostedUntil > now);
+    }
+
     if (!string.IsNullOrWhiteSpace(text))
     {
         if (isPostgres)
