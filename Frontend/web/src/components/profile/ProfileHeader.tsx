@@ -12,6 +12,7 @@ import type { ProfileFormData, ProfileErrors, TranslationFn } from './types';
 import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
 import { Select } from '@/components/ui/select';
+import { useTranslation } from 'next-i18next';
 
 interface CityOption {
   value: string;
@@ -60,11 +61,12 @@ export default function ProfileHeader({
   memberSince,
   t,
 }: ProfileHeaderProps) {
+  const { i18n } = useTranslation('common');
   const cityI18nKey = getCityI18nKeyFromValue(user?.city);
   const cityLabel = user?.city
     ? cityI18nKey
-      ? t(cityI18nKey)
-      : getCityLabel(user.city)
+      ? t(cityI18nKey, getCityLabel(user.city, i18n.language))
+      : getCityLabel(user.city, i18n.language)
     : '';
 
   return (
