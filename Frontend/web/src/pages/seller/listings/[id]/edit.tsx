@@ -23,6 +23,8 @@ interface ProductFormData {
   region: string;
 }
 
+const PRICE_CURRENCIES = ['SYP', 'USD', 'EUR'];
+
 export default function EditListingPage() {
   const router = useRouter();
   const { id } = router.query;
@@ -100,7 +102,7 @@ export default function EditListingPage() {
 
     if (!formData.title.trim()) newErrors.title = t('editListing.validation.titleRequired');
     if (!formData.description.trim()) newErrors.description = t('editListing.validation.descriptionRequired');
-    if (!formData.priceAmount || parseFloat(formData.priceAmount) <= 0) {
+    if (formData.priceAmount === '' || parseFloat(formData.priceAmount) < 0) {
       newErrors.priceAmount = t('editListing.validation.pricePositive');
     }
     if (!formData.region.trim()) newErrors.region = t('editListing.validation.locationRequired');
@@ -255,17 +257,32 @@ export default function EditListingPage() {
                   <label htmlFor="priceAmount" className="block text-sm font-medium mb-2">
                     {t('editListing.fields.price')}
                   </label>
-                  <input
-                    type="number"
-                    id="priceAmount"
-                    name="priceAmount"
-                    value={formData.priceAmount}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    min="0"
-                    step="1"
-                    className={`w-full input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      id="priceAmount"
+                      name="priceAmount"
+                      value={formData.priceAmount}
+                      onChange={handleChange}
+                      disabled={submitting}
+                      min="0"
+                      step="any"
+                      className={`min-w-0 flex-1 input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
+                    />
+                    <Select
+                      id="priceCurrency"
+                      name="priceCurrency"
+                      value={formData.priceCurrency || 'SYP'}
+                      onChange={handleChange}
+                      disabled={submitting}
+                      aria-label={t('editListing.fields.currency')}
+                      className="w-28 flex-shrink-0"
+                    >
+                      {PRICE_CURRENCIES.map(currency => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                    </Select>
+                  </div>
                   {errors.priceAmount && <p className="mt-1 text-sm text-red-500">{errors.priceAmount}</p>}
                 </div>
 

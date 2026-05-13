@@ -90,7 +90,7 @@ public sealed class ListingsController : ControllerBase
         
         if (string.IsNullOrWhiteSpace(body.Title))         return ValidationProblem("Title is required.");
         if (string.IsNullOrWhiteSpace(body.Description))   return ValidationProblem("Description is required.");
-        if (body.PriceAmount <= 0)                         return ValidationProblem("Price must be greater than 0.");
+        if (body.PriceAmount < 0)                          return ValidationProblem("Price cannot be negative.");
         if (body.Stock < 0)                                return ValidationProblem("Stock cannot be negative.");
         if (string.IsNullOrWhiteSpace(body.PriceCurrency)) return ValidationProblem("Price currency is required.");
         if (body.ImageUrls.Count > 10)                     return ValidationProblem("A listing can have at most 10 images.");
@@ -203,8 +203,8 @@ public sealed class ListingsController : ControllerBase
             return BadRequest("Title cannot be empty.");
         if (body.Description != null && string.IsNullOrWhiteSpace(body.Description))
             return BadRequest("Description cannot be empty.");
-        if (body.PriceAmount.HasValue && body.PriceAmount <= 0)
-            return BadRequest("Price must be greater than 0.");
+        if (body.PriceAmount.HasValue && body.PriceAmount < 0)
+            return BadRequest("Price cannot be negative.");
         if (body.Stock.HasValue && body.Stock.Value < 0)
             return BadRequest("Stock cannot be negative.");
         if (body.ImageUrls != null)

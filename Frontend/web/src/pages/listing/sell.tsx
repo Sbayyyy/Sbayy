@@ -31,6 +31,9 @@ interface ProductFormData {
   stock?: number | string;
 }
 
+const sanitizeWhileTyping = (value: string): string => value.replace(/[<>]/g, '');
+const PRICE_CURRENCIES = ['SYP', 'USD', 'EUR'];
+
 export default function SellPage() {
   const router = useRouter();
   const { isAuthenticated, setUser } = useAuthStore();
@@ -159,7 +162,7 @@ export default function SellPage() {
 
     if (Number.isNaN(price)) {
       newErrors.priceAmount = t('sell.validation.priceRequired');
-    } else if (price <= 0) {
+    } else if (price < 0) {
       newErrors.priceAmount = t('sell.validation.priceMin');
     }
 
@@ -219,7 +222,7 @@ export default function SellPage() {
     const nextValue =
       name === 'priceAmount' || name === 'stock'
         ? value
-        : sanitizeInput(value);
+        : sanitizeWhileTyping(value);
 
     setFormData(prev => ({
       ...prev,
@@ -364,18 +367,33 @@ export default function SellPage() {
                   <label htmlFor="priceAmount" className="block text-sm font-medium mb-2">
                     {t('sell.fields.price')}
                   </label>
-                  <input
-                    type="number"
-                    id="priceAmount"
-                    name="priceAmount"
-                    value={formData.priceAmount}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    min="0"
-                    step="1000"
-                    className={`w-full input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
-                    placeholder={t('sell.fields.pricePlaceholder')}
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      id="priceAmount"
+                      name="priceAmount"
+                      value={formData.priceAmount}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      min="0"
+                      step="any"
+                      className={`min-w-0 flex-1 input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
+                      placeholder={t('sell.fields.pricePlaceholder')}
+                    />
+                    <Select
+                      id="priceCurrency"
+                      name="priceCurrency"
+                      value={formData.priceCurrency || 'SYP'}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      aria-label={t('sell.fields.currency')}
+                      className="w-28 flex-shrink-0"
+                    >
+                      {PRICE_CURRENCIES.map(currency => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                    </Select>
+                  </div>
                   {errors.priceAmount && <p className="mt-1 text-sm text-red-500">{errors.priceAmount}</p>}
                 </div>
 

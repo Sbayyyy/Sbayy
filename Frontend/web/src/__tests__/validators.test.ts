@@ -4,6 +4,7 @@ import {
   createNoSqlInjectionValidator,
   createNoXssValidator,
   defaultTextInputValidator,
+  sanitizeInput,
   setProfanityList,
 } from '@sbay/shared';
 
@@ -22,6 +23,12 @@ describe('Validators', () => {
     it('should accept empty string', () => {
       const result = defaultTextInputValidator.validate('');
       expect(result.isValid).toBe(true);
+    });
+  });
+
+  describe('sanitizeInput', () => {
+    it('preserves internal spaces in listing text', () => {
+      expect(sanitizeInput('Gaming laptop with charger')).toBe('Gaming laptop with charger');
     });
   });
 
