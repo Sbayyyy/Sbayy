@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using SBay.Backend.Api.Controllers;
+using SBay.Backend.Services;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 using SBay.Domain.ValueObjects;
@@ -36,6 +37,17 @@ public class MonetizationControllerTests : IClassFixture<TestWebAppFactory>
         });
 
         res.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task BoostOptions_Returns_Seven_Fourteen_And_Thirty_Day_Plans()
+    {
+        var client = _factory.CreateClient();
+
+        var options = await client.GetFromJsonAsync<List<BoostOption>>("/api/monetization/boost-options");
+
+        options.Should().NotBeNull();
+        options!.Select(o => o.DurationDays).Should().Contain(new[] { 7, 14, 30 });
     }
 
     [Fact]

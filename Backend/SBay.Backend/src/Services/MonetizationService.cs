@@ -29,7 +29,8 @@ public sealed class MonetizationService
         return new[]
         {
             new BoostOption("boost_7", "7 day boost", 25000m, currency, 7),
-            new BoostOption("boost_14", "14 day boost", 40000m, currency, 14)
+            new BoostOption("boost_14", "14 day boost", 40000m, currency, 14),
+            new BoostOption("boost_30", "30 day boost", 70000m, currency, 30)
         };
     }
 

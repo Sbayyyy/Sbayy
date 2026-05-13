@@ -71,6 +71,8 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         result.PriceCurrency.Should().Be("EUR");
         result.Stock.Should().Be(2);
         result.Condition.ToString().Should().Be("New");
+        result.IsBoosted.Should().BeFalse();
+        result.BoostedUntil.Should().BeNull();
 
         
         result.ImageUrls.Should().NotBeNull();
@@ -267,6 +269,23 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         results.Should().NotBeNull();
         results!.Should().HaveCount(2);
         results.All(r => r.Condition == ItemCondition.Used.ToString()).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Search_Should_Filter_By_Featured()
+    {
+        var boosted = new Listing(Guid.NewGuid(), "Boosted", "desc", new Money(100m, "EUR"));
+        var normal = new Listing(Guid.NewGuid(), "Normal", "desc", new Money(50m, "EUR"));
+        boosted.ActivateBoost(DateTime.UtcNow.AddDays(2));
+
+        await SeedListingsAsync(boosted, normal);
+
+        var results = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/listings?featured=true");
+
+        results.Should().NotBeNull();
+        results!.Should().ContainSingle();
+        results[0].Id.Should().Be(boosted.Id);
+        results[0].IsBoosted.Should().BeTrue();
     }
 
     [Fact]
