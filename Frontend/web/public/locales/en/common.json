@@ -472,6 +472,16 @@
     "submit": "Publish Product",
     "submitting": "Publishing...",
     "cancel": "Cancel",
+    "boost": {
+      "kicker": "Optional boost",
+      "title": "Make this listing stand out",
+      "description": "Basic listings are free. A boost is paid separately and activates only after payment confirmation.",
+      "freeTitle": "Free listing",
+      "freeDescription": "Standard feed placement",
+      "freePrice": "Free",
+      "days": "days",
+      "submit": "Create listing and continue to payment"
+    },
     "validation": {
       "stockRequired": "Quantity is required",
       "stockInteger": "Quantity must be a whole number",
