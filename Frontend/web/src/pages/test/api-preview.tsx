@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { AlertCircle, Check, Copy, Play, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
 
 type ApiTest = 
   // Orders & Shipping
@@ -34,7 +35,6 @@ interface ApiCallResponse {
   timestamp: string;
   executionTime: number;
 }
-
 const apiEndpoints: Record<ApiTest, ApiEndpoint> = {
   // === ORDERS & SHIPPING ===
   shipping: {
@@ -313,6 +313,7 @@ const apiEndpoints: Record<ApiTest, ApiEndpoint> = {
 
 // Mock Response Generator
 function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown>): Omit<ApiCallResponse, 'timestamp' | 'executionTime'> {
+  const { t } = useTranslation('common');
   const responses: Record<ApiTest, Omit<ApiCallResponse, 'timestamp' | 'executionTime'>> = {
     // === ORDERS & SHIPPING ===
     shipping: {
@@ -427,7 +428,7 @@ function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown
           lastName: 'Al-Hakim',
           createdAt: new Date().toISOString()
         },
-        message: 'Account created successfully'
+        message: t('auth.accountCreated')
       }
     },
     logout: {
@@ -436,7 +437,7 @@ function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown
       method: 'POST',
       request,
       response: {
-        message: 'Logged out successfully'
+        message: t('auth.loggedOut')
       }
     },
     forgotPassword: {
@@ -445,8 +446,7 @@ function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown
       method: 'POST',
       request,
       response: {
-        message: 'Password reset email sent',
-        email: request.email
+        message: t('auth.passwordResetEmailSent')
       }
     },
     resetPassword: {
@@ -455,7 +455,7 @@ function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown
       method: 'POST',
       request,
       response: {
-        message: 'Password reset successfully'
+        message: t('auth.passwordResetSuccess')
       }
     },
 
@@ -660,7 +660,7 @@ export default function ApiPreviewPage() {
   const endpoint = apiEndpoints[activeApi];
 
   return (
-    <Layout title="API Preview">
+    <Layout title="API Preview - Swagger UI">
       <div className="bg-gray-50 min-h-screen py-12">
         <div className="container mx-auto px-4 max-w-7xl">
           {/* Header */}

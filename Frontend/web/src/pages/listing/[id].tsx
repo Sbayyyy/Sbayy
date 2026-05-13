@@ -11,7 +11,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import ReportDialog from '@/components/ReportDialog';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { CONDITION_LABEL_MAP, CONDITION_I18N_MAP, getCategoryLabelFromValue } from '@/lib/constants';
+import { CONDITION_LABEL_MAP, CONDITION_I18N_MAP, getCategoryLabelFromValue, getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
 import { useRequireAuthAction } from '@/lib/hooks/useRequireAuthAction';
 import { ImageGallery, SellerCard, ListingActions, TrustBadges } from '@/components/listing';
@@ -188,6 +188,12 @@ export default function ListingDetail() {
   const sellerProfileId = listing.seller?.id || listing.sellerId;
   const isOwnListing = user?.id === sellerProfileId;
   const categoryLabel = getCategoryLabelFromValue(listing.categoryPath, locale) || t('listing.details.unknown', 'Uncategorized');
+  const regionI18nKey = getCityI18nKeyFromValue(listing.region);
+  const regionLabel = listing.region
+    ? regionI18nKey
+      ? t(regionI18nKey, getCityLabel(listing.region, locale))
+      : getCityLabel(listing.region, locale)
+    : '';
 
   return (
     <>
@@ -276,12 +282,12 @@ export default function ListingDetail() {
                           <p className="font-semibold text-slate-900">{conditionLabels[listing.condition] || listing.condition}</p>
                         </div>
                       )}
-                      {listing.region && (
+                      {regionLabel && (
                         <div>
                           <p className="text-sm text-slate-500">{t('listing.details.region', 'Region')}</p>
                           <p className="font-semibold text-slate-900 flex items-center gap-1">
                             <MapPin size={16} />
-                            {listing.region}
+                            {regionLabel}
                           </p>
                         </div>
                       )}

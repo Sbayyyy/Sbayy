@@ -9,9 +9,12 @@ const SECTIONS = [
   'sharing',
   'security',
   'cookies',
+  'retention',
   'rights',
+  'deletion',
   'children',
   'changes',
+  'contact',
 ] as const;
 
 export default function Privacy() {
@@ -21,6 +24,7 @@ export default function Privacy() {
     <Layout>
       <Head>
         <title>{t('privacy.pageTitle')}</title>
+        <meta name="description" content={t('privacy.intro')} />
       </Head>
 
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -48,7 +52,7 @@ export default function Privacy() {
 export async function getStaticProps({ locale }: { locale?: string }) {
   return {
     props: {
-      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
-    }
+      ...(await serverSideTranslations(locale ?? 'ar', ['common'])),
+    },
   };
 }

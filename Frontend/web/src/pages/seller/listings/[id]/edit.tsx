@@ -9,6 +9,8 @@ import { useRequireAuth } from '@/lib/useRequireAuth';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { Select } from '@/components/ui/select';
+import { CITIES, normalizeCityValue } from '@/lib/constants';
 
 interface ProductFormData {
   title: string;
@@ -21,6 +23,8 @@ interface ProductFormData {
   condition: string;
   region: string;
 }
+
+const PRICE_CURRENCIES = ['SYP', 'USD', 'EUR'];
 
 export default function EditListingPage() {
   const router = useRouter();
@@ -69,11 +73,11 @@ export default function EditListingPage() {
         categoryPath: data.categoryPath || '',
         stock: data.stock.toString(),
         condition: data.condition,
-        region: data.region || ''
+        region: normalizeCityValue(data.region || '')
       });
     } catch (err: unknown) {
       console.error('Error loading listing:', err);
-      setError(t('editListing.loadError'));
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -99,7 +103,7 @@ export default function EditListingPage() {
 
     if (!formData.title.trim()) newErrors.title = t('editListing.validation.titleRequired');
     if (!formData.description.trim()) newErrors.description = t('editListing.validation.descriptionRequired');
-    if (!formData.priceAmount || parseFloat(formData.priceAmount) <= 0) {
+    if (formData.priceAmount === '' || parseFloat(formData.priceAmount) < 0) {
       newErrors.priceAmount = t('editListing.validation.pricePositive');
     }
     if (!formData.region.trim()) newErrors.region = t('editListing.validation.locationRequired');
@@ -129,7 +133,7 @@ export default function EditListingPage() {
         categoryPath: formData.categoryPath.trim() || undefined,
         stock: parseInt(formData.stock),
         condition: formData.condition,
-        region: formData.region.trim()
+        region: normalizeCityValue(formData.region.trim())
       };
 
       await updateListing(id as string, updateData);
@@ -254,17 +258,32 @@ export default function EditListingPage() {
                   <label htmlFor="priceAmount" className="block text-sm font-medium mb-2">
                     {t('editListing.fields.price')}
                   </label>
-                  <input
-                    type="number"
-                    id="priceAmount"
-                    name="priceAmount"
-                    value={formData.priceAmount}
-                    onChange={handleChange}
-                    disabled={submitting}
-                    min="0"
-                    step="1"
-                    className={`w-full input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      id="priceAmount"
+                      name="priceAmount"
+                      value={formData.priceAmount}
+                      onChange={handleChange}
+                      disabled={submitting}
+                      min="0"
+                      step="any"
+                      className={`min-w-0 flex-1 input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
+                    />
+                    <Select
+                      id="priceCurrency"
+                      name="priceCurrency"
+                      value={formData.priceCurrency || 'SYP'}
+                      onChange={handleChange}
+                      disabled={submitting}
+                      aria-label={t('editListing.fields.currency')}
+                      className="w-28 flex-shrink-0"
+                    >
+                      {PRICE_CURRENCIES.map(currency => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                    </Select>
+                  </div>
                   {errors.priceAmount && <p className="mt-1 text-sm text-red-500">{errors.priceAmount}</p>}
                 </div>
 
@@ -292,13 +311,12 @@ export default function EditListingPage() {
                   <label htmlFor="categoryPath" className="block text-sm font-medium mb-2">
                     {t('editListing.fields.category')}
                   </label>
-                  <select
+                  <Select
                     id="categoryPath"
                     name="categoryPath"
                     value={formData.categoryPath}
                     onChange={handleChange}
                     disabled={submitting}
-                    className="w-full input"
                   >
                     <option value="">{t('editListing.fields.categoryPlaceholder')}</option>
                     <option value="electronics">{t('editListing.categories.electronics')}</option>
@@ -307,26 +325,25 @@ export default function EditListingPage() {
                     <option value="cars">{t('editListing.categories.cars')}</option>
                     <option value="real-estate">{t('editListing.categories.realEstate')}</option>
                     <option value="other">{t('editListing.categories.other')}</option>
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label htmlFor="condition" className="block text-sm font-medium mb-2">
                     {t('editListing.fields.condition')}
                   </label>
-                  <select
+                  <Select
                     id="condition"
                     name="condition"
                     value={formData.condition}
                     onChange={handleChange}
                     disabled={submitting}
-                    className="w-full input"
                   >
                     <option value="New">{t('editListing.conditions.new')}</option>
                     <option value="Used">{t('editListing.conditions.used')}</option>
                     <option value="Refurbished">{t('editListing.conditions.refurbished')}</option>
                     <option value="LikeNew">{t('editListing.conditions.likeNew')}</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 
@@ -335,16 +352,19 @@ export default function EditListingPage() {
                 <label htmlFor="region" className="block text-sm font-medium mb-2">
                   {t('editListing.fields.location')}
                 </label>
-                <input
-                  type="text"
+                <Select
                   id="region"
                   name="region"
                   value={formData.region}
                   onChange={handleChange}
                   disabled={submitting}
                   className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
-                  placeholder={t('editListing.fields.locationPlaceholder')}
-                />
+                >
+                  <option value="">{t('editListing.fields.locationPlaceholder')}</option>
+                  {CITIES.map(city => (
+                    <option key={city.value} value={city.value}>{t(city.i18nKey, city.i18nDefault)}</option>
+                  ))}
+                </Select>
                 {errors.region && <p className="mt-1 text-sm text-red-500">{errors.region}</p>}
               </div>
 

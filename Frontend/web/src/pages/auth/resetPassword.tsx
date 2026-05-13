@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import {
+  createOptionalTextInputValidator,
+  loadProfanityListFromUrl
+} from '@sbay/shared';
 import { resetPassword } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
@@ -18,33 +22,102 @@ export default function ResetPassword() {
   const [apiError, setApiError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  const textInputValidator = useMemo(
+    () =>
+      createOptionalTextInputValidator({
+        profanityMessage: t('validation.profanity'),
+        sqlInjectionMessage: t('validation.sqlInjection'),
+        xssMessage: t('validation.xss')
+      }),
+    [t]
+  );
+
+  useEffect(() => {
+    void loadProfanityListFromUrl('/profanities.txt');
+  }, []);
+
+  const validatePasswordRules = (value: string): string | undefined => {
+    if (!value) return t('auth.errors.passwordRequired');
+    if (value.length < 8) return t('auth.errors.passwordMin');
+    if (!/[A-Z]/.test(value)) return t('auth.errors.passwordUpper');
+    if (!/[a-z]/.test(value)) return t('auth.errors.passwordLower');
+    if (!/[0-9]/.test(value)) return t('auth.errors.passwordNumber');
+
+    const validation = textInputValidator.validate(value);
+
+    if (!validation.isValid) {
+      return validation.message ?? t('auth.errors.inputUnsafe');
+    }
+
+    return undefined;
+  };
+
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
 
-    if (!password) {
-      newErrors.password = t('auth.errors.passwordRequired');
-    } else if (password.length < 8) {
-      newErrors.password = t('auth.errors.passwordMin');
-    } else if (!/[A-Z]/.test(password)) {
-      newErrors.password = t('auth.errors.passwordUpper');
-    } else if (!/[a-z]/.test(password)) {
-      newErrors.password = t('auth.errors.passwordLower');
-    } else if (!/[0-9]/.test(password)) {
-      newErrors.password = t('auth.errors.passwordNumber');
+    const passwordError = validatePasswordRules(password);
+
+    if (passwordError) {
+      newErrors.password = passwordError;
     }
 
     if (!confirmPassword) {
       newErrors.confirmPassword = t('auth.errors.passwordRequired');
     } else if (password !== confirmPassword) {
       newErrors.confirmPassword = t('resetPassword.passwordMismatch');
+    } else {
+      const confirmPasswordValidation = textInputValidator.validate(confirmPassword);
+
+      if (!confirmPasswordValidation.isValid) {
+        newErrors.confirmPassword = confirmPasswordValidation.message ?? t('auth.errors.inputUnsafe');
+      }
     }
 
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+
+    const passwordError = validatePasswordRules(value);
+
+    setErrors(prev => ({
+      ...prev,
+      password: passwordError
+    }));
+
+    if (apiError) setApiError('');
+  };
+
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value);
+
+    let confirmPasswordError: string | undefined;
+
+    if (!value) {
+      confirmPasswordError = t('auth.errors.passwordRequired');
+    } else if (password && value !== password) {
+      confirmPasswordError = t('resetPassword.passwordMismatch');
+    } else {
+      const validation = textInputValidator.validate(value);
+      confirmPasswordError = validation.isValid
+        ? undefined
+        : validation.message ?? t('auth.errors.inputUnsafe');
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      confirmPassword: confirmPasswordError
+    }));
+
+    if (apiError) setApiError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -60,7 +133,6 @@ export default function ResetPassword() {
     }
   };
 
-  // No token provided
   if (!token && router.isReady) {
     return (
       <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
@@ -85,7 +157,6 @@ export default function ResetPassword() {
     );
   }
 
-  // Success state
   if (success) {
     return (
       <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
@@ -129,7 +200,7 @@ export default function ResetPassword() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div>
             <label htmlFor="password" className="block text-sm/6 font-medium text-black-100">
               {t('resetPassword.passwordLabel')}
@@ -140,11 +211,7 @@ export default function ResetPassword() {
                 name="password"
                 type="password"
                 value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
-                  if (apiError) setApiError('');
-                }}
+                onChange={(e) => handlePasswordChange(e.target.value)}
                 disabled={isLoading}
                 required
                 autoComplete="new-password"
@@ -168,11 +235,7 @@ export default function ResetPassword() {
                 name="confirmPassword"
                 type="password"
                 value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: undefined }));
-                  if (apiError) setApiError('');
-                }}
+                onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                 disabled={isLoading}
                 required
                 autoComplete="new-password"

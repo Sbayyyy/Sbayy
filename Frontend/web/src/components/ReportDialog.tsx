@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { createReport, type ReportPayload } from '@/lib/api/reports';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { Select } from '@/components/ui/select';
 
 type ReportDialogProps = {
   isOpen: boolean;
@@ -150,8 +151,7 @@ export default function ReportDialog({
             <label className="mb-2 block text-sm font-semibold text-slate-700">
               {t('report.fields.reason', { defaultValue: 'Reason' })}
             </label>
-            <select
-              className="input"
+            <Select
               value={reason}
               onChange={(event) => setReason(event.target.value as ReportPayload['reason'])}
             >
@@ -160,7 +160,7 @@ export default function ReportDialog({
                   {t(`report.reasons.${option.toLowerCase()}`, { defaultValue: option })}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div>

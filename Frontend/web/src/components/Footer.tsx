@@ -37,7 +37,15 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About */}
           <div>
-            <h4 className="text-xl font-bold mb-4">{t('footer.brandName')}</h4>
+            <div className="mb-4 flex items-center gap-2">
+              <img
+                src={config.logoUrl}
+                alt=""
+                className="h-7 w-auto max-w-[4.5rem] object-contain"
+                loading="lazy"
+              />
+              <h4 className="text-xl font-bold">{t('footer.brandName')}</h4>
+            </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               {t('footer.about')}
             </p>
@@ -79,7 +87,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
+                <Link href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors">
                   {t('footer.privacyPolicy')}
                 </Link>
               </li>

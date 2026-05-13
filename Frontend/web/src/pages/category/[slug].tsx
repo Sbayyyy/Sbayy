@@ -260,10 +260,7 @@ export default function CategoryPage() {
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">📦</div>
                 <h3 className="text-xl font-bold mb-2">{t('category.emptyTitle')}</h3>
-                <p className="text-gray-600 mb-6">{t('category.emptyMessage')}</p>
-                <Link href="/browse" className="btn-primary">
-                  {t('category.browseAll')}
-                </Link>
+                <p className="text-gray-600">{t('category.emptyMessage')}</p>
               </div>
             )}
           </div>

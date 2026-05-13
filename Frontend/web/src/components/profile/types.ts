@@ -1,4 +1,7 @@
-export type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
+export interface TranslationFn {
+  (key: string, options?: Record<string, unknown>): string;
+  (key: string, defaultValue: string): string;
+}
 
 export interface ProfileFormData {
   name: string;

@@ -42,7 +42,7 @@ export const getCategoryDescription = (category: CategoryDefinition, locale?: st
 
 export const getCategoryLabelFromValue = (value?: string, locale?: string) => {
   if (!value) return '';
-  const normalized = value.trim().toLowerCase();
+  const normalized = value.trim().split('/')[0].toLowerCase();
   const category = CATEGORIES.find(c =>
     c.slug.toLowerCase() === normalized ||
     c.id.toLowerCase() === normalized ||

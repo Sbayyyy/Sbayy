@@ -9,8 +9,10 @@ import {
 } from 'lucide-react';
 import type { User } from '@sbay/shared';
 import type { ProfileFormData, ProfileErrors, TranslationFn } from './types';
-import { getCityLabel } from '@/lib/constants';
+import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
+import { Select } from '@/components/ui/select';
+import { useTranslation } from 'next-i18next';
 
 interface CityOption {
   value: string;
@@ -59,6 +61,14 @@ export default function ProfileHeader({
   memberSince,
   t,
 }: ProfileHeaderProps) {
+  const { i18n } = useTranslation('common');
+  const cityI18nKey = getCityI18nKeyFromValue(user?.city);
+  const cityLabel = user?.city
+    ? cityI18nKey
+      ? t(cityI18nKey, getCityLabel(user.city, i18n.language))
+      : getCityLabel(user.city, i18n.language)
+    : '';
+
   return (
     <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex flex-col lg:flex-row gap-6">
@@ -175,10 +185,10 @@ export default function ProfileHeader({
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <MapPin className="w-5 h-5 text-gray-400" />
                   {isEditing ? (
-                    <select
+                    <Select
                       value={formData.city}
                       onChange={(e) => handleProfileFieldChange('city', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="text-sm"
                     >
                       <option value="">{t('profile.cityPlaceholder')}</option>
                       {cityOptions.map((option) => (
@@ -186,9 +196,9 @@ export default function ProfileHeader({
                           {option.label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   ) : (
-                    <span>{user?.city ? getCityLabel(user.city) : t('profile.cityNotSet')}</span>
+                    <span>{cityLabel || t('profile.cityNotSet')}</span>
                   )}
                   {isEditing && profileErrors.city && (
                     <p className="text-xs text-red-500 mt-1">{profileErrors.city}</p>

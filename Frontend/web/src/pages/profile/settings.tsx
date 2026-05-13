@@ -12,6 +12,7 @@ import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
+import { Select } from '@/components/ui/select';
 
 const Toggle = ({
   checked,
@@ -385,12 +386,12 @@ export default function AccountSettingsPage() {
                   </div>
                   <div>
                     <label htmlFor="language" className="text-sm font-medium text-gray-700">Language</label>
-                    <select id="language" defaultValue="en" disabled className="mt-2 w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-500">
+                    <Select id="language" defaultValue="en" disabled className="mt-2">
                       <option value="en">English</option>
                       <option value="es">Espanol</option>
                       <option value="fr">Francais</option>
                       <option value="de">Deutsch</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
@@ -787,12 +788,12 @@ export default function AccountSettingsPage() {
                     </div>
                     <div>
                       <label htmlFor="country" className="text-sm font-medium text-gray-700">Country</label>
-                      <select id="country" defaultValue="us" className="mt-2 w-full border border-gray-300 rounded-md px-3 py-2">
+                      <Select id="country" defaultValue="us" className="mt-2">
                         <option value="us">United States</option>
                         <option value="ca">Canada</option>
                         <option value="uk">United Kingdom</option>
                         <option value="au">Australia</option>
-                      </select>
+                      </Select>
                     </div>
                   </div>
                   <div className="flex justify-end gap-3 mt-6">

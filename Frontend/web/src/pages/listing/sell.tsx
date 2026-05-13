@@ -1,14 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import {
-  defaultTextInputValidator,
+  createOptionalTextInputValidator,
   IValidator,
-  getListingTitleValidationMessage,
-  getListingDescriptionValidationMessage,
-  getListingPriceValidationMessage,
-  getListingCategoryValidationMessage,
-  getListingLocationValidationMessage,
   loadProfanityListFromUrl,
   sanitizeInput
 } from '@sbay/shared';
@@ -21,9 +16,9 @@ import ImageUpload from '../../components/imageUpload';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { SELL_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
+import { CITIES, SELL_CATEGORIES, FILTER_CONDITIONS, getCategoryName, normalizeCityValue } from '@/lib/constants';
+import { Select } from '@/components/ui/select';
 
-// Extended type for form state to allow empty strings for numeric fields
 interface ProductFormData {
   title: string;
   description: string;
@@ -31,17 +26,20 @@ interface ProductFormData {
   priceCurrency?: string;
   imageUrls?: string[];
   categoryPath: string;
-  condition: string;  // "New" | "Used" | "Refurbished"
+  condition: string;
   region: string;
   stock?: number | string;
 }
+
+const sanitizeWhileTyping = (value: string): string => value.replace(/[<>]/g, '');
+const PRICE_CURRENCIES = ['SYP', 'USD', 'EUR'];
 
 export default function SellPage() {
   const router = useRouter();
   const { isAuthenticated, setUser } = useAuthStore();
   const isAuthed = useRequireAuth();
   const { t, i18n } = useTranslation('common');
-  
+
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
     description: '',
@@ -58,16 +56,26 @@ export default function SellPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
+  const textInputValidator = useMemo(
+    () =>
+      createOptionalTextInputValidator({
+        profanityMessage: t('validation.profanity'),
+        sqlInjectionMessage: t('validation.sqlInjection'),
+        xssMessage: t('validation.xss')
+      }),
+    [t]
+  );
+
+  const fieldValidators: Partial<Record<keyof ProductFormData, IValidator<string>>> = {
+    title: textInputValidator,
+    description: textInputValidator,
+    categoryPath: textInputValidator,
+    region: textInputValidator
+  };
+
   useEffect(() => {
     void loadProfanityListFromUrl('/profanities.txt');
   }, []);
-
-  const fieldValidators: Partial<Record<keyof ProductFormData, IValidator<string>>> = {
-    title: defaultTextInputValidator,
-    description: defaultTextInputValidator,
-    categoryPath: defaultTextInputValidator,
-    region: defaultTextInputValidator
-  };
 
   if (isAuthed === undefined) {
     return (
@@ -86,52 +94,109 @@ export default function SellPage() {
     return null;
   }
 
+  const validateTextField = (
+    field: keyof ProductFormData,
+    value: string,
+    requiredMessage?: string,
+    minLength?: number,
+    maxLength?: number
+  ): string | undefined => {
+    const sanitizedValue = sanitizeInput(value);
+
+    if (!sanitizedValue) {
+      return requiredMessage;
+    }
+
+    if (minLength !== undefined && sanitizedValue.length < minLength) {
+      return t('sell.validation.minLength', { count: minLength });
+    }
+
+    if (maxLength !== undefined && sanitizedValue.length > maxLength) {
+      return t('sell.validation.maxLength', { count: maxLength });
+    }
+
+    const validator = fieldValidators[field];
+
+    if (!validator) {
+      return undefined;
+    }
+
+    const result = validator.validate(sanitizedValue);
+
+    return result.isValid ? undefined : result.message ?? t('sell.validation.unsafeContent');
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    const unsafeMessage = t('sell.validation.unsafeContent');
 
-    const titleError = getListingTitleValidationMessage(sanitizeInput(formData.title));
-    if (titleError) newErrors.title = titleError;
-    if (!newErrors.title && fieldValidators.title) {
-      const result = fieldValidators.title.validate(sanitizeInput(formData.title));
-      if (!result.isValid) newErrors.title = result.message ?? unsafeMessage;
-    }
-
-    const descError = getListingDescriptionValidationMessage(sanitizeInput(formData.description));
-    if (descError) newErrors.description = descError;
-    if (!newErrors.description && fieldValidators.description) {
-      const result = fieldValidators.description.validate(sanitizeInput(formData.description));
-      if (!result.isValid) newErrors.description = result.message ?? unsafeMessage;
-    }
-
-    const priceError = getListingPriceValidationMessage(
-      formData.priceAmount === '' ? NaN : formData.priceAmount
+    const titleError = validateTextField(
+      'title',
+      formData.title,
+      t('sell.validation.titleRequired'),
+      3,
+      100
     );
-    if (priceError) newErrors.priceAmount = priceError;
 
-    const categoryError = getListingCategoryValidationMessage(formData.categoryPath);
-    if (categoryError) newErrors.categoryPath = categoryError;
-    if (!newErrors.categoryPath && fieldValidators.categoryPath) {
-      const result = fieldValidators.categoryPath.validate(formData.categoryPath);
-      if (!result.isValid) newErrors.categoryPath = result.message ?? unsafeMessage;
+    if (titleError) {
+      newErrors.title = titleError;
     }
 
-    const locationError = getListingLocationValidationMessage(sanitizeInput(formData.region));
-    if (locationError) newErrors.region = locationError;
-    if (!newErrors.region && fieldValidators.region) {
-      const result = fieldValidators.region.validate(sanitizeInput(formData.region));
-      if (!result.isValid) newErrors.region = result.message ?? unsafeMessage;
+    const descriptionError = validateTextField(
+      'description',
+      formData.description,
+      t('sell.validation.descriptionRequired'),
+      10,
+      2000
+    );
+
+    if (descriptionError) {
+      newErrors.description = descriptionError;
     }
 
-    // Validate stock
+    const price =
+      formData.priceAmount === ''
+        ? NaN
+        : typeof formData.priceAmount === 'string'
+          ? parseFloat(formData.priceAmount)
+          : formData.priceAmount;
+
+    if (Number.isNaN(price)) {
+      newErrors.priceAmount = t('sell.validation.priceRequired');
+    } else if (price < 0) {
+      newErrors.priceAmount = t('sell.validation.priceMin');
+    }
+
+    if (!formData.categoryPath) {
+      newErrors.categoryPath = t('sell.validation.categoryRequired');
+    } else {
+      const categoryResult = textInputValidator.validate(formData.categoryPath);
+
+      if (!categoryResult.isValid) {
+        newErrors.categoryPath = categoryResult.message ?? t('sell.validation.unsafeContent');
+      }
+    }
+
+    const locationError = validateTextField(
+      'region',
+      formData.region,
+      t('sell.validation.locationRequired'),
+      2,
+      100
+    );
+
+    if (locationError) {
+      newErrors.region = locationError;
+    }
+
     if (formData.stock === '' || formData.stock === undefined) {
       newErrors.stock = t('sell.validation.stockRequired');
     } else {
-      const quantity = typeof formData.stock === 'string'
-        ? parseInt(formData.stock, 10)
-        : formData.stock;
+      const quantity =
+        typeof formData.stock === 'string'
+          ? parseInt(formData.stock, 10)
+          : formData.stock;
 
-      if (isNaN(quantity)) {
+      if (Number.isNaN(quantity)) {
         newErrors.stock = t('sell.validation.stockInteger');
       } else if (!Number.isInteger(quantity)) {
         newErrors.stock = t('sell.validation.stockInteger');
@@ -145,6 +210,7 @@ export default function SellPage() {
     }
 
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -152,31 +218,34 @@ export default function SellPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+
+    const nextValue =
+      name === 'priceAmount' || name === 'stock'
+        ? value
+        : sanitizeWhileTyping(value);
+
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'priceAmount' || name === 'stock' 
-        ? (value === '' ? '' : parseFloat(value))
-        : value
+      [name]: nextValue
     }));
 
     const validator = fieldValidators[name as keyof ProductFormData];
+
     if (validator) {
-      const inputValue = name === 'title' || name === 'description' || name === 'region'
-        ? sanitizeInput(value)
-        : value;
-      const result = validator.validate(inputValue);
-      if (result.isValid) {
-        setErrors(prev => {
-          const next = { ...prev };
+      const result = validator.validate(String(nextValue));
+
+      setErrors(prev => {
+        const next = { ...prev };
+
+        if (result.isValid) {
           delete next[name];
-          return next;
-        });
-      } else {
-        setErrors(prev => ({
-          ...prev,
-          [name]: result.message ?? t('sell.validation.unsafeContent')
-        }));
-      }
+        } else {
+          next[name] = result.message ?? t('sell.validation.unsafeContent');
+        }
+
+        return next;
+      });
+
       return;
     }
 
@@ -189,28 +258,35 @@ export default function SellPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!validateForm()) return;
 
     setIsLoading(true);
     setApiError('');
 
     try {
-      // Convert form data to API format
       const submitData: ProductCreate = {
-        title: formData.title,
-        description: formData.description,
-        priceAmount: typeof formData.priceAmount === 'string' ? parseFloat(formData.priceAmount) : formData.priceAmount,
+        title: sanitizeInput(formData.title),
+        description: sanitizeInput(formData.description),
+        priceAmount:
+          typeof formData.priceAmount === 'string'
+            ? parseFloat(formData.priceAmount)
+            : formData.priceAmount,
         priceCurrency: formData.priceCurrency || 'SYP',
         imageUrls: formData.imageUrls || [],
         categoryPath: formData.categoryPath,
         condition: formData.condition,
-        region: formData.region,
-        stock: typeof formData.stock === 'string' 
-          ? (formData.stock === '' ? 1 : parseInt(formData.stock, 10))
-          : formData.stock || 1
+        region: normalizeCityValue(sanitizeInput(formData.region)),
+        stock:
+          typeof formData.stock === 'string'
+            ? formData.stock === ''
+              ? 1
+              : parseInt(formData.stock, 10)
+            : formData.stock || 1
       };
 
       const response = await createListing(submitData);
+
       if (isAuthenticated) {
         try {
           const refreshedUser = await getCurrentUser();
@@ -219,7 +295,7 @@ export default function SellPage() {
           console.error('Error refreshing profile stats:', refreshError);
         }
       }
-      // Redirect to the created listing
+
       router.push(`/listing/${response.id}`);
     } catch (error: unknown) {
       setApiError(getErrorMessage(error));
@@ -241,8 +317,7 @@ export default function SellPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Title */}
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
               <div>
                 <label htmlFor="title" className="block text-sm font-medium mb-2">
                   {t('sell.fields.title')}
@@ -260,7 +335,6 @@ export default function SellPage() {
                 {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
               </div>
 
-              {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium mb-2">
                   {t('sell.fields.description')}
@@ -280,7 +354,6 @@ export default function SellPage() {
                 )}
               </div>
 
-              {/* Images */}
               <div>
                 <ImageUpload
                   images={formData.imageUrls || []}
@@ -289,24 +362,38 @@ export default function SellPage() {
                 {errors.imageUrls && <p className="mt-1 text-sm text-red-500">{errors.imageUrls}</p>}
               </div>
 
-              {/* Price & Stock */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="priceAmount" className="block text-sm font-medium mb-2">
                     {t('sell.fields.price')}
                   </label>
-                  <input
-                    type="number"
-                    id="priceAmount"
-                    name="priceAmount"
-                    value={formData.priceAmount}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    min="0"
-                    step="1000"
-                    className={`w-full input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
-                    placeholder={t('sell.fields.pricePlaceholder')}
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      id="priceAmount"
+                      name="priceAmount"
+                      value={formData.priceAmount}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      min="0"
+                      step="any"
+                      className={`min-w-0 flex-1 input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
+                      placeholder={t('sell.fields.pricePlaceholder')}
+                    />
+                    <Select
+                      id="priceCurrency"
+                      name="priceCurrency"
+                      value={formData.priceCurrency || 'SYP'}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      aria-label={t('sell.fields.currency')}
+                      className="w-28 flex-shrink-0"
+                    >
+                      {PRICE_CURRENCIES.map(currency => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                    </Select>
+                  </div>
                   {errors.priceAmount && <p className="mt-1 text-sm text-red-500">{errors.priceAmount}</p>}
                 </div>
 
@@ -332,25 +419,24 @@ export default function SellPage() {
                 </div>
               </div>
 
-              {/* Category & Condition */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="categoryPath" className="block text-sm font-medium mb-2">
                     {t('sell.fields.category')}
                   </label>
-                  <select
+                  <Select
                     id="categoryPath"
                     name="categoryPath"
                     value={formData.categoryPath}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className={`w-full input ${errors.categoryPath ? 'border-2 border-red-500' : ''}`}
+                    className={errors.categoryPath ? '!border-red-500 focus:!border-red-500 focus:!ring-red-100' : ''}
                   >
                     <option value="">{t('sell.fields.categoryPlaceholder')}</option>
                     {SELL_CATEGORIES.map(cat => (
                       <option key={cat.slug} value={cat.slug}>{getCategoryName(cat, i18n.language)}</option>
                     ))}
-                  </select>
+                  </Select>
                   {errors.categoryPath && (
                     <p className="mt-1 text-sm text-red-500">{errors.categoryPath}</p>
                   )}
@@ -360,42 +446,42 @@ export default function SellPage() {
                   <label htmlFor="condition" className="block text-sm font-medium mb-2">
                     {t('sell.fields.condition')}
                   </label>
-                  <select
+                  <Select
                     id="condition"
                     name="condition"
                     value={formData.condition}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className="w-full input"
                   >
                     {FILTER_CONDITIONS.map(cond => (
                       <option key={cond.value} value={cond.value}>{t(cond.i18nKey)}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               </div>
 
-              {/* Location */}
               <div>
                 <label htmlFor="region" className="block text-sm font-medium mb-2">
                   {t('sell.fields.location')}
                 </label>
-                <input
-                  type="text"
+                <Select
                   id="region"
                   name="region"
                   value={formData.region}
                   onChange={handleChange}
                   disabled={isLoading}
                   className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
-                  placeholder={t('sell.fields.locationPlaceholder')}
-                />
+                >
+                  <option value="">{t('sell.fields.locationPlaceholder')}</option>
+                  {CITIES.map(city => (
+                    <option key={city.value} value={city.value}>{t(city.i18nKey, city.i18nDefault)}</option>
+                  ))}
+                </Select>
                 {errors.region && (
                   <p className="mt-1 text-sm text-red-500">{errors.region}</p>
                 )}
               </div>
 
-              {/* Submit */}
               <div className="flex gap-4">
                 <button
                   type="submit"

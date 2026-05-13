@@ -34,10 +34,15 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             ? bool.TryParse(sellerHeader.ToString(), out var parsedSeller) && parsedSeller
             : string.Equals(role, "seller", StringComparison.OrdinalIgnoreCase);
 
+        var userId = Request.Headers.TryGetValue("X-Test-UserId", out var userIdHeader)
+            && Guid.TryParse(userIdHeader.ToString(), out var parsedUserId)
+                ? parsedUserId
+                : SellerId;
+
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, SellerId.ToString()),
-            new Claim("sub", SellerId.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim("sub", userId.ToString()),
             new Claim(ClaimTypes.Role, role),
             new Claim("role", role),
             new Claim("is_seller", isSeller.ToString().ToLowerInvariant()),

@@ -77,6 +77,22 @@ CREATE TABLE IF NOT EXISTS push_tokens (
 CREATE UNIQUE INDEX IF NOT EXISTS ix_push_tokens_token ON push_tokens(token);
 CREATE INDEX IF NOT EXISTS ix_push_tokens_user_id ON push_tokens(user_id);
 
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type VARCHAR(64) NOT NULL DEFAULT 'notification',
+  title VARCHAR(160) NOT NULL,
+  body VARCHAR(512) NOT NULL,
+  href VARCHAR(512),
+  data_json JSONB,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  read_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS ix_notifications_user_unread ON notifications(user_id, is_read, is_archived, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS categories (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE

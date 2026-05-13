@@ -19,6 +19,7 @@ using PaymentTransaction = SBay.Domain.Entities.PaymentTransaction;
 using ListingBoostPurchase = SBay.Domain.Entities.ListingBoostPurchase;
 using PlatformFee = SBay.Domain.Entities.PlatformFee;
 using SponsoredAd = SBay.Domain.Entities.SponsoredAd;
+using UserNotification = SBay.Domain.Entities.UserNotification;
 
 namespace SBay.Domain.Database
 {
@@ -37,6 +38,7 @@ namespace SBay.Domain.Database
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewHelpful> ReviewHelpfuls => Set<ReviewHelpful>();
         public DbSet<PushToken> PushTokens => Set<PushToken>();
+        public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
         public DbSet<Report> Reports => Set<Report>();
         public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
         public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
@@ -147,6 +149,23 @@ namespace SBay.Domain.Database
                 e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
                 e.HasIndex(x => x.Token).IsUnique();
                 e.HasIndex(x => x.UserId);
+            });
+            modelBuilder.Entity<UserNotification>(e =>
+            {
+                e.ToTable("notifications");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+                e.Property(x => x.Type).HasColumnName("type").IsRequired().HasMaxLength(64);
+                e.Property(x => x.Title).HasColumnName("title").IsRequired().HasMaxLength(160);
+                e.Property(x => x.Body).HasColumnName("body").IsRequired().HasMaxLength(512);
+                e.Property(x => x.Href).HasColumnName("href").HasMaxLength(512);
+                e.Property(x => x.DataJson).HasColumnName("data_json").HasColumnType("jsonb");
+                e.Property(x => x.IsRead).HasColumnName("is_read");
+                e.Property(x => x.IsArchived).HasColumnName("is_archived");
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
+                e.Property(x => x.ReadAt).HasColumnName("read_at");
+                e.HasIndex(x => new { x.UserId, x.IsRead, x.IsArchived, x.CreatedAt });
             });
             modelBuilder.Entity<Report>(e =>
             {

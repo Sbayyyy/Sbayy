@@ -1,7 +1,8 @@
 import { useTranslation } from 'next-i18next';
 import { Address } from '@sbay/shared';
 import { AlertCircle } from 'lucide-react';
-import { CITY_NAMES_AR } from '@/lib/constants';
+import { CITIES } from '@/lib/constants';
+import { Select } from '@/components/ui/select';
 
 interface AddressFormProps {
   value: Address;
@@ -90,20 +91,20 @@ export default function AddressForm({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t('checkout.address.city')} <span className="text-red-500">*</span>
           </label>
-          <select
+          <Select
             value={value.city || ''}
             onChange={(e) => handleChange('city', e.target.value)}
-            className={`w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.city ? 'border-red-500' : 'border-gray-200'
+            className={`py-3 ${
+              errors.city ? '!border-red-500 focus:!border-red-500 focus:!ring-red-100' : ''
             }`}
           >
             <option value="">{t('checkout.address.cityPlaceholder')}</option>
-            {CITY_NAMES_AR.map((city) => (
-              <option key={city} value={city}>
-                {city}
+            {CITIES.map((city) => (
+              <option key={city.value} value={city.value}>
+                {t(city.i18nKey, city.i18nDefault)}
               </option>
             ))}
-          </select>
+          </Select>
           {errors.city && (
             <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
               <AlertCircle size={14} />
