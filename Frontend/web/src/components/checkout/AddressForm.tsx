@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 import { Address } from '@sbay/shared';
 import { AlertCircle } from 'lucide-react';
-import { CITY_NAMES_AR } from '@/lib/constants';
+import { CITIES } from '@/lib/constants';
 import { Select } from '@/components/ui/select';
 
 interface AddressFormProps {
@@ -99,9 +99,9 @@ export default function AddressForm({
             }`}
           >
             <option value="">{t('checkout.address.cityPlaceholder')}</option>
-            {CITY_NAMES_AR.map((city) => (
-              <option key={city} value={city}>
-                {city}
+            {CITIES.map((city) => (
+              <option key={city.value} value={city.value}>
+                {t(city.i18nKey, city.i18nDefault)}
               </option>
             ))}
           </Select>

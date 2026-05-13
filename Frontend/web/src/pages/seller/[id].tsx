@@ -26,6 +26,7 @@ import ProductCard from '@/components/ProductCard';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import ReportDialog from '@/components/ReportDialog';
+import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 
 export default function SellerProfilePage() {
   const router = useRouter();
@@ -132,6 +133,13 @@ export default function SellerProfilePage() {
     );
   }
 
+  const sellerCityI18nKey = getCityI18nKeyFromValue(seller.city);
+  const sellerCityLabel = seller.city
+    ? sellerCityI18nKey
+      ? t(sellerCityI18nKey, getCityLabel(seller.city, i18n.language))
+      : getCityLabel(seller.city, i18n.language)
+    : '';
+
   return (
     <Layout>
       <Head>
@@ -175,10 +183,10 @@ export default function SellerProfilePage() {
                         <Calendar className="w-4 h-4" />
                         <span>{t('sellerProfile.joined', { date: formatDate(seller.createdAt) })}</span>
                       </div>
-                      {seller.city && (
+                      {sellerCityLabel && (
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4" />
-                          <span>{seller.city}</span>
+                          <span>{sellerCityLabel}</span>
                         </div>
                       )}
                     </div>

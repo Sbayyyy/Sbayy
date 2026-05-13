@@ -10,6 +10,7 @@ import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { Select } from '@/components/ui/select';
+import { CITIES, normalizeCityValue } from '@/lib/constants';
 
 interface ProductFormData {
   title: string;
@@ -70,7 +71,7 @@ export default function EditListingPage() {
         categoryPath: data.categoryPath || '',
         stock: data.stock.toString(),
         condition: data.condition,
-        region: data.region || ''
+        region: normalizeCityValue(data.region || '')
       });
     } catch (err: unknown) {
       console.error('Error loading listing:', err);
@@ -130,7 +131,7 @@ export default function EditListingPage() {
         categoryPath: formData.categoryPath.trim() || undefined,
         stock: parseInt(formData.stock),
         condition: formData.condition,
-        region: formData.region.trim()
+        region: normalizeCityValue(formData.region.trim())
       };
 
       await updateListing(id as string, updateData);
@@ -334,16 +335,19 @@ export default function EditListingPage() {
                 <label htmlFor="region" className="block text-sm font-medium mb-2">
                   {t('editListing.fields.location')}
                 </label>
-                <input
-                  type="text"
+                <Select
                   id="region"
                   name="region"
                   value={formData.region}
                   onChange={handleChange}
                   disabled={submitting}
                   className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
-                  placeholder={t('editListing.fields.locationPlaceholder')}
-                />
+                >
+                  <option value="">{t('editListing.fields.locationPlaceholder')}</option>
+                  {CITIES.map(city => (
+                    <option key={city.value} value={city.value}>{t(city.i18nKey, city.i18nDefault)}</option>
+                  ))}
+                </Select>
                 {errors.region && <p className="mt-1 text-sm text-red-500">{errors.region}</p>}
               </div>
 

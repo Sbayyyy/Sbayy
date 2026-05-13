@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import type { User } from '@sbay/shared';
 import type { ProfileFormData, ProfileErrors, TranslationFn } from './types';
-import { getCityLabel } from '@/lib/constants';
+import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
 import { Select } from '@/components/ui/select';
 
@@ -60,6 +60,13 @@ export default function ProfileHeader({
   memberSince,
   t,
 }: ProfileHeaderProps) {
+  const cityI18nKey = getCityI18nKeyFromValue(user?.city);
+  const cityLabel = user?.city
+    ? cityI18nKey
+      ? t(cityI18nKey)
+      : getCityLabel(user.city)
+    : '';
+
   return (
     <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex flex-col lg:flex-row gap-6">
@@ -189,7 +196,7 @@ export default function ProfileHeader({
                       ))}
                     </Select>
                   ) : (
-                    <span>{user?.city ? getCityLabel(user.city) : t('profile.cityNotSet')}</span>
+                    <span>{cityLabel || t('profile.cityNotSet')}</span>
                   )}
                   {isEditing && profileErrors.city && (
                     <p className="text-xs text-red-500 mt-1">{profileErrors.city}</p>

@@ -9,7 +9,7 @@ import ProductCardSkeleton from '@/components/ProductCardSkeleton';
 import { Search, MapPin, Package } from 'lucide-react';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import { CITIES, HOMEPAGE_CATEGORIES, getCategoryName } from '@/lib/constants';
+import { CITIES, HOMEPAGE_CATEGORIES, getCategoryName, getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { Select } from '@/components/ui/select';
 
 export default function Home() {
@@ -20,6 +20,12 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('');
   const [searchError, setSearchError] = useState('');
+  const selectedRegionI18nKey = getCityI18nKeyFromValue(selectedRegion);
+  const selectedRegionLabel = selectedRegion
+    ? selectedRegionI18nKey
+      ? t(selectedRegionI18nKey, getCityLabel(selectedRegion, i18n.language))
+      : getCityLabel(selectedRegion, i18n.language)
+    : '';
   
   useEffect(() => {
     loadFeaturedProducts();
@@ -87,7 +93,7 @@ export default function Home() {
                 >
                   <option value="">{t('home.allRegions', 'All regions')}</option>
                   {CITIES.map((city) => (
-                    <option key={city.value} value={city.i18nDefault}>
+                    <option key={city.value} value={city.value}>
                       {t(city.i18nKey, city.i18nDefault)}
                     </option>
                   ))}
@@ -96,7 +102,7 @@ export default function Home() {
               {searchError && <p className="text-sm font-medium text-red-600">{searchError}</p>}
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <MapPin className="h-4 w-4" />
-                <span>{selectedRegion || t('home.allRegions', 'All regions')}</span>
+                <span>{selectedRegionLabel || t('home.allRegions', 'All regions')}</span>
               </div>
             </div>
           </div>

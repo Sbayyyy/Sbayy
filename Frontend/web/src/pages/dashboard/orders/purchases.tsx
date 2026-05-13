@@ -4,6 +4,7 @@ import Layout from '@/components/Layout';
 import { getPurchases } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import {
@@ -127,6 +128,14 @@ export default function PurchasesPage() {
       currency: 'SYP',
       minimumFractionDigits: 0
     }).format(amount);
+  };
+
+  const formatCity = (city?: string) => {
+    if (!city) return '';
+    const cityI18nKey = getCityI18nKeyFromValue(city);
+    return cityI18nKey
+      ? t(cityI18nKey, getCityLabel(city, i18n.language))
+      : getCityLabel(city, i18n.language);
   };
 
   return (
@@ -254,7 +263,7 @@ export default function PurchasesPage() {
                             {order.shippingAddress.name} • {order.shippingAddress.phone}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {order.shippingAddress.street}, {order.shippingAddress.city}
+                            {order.shippingAddress.street}, {formatCity(order.shippingAddress.city)}
                           </p>
                         </>
                       ) : (

@@ -1,5 +1,7 @@
 import { useRouter } from 'next/router';
 import { MapPin, Star } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
+import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 
 interface SellerInfo {
   id?: string;
@@ -36,6 +38,14 @@ function SellerAvatar({ seller }: { seller: SellerInfo }) {
 }
 
 function SellerDetails({ seller, reviewsLabel }: { seller: SellerInfo; reviewsLabel: (count: number) => string }) {
+  const { t, i18n } = useTranslation('common');
+  const cityI18nKey = getCityI18nKeyFromValue(seller.city);
+  const cityLabel = seller.city
+    ? cityI18nKey
+      ? t(cityI18nKey, getCityLabel(seller.city, i18n.language))
+      : getCityLabel(seller.city, i18n.language)
+    : '';
+
   return (
     <div>
       <p className="font-semibold text-slate-950">{seller.name}</p>
@@ -48,10 +58,10 @@ function SellerDetails({ seller, reviewsLabel }: { seller: SellerInfo; reviewsLa
       {seller.reviewCount !== undefined && (
         <p className="text-xs text-slate-500">{reviewsLabel(seller.reviewCount)}</p>
       )}
-      {seller.city && (
+      {cityLabel && (
         <p className="text-xs text-slate-500 flex items-center gap-1">
           <MapPin size={12} />
-          {seller.city}
+          {cityLabel}
         </p>
       )}
     </div>
