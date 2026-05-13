@@ -14,6 +14,7 @@ import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { Select } from '@/components/ui/select';
+import { CITIES, normalizeCityValue } from '@/lib/constants';
 
 export default function Register() {
     const { t, i18n } = useTranslation('common');
@@ -229,7 +230,7 @@ export default function Register() {
                 name: formData.username,
                 email: formData.email,
                 phone: formData.phone,
-                city: formData.city,
+                city: normalizeCityValue(formData.city),
                 password: formData.password
             });
 
@@ -373,20 +374,9 @@ export default function Register() {
                   }`}
                 >
                   <option value="">{t('auth.register.cityPlaceholder')}</option>
-                  <option value="دمشق">{t('cities.damascus')}</option>
-                  <option value="ريف دمشق">{t('cities.rifDamascus')}</option>
-                  <option value="حلب">{t('cities.aleppo')}</option>
-                  <option value="حمص">{t('cities.homs')}</option>
-                  <option value="حماة">{t('cities.hama')}</option>
-                  <option value="اللاذقية">{t('cities.latakia')}</option>
-                  <option value="طرطوس">{t('cities.tartus')}</option>
-                  <option value="إدلب">{t('cities.idlib')}</option>
-                  <option value="الرقة">{t('cities.raqqa')}</option>
-                  <option value="دير الزور">{t('cities.deirEzZor')}</option>
-                  <option value="الحسكة">{t('cities.alHasakah')}</option>
-                  <option value="درعا">{t('cities.daraa')}</option>
-                  <option value="السويداء">{t('cities.asSuwayda')}</option>
-                  <option value="القنيطرة">{t('cities.quneitra')}</option>
+                  {CITIES.map(city => (
+                    <option key={city.value} value={city.value}>{t(city.i18nKey, city.i18nDefault)}</option>
+                  ))}
                 </Select>
                 {errors.city && (
                   <p className="mt-1 text-sm text-red-500">{errors.city}</p>

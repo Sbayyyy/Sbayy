@@ -3,6 +3,7 @@ import { CartItem as CartItemType } from '@/lib/cartStore';
 import { formatPrice } from '@/lib/cartStore';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
+import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 
 interface CartItemProps {
   item: CartItemType;
@@ -19,11 +20,17 @@ export default function CartItem({
 }: CartItemProps) {
   const { product, quantity } = item;
   const subtotal = product.priceAmount * quantity;
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
 
   const imageUrl = product.imageUrls?.[0] || null;
   const maxQuantity = product.stock ?? 99;
   const isOutOfStock = product.stock !== undefined && product.stock <= 0;
+  const regionI18nKey = getCityI18nKeyFromValue(product.region);
+  const regionLabel = product.region
+    ? regionI18nKey
+      ? t(regionI18nKey, getCityLabel(product.region, i18n.language))
+      : getCityLabel(product.region, i18n.language)
+    : '';
 
   const handleDecrease = () => {
     if (quantity > 1) {
@@ -61,8 +68,8 @@ export default function CartItem({
           </h3>
         </Link>
 
-        {!compact && product.region && (
-          <p className="text-xs text-slate-500 mb-2">{product.region}</p>
+        {!compact && regionLabel && (
+          <p className="text-xs text-slate-500 mb-2">{regionLabel}</p>
         )}
 
         <p className={`${compact ? 'text-base' : 'text-lg'} font-bold text-primary-700 mb-3`}>

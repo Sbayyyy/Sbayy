@@ -1,5 +1,5 @@
 import { SearchFilters } from '@sbay/shared';
-import { FILTER_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
+import { CITIES, FILTER_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
 import { useTranslation } from 'next-i18next';
 import { Select } from '@/components/ui/select';
 
@@ -57,13 +57,15 @@ export default function SearchFiltersPanel({
       </div>
 
       <div className="mt-4">
-        <input
-          type="text"
-          placeholder={t('filters.regionPlaceholder')}
-          value={filters.region}
+        <Select
+          value={filters.region || ''}
           onChange={(e) => onFilterChange({ region: e.target.value })}
-          className="input"
-        />
+        >
+          <option value="">{t('home.allRegions', 'All regions')}</option>
+          {CITIES.map(city => (
+            <option key={city.value} value={city.value}>{t(city.i18nKey, city.i18nDefault)}</option>
+          ))}
+        </Select>
       </div>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">

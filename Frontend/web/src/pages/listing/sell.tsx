@@ -16,7 +16,7 @@ import ImageUpload from '../../components/imageUpload';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { SELL_CATEGORIES, FILTER_CONDITIONS, getCategoryName } from '@/lib/constants';
+import { CITIES, SELL_CATEGORIES, FILTER_CONDITIONS, getCategoryName, normalizeCityValue } from '@/lib/constants';
 import { Select } from '@/components/ui/select';
 
 interface ProductFormData {
@@ -273,7 +273,7 @@ export default function SellPage() {
         imageUrls: formData.imageUrls || [],
         categoryPath: formData.categoryPath,
         condition: formData.condition,
-        region: sanitizeInput(formData.region),
+        region: normalizeCityValue(sanitizeInput(formData.region)),
         stock:
           typeof formData.stock === 'string'
             ? formData.stock === ''
@@ -446,16 +446,19 @@ export default function SellPage() {
                 <label htmlFor="region" className="block text-sm font-medium mb-2">
                   {t('sell.fields.location')}
                 </label>
-                <input
-                  type="text"
+                <Select
                   id="region"
                   name="region"
                   value={formData.region}
                   onChange={handleChange}
                   disabled={isLoading}
                   className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
-                  placeholder={t('sell.fields.locationPlaceholder')}
-                />
+                >
+                  <option value="">{t('sell.fields.locationPlaceholder')}</option>
+                  {CITIES.map(city => (
+                    <option key={city.value} value={city.value}>{t(city.i18nKey, city.i18nDefault)}</option>
+                  ))}
+                </Select>
                 {errors.region && (
                   <p className="mt-1 text-sm text-red-500">{errors.region}</p>
                 )}

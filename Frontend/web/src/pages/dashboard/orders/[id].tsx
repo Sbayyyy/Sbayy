@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { getOrder, updateOrderStatus, cancelOrder } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { 
@@ -202,6 +203,19 @@ export default function OrderDetailsPage() {
     );
   }
 
+  const shippingRegionI18nKey = getCityI18nKeyFromValue(order.shippingAddress?.region);
+  const shippingRegionLabel = order.shippingAddress?.region
+    ? shippingRegionI18nKey
+      ? t(shippingRegionI18nKey, getCityLabel(order.shippingAddress.region, i18n.language))
+      : getCityLabel(order.shippingAddress.region, i18n.language)
+    : '';
+  const shippingCityI18nKey = getCityI18nKeyFromValue(order.shippingAddress?.city);
+  const shippingCityLabel = order.shippingAddress?.city
+    ? shippingCityI18nKey
+      ? t(shippingCityI18nKey, getCityLabel(order.shippingAddress.city, i18n.language))
+      : getCityLabel(order.shippingAddress.city, i18n.language)
+    : '';
+
   return (
     <Layout>
       <Head>
@@ -323,9 +337,9 @@ export default function OrderDetailsPage() {
                         <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
                         <div>
                           <p className="text-gray-900">{order.shippingAddress.street}</p>
-                          <p className="text-gray-600">{order.shippingAddress.city}</p>
-                          {order.shippingAddress.region && (
-                            <p className="text-gray-600">{order.shippingAddress.region}</p>
+                          <p className="text-gray-600">{shippingCityLabel || order.shippingAddress.city}</p>
+                          {shippingRegionLabel && (
+                            <p className="text-gray-600">{shippingRegionLabel}</p>
                           )}
                         </div>
                       </div>

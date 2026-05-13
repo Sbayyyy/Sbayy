@@ -23,6 +23,7 @@ export {
   CITY_NAMES_AR,
   fixMojibake,
   normalizeCityValue,
+  getCityI18nKeyFromValue,
   getCityLabel,
   type CityOption,
 } from './cities';

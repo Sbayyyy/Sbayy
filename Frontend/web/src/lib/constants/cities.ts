@@ -61,10 +61,23 @@ export const normalizeCityValue = (value?: string): string => {
   return CITY_ALIAS_MAP.get(lower) ?? CITY_ALIAS_MAP.get(fixed) ?? fixed;
 };
 
+/** Get the i18n key for a canonical or legacy city value. */
+export const getCityI18nKeyFromValue = (value?: string): string | undefined => {
+  if (!value) return undefined;
+  const normalized = normalizeCityValue(value);
+  const city = CITIES.find(c => c.value === normalized);
+  return city?.i18nKey;
+};
+
 /** Get the display label for a city value. */
-export const getCityLabel = (value?: string): string => {
+export const getCityLabel = (value?: string, locale?: string): string => {
   if (!value) return '';
   const normalized = normalizeCityValue(value);
   const city = CITIES.find(c => c.value === normalized);
-  return city?.labelAr ?? fixMojibake(value);
+
+  if (!city) {
+    return fixMojibake(value);
+  }
+
+  return locale?.startsWith('ar') ? city.labelAr : city.i18nDefault;
 };

@@ -5,7 +5,7 @@ import { Heart, MapPin, Package, Zap } from 'lucide-react';
 import { Product } from '@sbay/shared';
 import { addFavorite, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store';
-import { CONDITION_I18N_MAP } from '@/lib/constants';
+import { CONDITION_I18N_MAP, getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
 import { useTranslation } from 'next-i18next';
 
@@ -58,6 +58,12 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
 
   const imageUrl = product.thumbnailUrl || product.imageUrls?.[0] || null;
   const isAvailable = product.stock === undefined || product.stock > 0;
+  const regionI18nKey = getCityI18nKeyFromValue(product.region);
+  const regionLabel = product.region
+    ? regionI18nKey
+      ? t(regionI18nKey, getCityLabel(product.region, i18n.language))
+      : getCityLabel(product.region, i18n.language)
+    : '';
 
   return (
     <article className="surface-card surface-card-hover group h-full overflow-hidden">
@@ -124,10 +130,10 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
         </Link>
 
           <div className="mb-3 flex h-5 items-center gap-1 text-sm text-slate-500">
-            {product.region && (
+            {regionLabel && (
               <>
                 <MapPin size={14} />
-                <span className="truncate">{product.region}</span>
+                <span className="truncate">{regionLabel}</span>
               </>
             )}
           </div>
