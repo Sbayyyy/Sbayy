@@ -81,6 +81,52 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
+    public async Task PostListing_ShouldAccept_AnyNonNegativePrice()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        var request = new
+        {
+            title = "Custom Price Item",
+            description = "Listing with a custom non-rounded price",
+            priceAmount = 12001m,
+            priceCurrency = "EUR",
+            stock = 1,
+            condition = "New",
+            categoryPath = "electronics",
+            region = "BW"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/listings", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<ListingResponse>();
+        result!.PriceAmount.Should().Be(12001m);
+    }
+
+    [Fact]
+    public async Task PostListing_ShouldReject_NegativePrice()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        var request = new
+        {
+            title = "Negative Price Item",
+            description = "Listing with an invalid negative price",
+            priceAmount = -1m,
+            priceCurrency = "EUR",
+            stock = 1,
+            condition = "New",
+            categoryPath = "electronics",
+            region = "BW"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/listings", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task PostListing_ShouldFail_WhenMissingRequiredFields()
     {
         var bad = new

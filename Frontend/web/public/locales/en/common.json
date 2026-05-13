@@ -458,7 +458,8 @@
       "titlePlaceholder": "e.g. iPhone 15 Pro Max 256GB",
       "description": "Product Description *",
       "descriptionPlaceholder": "Write a detailed description...",
-      "price": "Price (SYP) *",
+      "price": "Price *",
+      "currency": "Currency",
       "pricePlaceholder": "100000",
       "stock": "Available Quantity *",
       "stockPlaceholder": "1",
@@ -482,7 +483,7 @@
       "categoryRequired": "Please select a category.",
       "locationRequired": "Location is required.",
       "priceRequired": "Price is required.",
-      "priceMin": "Price must be greater than 0.",
+      "priceMin": "Price cannot be negative.",
       "minLength": "Must be at least {{count}} characters.",
       "maxLength": "Must be at most {{count}} characters."
     }
@@ -872,7 +873,8 @@
       "description": "Description *",
       "descriptionPlaceholder": "Write a detailed description...",
       "images": "Product Images",
-      "price": "Price (SYP) *",
+      "price": "Price *",
+      "currency": "Currency",
       "stock": "Available Quantity *",
       "category": "Category",
       "categoryPlaceholder": "Select category",
@@ -897,7 +899,7 @@
     "validation": {
       "titleRequired": "Title is required",
       "descriptionRequired": "Description is required",
-      "pricePositive": "Price must be greater than 0",
+      "pricePositive": "Price cannot be negative",
       "locationRequired": "Location is required",
       "stockMin": "Quantity must be 0 or more"
     },
