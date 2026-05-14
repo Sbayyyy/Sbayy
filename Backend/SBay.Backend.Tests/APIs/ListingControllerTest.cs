@@ -382,5 +382,11 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         var updated = await updateResponse.Content.ReadFromJsonAsync<ListingResponse>();
         updated!.PriceAmount.Should().Be(125m);
         updated.ImageUrls.Should().BeEquivalentTo(created.ImageUrls, options => options.WithStrictOrdering());
+
+        var reloadedResponse = await _client.GetAsync($"/api/listings/{created.Id}");
+        reloadedResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var reloaded = await reloadedResponse.Content.ReadFromJsonAsync<ListingResponse>();
+        reloaded!.PriceAmount.Should().Be(125m);
+        reloaded.ImageUrls.Should().BeEquivalentTo(created.ImageUrls, options => options.WithStrictOrdering());
     }
 }
