@@ -163,7 +163,7 @@ public sealed class ChatService : IChatService
 
     public async Task<int> GetUnreadCountAsync(Guid userId, CancellationToken ct = default)
     {
-        return await _messages.CountUnreadAsync(userId, ct);
+        return await _messages.CountUnreadChatsAsync(userId, ct);
     }
 
     private async Task<bool> IsBlockedAsync(Guid userId, Guid otherUserId, CancellationToken ct)
