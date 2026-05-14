@@ -23,6 +23,16 @@ public class EfMessageRepository : IMessageRepository
             .CountAsync(m => m.ReceiverId == receiverId && !m.IsRead, ct);
     }
 
+    public async Task<int> CountUnreadChatsAsync(Guid receiverId, CancellationToken ct)
+    {
+        return await _db.Set<Message>()
+            .AsNoTracking()
+            .Where(m => m.ReceiverId == receiverId && !m.IsRead)
+            .Select(m => m.ChatId)
+            .Distinct()
+            .CountAsync(ct);
+    }
+
     public async Task<int> CountUnreadForChatAsync(Guid chatId, Guid receiverId, CancellationToken ct)
     {
         return await _db.Set<Message>()

@@ -53,6 +53,22 @@ public class FirebaseMessageRepository : IMessageRepository
         return snapshot?.Count ?? 0;
     }
 
+    public async Task<int> CountUnreadChatsAsync(Guid receiverId, CancellationToken ct)
+    {
+        var snapshot = await EnsureCompleted(
+            _db.Collection("messages")
+               .WhereEqualTo("ReceiverId", receiverId.ToString())
+               .WhereEqualTo("IsRead", false)
+               .GetSnapshotAsync(ct));
+
+        return snapshot.Documents
+            .Where(d => d.Exists)
+            .Select(Convert)
+            .Select(m => m.ChatId)
+            .Distinct()
+            .Count();
+    }
+
     public async Task<int> CountUnreadForChatAsync(Guid chatId, Guid receiverId, CancellationToken ct)
     {
         var snapshot = await EnsureCompleted(

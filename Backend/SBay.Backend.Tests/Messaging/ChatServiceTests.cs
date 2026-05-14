@@ -199,22 +199,27 @@ public sealed class ChatServiceTests
     }
 
     [Fact]
-    public async Task GetUnreadCountAsync_Returns_TotalUnread_ForUser()
+    public async Task GetUnreadCountAsync_Returns_UnreadChatCount_ForUser()
     {
         using var db = NewDb();
         var me = Guid.NewGuid();
         var other = Guid.NewGuid();
+        var third = Guid.NewGuid();
         var svc = CreateService(db, me);
         var chat = await svc.OpenOrGetAsync(me, other, null, default);
+        var secondChat = await svc.OpenOrGetAsync(me, third, null, default);
 
         await svc.SendAsync(chat.Id, me, "m1", default);
         await svc.SendAsync(chat.Id, me, "m2", default);
         await svc.SendAsync(chat.Id, other, "m3", default);
+        await svc.SendAsync(secondChat.Id, me, "m4", default);
 
         var unreadForOther = await svc.GetUnreadCountAsync(other, default);
         var unreadForMe = await svc.GetUnreadCountAsync(me, default);
+        var unreadForThird = await svc.GetUnreadCountAsync(third, default);
 
-        Assert.Equal(2, unreadForOther);
+        Assert.Equal(1, unreadForOther);
         Assert.Equal(1, unreadForMe);
+        Assert.Equal(1, unreadForThird);
     }
 }
