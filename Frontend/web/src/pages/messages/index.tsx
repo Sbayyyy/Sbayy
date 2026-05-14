@@ -97,7 +97,6 @@ export default function MessagesPage() {
         }),
       );
       
-      // Process chats to add derived fields
       const processedChats = data.map(chat => {
         const otherUserId = chat.buyerId === user?.id ? chat.sellerId : chat.buyerId;
         const lastMessage = chat.lastMessage;
@@ -111,7 +110,7 @@ export default function MessagesPage() {
           lastMessageAt: chat.lastMessageAt,
           participant: {
             id: otherUserId,
-            name: profileMap.get(otherUserId)?.name ?? `User ${otherUserId.substring(0, 8)}`,
+            name: profileMap.get(otherUserId)?.name ?? t('messages.userFallback', { id: otherUserId.substring(0, 8) }),
             avatar: profileMap.get(otherUserId)?.avatar,
             email: '',
             verified: false,
@@ -297,6 +296,7 @@ export default function MessagesPage() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(chat => 
+        chat.listingTitle?.toLowerCase().includes(query) ||
         chat.participant?.name.toLowerCase().includes(query) ||
         chat.lastMessage?.content.toLowerCase().includes(query)
       );
@@ -428,45 +428,31 @@ export default function MessagesPage() {
                   }`}
                 >
                   <div className="flex items-start gap-4">
-                    {/* Avatar */}
                     <div className="flex-shrink-0">
-                      {chat.participant?.avatar ? (
-                        <img
-                          src={chat.participant.avatar}
-                          alt={chat.participant.name}
-                          className="h-12 w-12 rounded-full object-cover ring-2 ring-white shadow-sm"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 ring-2 ring-white shadow-sm">
-                          <UserIcon className="w-6 h-6 text-slate-500" />
-                        </div>
-                      )}
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">
+                        <Package className="w-6 h-6" />
+                      </div>
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
                         <h3 className={`font-semibold text-slate-950 ${
                           chat.unreadCount > 0 ? 'font-bold' : ''
                         }`}>
-                          {chat.participant?.name}
+                          {chat.listingTitle ?? t('messages.generalChat')}
                         </h3>
                         <span className="text-xs text-slate-500 flex-shrink-0">
                           {formatTime(chat.lastMessageAt || chat.createdAt)}
                         </span>
                       </div>
 
-                      {/* Product Reference */}
-                      {chat.listingId && (
-                        <div className="mb-1 flex items-center gap-2 text-sm text-slate-600">
-                          <Package className="w-4 h-4" />
-                          <span className="truncate">
-                            {chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })}
-                          </span>
-                        </div>
-                      )}
+                      <div className="mb-1 flex items-center gap-2 text-sm text-slate-600">
+                        <UserIcon className="w-4 h-4" />
+                        <span className="truncate">
+                          {chat.participant?.name ?? t('messages.unknownUser')}
+                        </span>
+                      </div>
 
-                      {/* Last Message */}
                       {chat.lastMessage && (
                         <div className="flex items-center justify-between gap-2">
                           <p className={`text-sm truncate ${
