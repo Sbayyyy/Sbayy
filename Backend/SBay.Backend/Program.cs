@@ -40,6 +40,11 @@ if (useSentry)
 var providerName = builder.Configuration.GetValue<string>("Database:Provider") ?? "ef";
 var useEf = !string.Equals(providerName, "firestore", StringComparison.OrdinalIgnoreCase);
 
+if (!useEf)
+{
+    throw new InvalidOperationException("Firestore refresh-token repository not implemented; change Database:Provider or implement FirebaseRefreshTokenRepository.");
+}
+
 ProductionConfigurationGuard.Validate(builder.Configuration, builder.Environment);
 
 if (useEf)
@@ -123,7 +128,6 @@ else
     builder.Services.AddScoped<IDataProvider, FirebaseDataProvider>();
     builder.Services.AddScoped<IPushTokenRepository, FirebasePushTokenRepository>();
     builder.Services.AddScoped<INotificationRepository, FirebaseNotificationRepository>();
-    builder.Services.AddScoped<IRefreshTokenRepository, FirebaseRefreshTokenRepository>();
     builder.Services.AddScoped<IUserBlockRepository, FirebaseUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, FirestoreUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();

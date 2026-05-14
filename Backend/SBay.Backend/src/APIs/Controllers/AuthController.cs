@@ -169,10 +169,17 @@ public class AuthController : ControllerBase
         if (user is null) return Unauthorized("Invalid refresh token.");
 
         var replacement = CreateRefreshToken(user.Id);
-        existing.RevokedAt = now;
-        existing.ReplacedByTokenHash = replacement.Entity.TokenHash;
+        await using var tx = await _uow.BeginTransactionAsync(ct);
+        var revoked = await _refreshTokens.RevokeActiveAsync(existing.TokenHash, replacement.Entity.TokenHash, now, ct);
+        if (revoked != 1)
+        {
+            await tx.RollbackAsync(ct);
+            return Unauthorized("Invalid refresh token.");
+        }
+
         await _refreshTokens.AddAsync(replacement.Entity, ct);
         await _uow.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         return Ok(new AuthResponse(user.ToDto(), GenerateJwt(user))
         {
@@ -287,10 +294,17 @@ public class AuthController : ControllerBase
             TokenHash = HashRefreshToken(raw),
             CreatedAt = now,
             ExpiresAt = now.AddDays(Math.Clamp(days, 1, 365)),
-            DeviceId = Request.Headers.TryGetValue("X-Device-Id", out var deviceId) ? deviceId.ToString() : null,
-            UserAgent = Request.Headers.UserAgent.ToString()
+            DeviceId = Request.Headers.TryGetValue("X-Device-Id", out var deviceId) ? NormalizeHeaderValue(deviceId.ToString(), 128) : null,
+            UserAgent = NormalizeHeaderValue(Request.Headers.UserAgent.ToString(), 512)
         };
         return (raw, entity);
+    }
+
+    private static string? NormalizeHeaderValue(string? value, int maxLength)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrEmpty(trimmed)) return null;
+        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
     }
 
     private static string HashRefreshToken(string token)

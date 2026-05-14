@@ -15,6 +15,11 @@ public class FirebaseRefreshTokenRepository : IRefreshTokenRepository
         throw new NotImplementedException("Firestore refresh token storage is not implemented.");
     }
 
+    public Task<int> RevokeActiveAsync(string tokenHash, string replacementTokenHash, DateTimeOffset now, CancellationToken ct)
+    {
+        throw new NotImplementedException("Firestore refresh token storage is not implemented.");
+    }
+
     public Task RevokeAllForUserAsync(Guid userId, DateTimeOffset now, CancellationToken ct)
     {
         throw new NotImplementedException("Firestore refresh token storage is not implemented.");

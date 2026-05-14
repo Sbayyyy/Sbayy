@@ -30,7 +30,7 @@ public sealed class DatabaseProviderTests
     }
 
     [Fact]
-    public void FirestoreProvider_UsesFirebaseRepositories()
+    public void FirestoreProvider_FailsFast_WhenRefreshTokensUnsupported()
     {
         var previousProvider = Environment.GetEnvironmentVariable("Database__Provider");
         var previousProject = Environment.GetEnvironmentVariable("Firebase__ProjectId");
@@ -45,11 +45,10 @@ public sealed class DatabaseProviderTests
             Environment.SetEnvironmentVariable("EnableFirestoreReports", "true");
             Environment.SetEnvironmentVariable("EnableFirestoreUserBlocks", "true");
             using var factory = new FirestoreWebAppFactory();
-            var repo = factory.Services.GetRequiredService<IListingRepository>();
-            repo.Should().BeOfType<FirebaseListingRepository>();
+            var act = () => factory.Services.GetRequiredService<IListingRepository>();
 
-            var analytics = factory.Services.GetRequiredService<IUserAnalyticsService>();
-            analytics.Should().BeOfType<FirebaseUserAnalyticsService>();
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("Firestore refresh-token repository not implemented; change Database:Provider or implement FirebaseRefreshTokenRepository.");
         }
         finally
         {

@@ -7,9 +7,29 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   hasHydrated: boolean;
+  /**
+   * Stores the authenticated user and access token, optionally stores the refresh token for session renewal, and marks the user authenticated.
+   * @param user Authenticated user profile returned by the API.
+   * @param token JWT access token used by API requests.
+   * @param refreshToken Optional refresh token used to renew expired access tokens.
+   * @returns void
+   */
   login: (user: User, token: string, refreshToken?: string | null) => void;
+  /**
+   * Clears stored authentication tokens and resets the authenticated user state.
+   * @returns void
+   */
   logout: () => void;
+  /**
+   * Replaces the current authenticated user profile in state.
+   * @param user Updated user profile.
+   * @returns void
+   */
   setUser: (user: User) => void;
+  /**
+   * Marks the auth store as hydrated after persisted state and local storage are read.
+   * @returns void
+   */
   setHasHydrated: () => void;
 }
 
