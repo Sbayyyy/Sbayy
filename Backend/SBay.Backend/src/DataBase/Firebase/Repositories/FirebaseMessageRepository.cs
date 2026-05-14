@@ -33,6 +33,13 @@ public class FirebaseMessageRepository : IMessageRepository
         return doc.ToDomain();
     }
 
+    private static Chat ConvertChat(DocumentSnapshot snapshot)
+    {
+        var doc = snapshot.ConvertTo<ChatDocument>()
+                  ?? throw new DatabaseException("Chat conversion failed");
+        return doc.ToDomain();
+    }
+
     public async Task<int> CountSentSinceAsync(Guid senderId, DateTime from, CancellationToken ct)
     {
         var snapshot = await EnsureCompleted(
@@ -61,12 +68,29 @@ public class FirebaseMessageRepository : IMessageRepository
                .WhereEqualTo("IsRead", false)
                .GetSnapshotAsync(ct));
 
-        return snapshot.Documents
+        var chatIds = snapshot.Documents
             .Where(d => d.Exists)
             .Select(Convert)
             .Select(m => m.ChatId)
             .Distinct()
-            .Count();
+            .ToArray();
+
+        var count = 0;
+        foreach (var chatId in chatIds)
+        {
+            var chat = await EnsureCompleted(
+                _db.Collection("chats")
+                   .Document(chatId.ToString())
+                   .GetSnapshotAsync(ct));
+            if (!chat.Exists) continue;
+            var domain = ConvertChat(chat);
+            if ((domain.BuyerId == receiverId && !domain.BuyerArchived) ||
+                (domain.SellerId == receiverId && !domain.SellerArchived))
+            {
+                count++;
+            }
+        }
+        return count;
     }
 
     public async Task<int> CountUnreadForChatAsync(Guid chatId, Guid receiverId, CancellationToken ct)

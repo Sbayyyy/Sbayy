@@ -28,6 +28,14 @@ public class EfMessageRepository : IMessageRepository
         return await _db.Set<Message>()
             .AsNoTracking()
             .Where(m => m.ReceiverId == receiverId && !m.IsRead)
+            .Join(
+                _db.Set<Chat>().AsNoTracking(),
+                m => m.ChatId,
+                c => c.Id,
+                (m, c) => new { m.ChatId, Chat = c })
+            .Where(x =>
+                (x.Chat.BuyerId == receiverId && !x.Chat.BuyerArchived) ||
+                (x.Chat.SellerId == receiverId && !x.Chat.SellerArchived))
             .Select(m => m.ChatId)
             .Distinct()
             .CountAsync(ct);

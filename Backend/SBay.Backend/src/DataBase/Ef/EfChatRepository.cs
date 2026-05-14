@@ -19,11 +19,32 @@ public class EfChatRepository : IChatRepository
     {
         return await _db.Set<Chat>()
             .AsNoTracking()
-            .Where(c => c.BuyerId == userId || c.SellerId == userId)
+            .Where(c =>
+                (c.BuyerId == userId && !c.BuyerArchived) ||
+                (c.SellerId == userId && !c.SellerArchived))
             .OrderByDescending(c => c.LastMessageAt ?? c.CreatedAt)
             .Skip(skip)
             .Take(take)
             .ToListAsync(ct);
+    }
+
+    public async Task<bool> ArchiveForUserAsync(Guid chatId, Guid userId, CancellationToken ct)
+    {
+        var chat = await _db.Set<Chat>().FirstOrDefaultAsync(c => c.Id == chatId, ct);
+        if (chat is null) return false;
+        if (chat.BuyerId == userId)
+        {
+            chat.BuyerArchived = true;
+        }
+        else if (chat.SellerId == userId)
+        {
+            chat.SellerArchived = true;
+        }
+        else
+        {
+            return false;
+        }
+        return true;
     }
 
     public async Task<bool> UpdateLastMessageTimestampAsync(Guid chatId, DateTime timestamp, CancellationToken ct)

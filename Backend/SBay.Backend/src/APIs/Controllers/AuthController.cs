@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Net.Mail;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
@@ -18,6 +19,8 @@ using RegisterRequest=SBay.Backend.APIs.Records.RegisterRequest;
 using UserDto=SBay.Backend.APIs.Records.UserDto;
 using AuthResponse= SBay.Backend.APIs.Records.Responses.AuthResponse;
 using ChangePasswordRequest = SBay.Backend.APIs.Records.ChangePasswordRequest;
+using RefreshTokenRequest = SBay.Backend.APIs.Records.RefreshTokenRequest;
+using LogoutRequest = SBay.Backend.APIs.Records.LogoutRequest;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
@@ -31,14 +34,16 @@ public class AuthController : ControllerBase
     private static readonly TimeSpan LoginAttemptWindow = TimeSpan.FromMinutes(15);
     private const int MaxLoginAttempts = 10;
     private readonly IUserRepository _users;
+    private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IUnitOfWork _uow;
     private readonly IPasswordHasher<User> _hasher;
     private readonly JwtOptions _jwt;
     private readonly IConfiguration _config;
 
-    public AuthController(IUserRepository users, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config)
+    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config)
     {
         _users = users;
+        _refreshTokens = refreshTokens;
         _uow = uow;
         _hasher = hasher;
         _jwt = jwt.Value;
@@ -89,7 +94,12 @@ public class AuthController : ControllerBase
 
         var dto = user.ToDto();
         var token = GenerateJwt(user);
-        return CreatedAtAction(nameof(GetMe), new { }, new AuthResponse(dto, token));
+        var refresh = await IssueRefreshTokenAsync(user.Id, ct);
+        return CreatedAtAction(nameof(GetMe), new { }, new AuthResponse(dto, token)
+        {
+            RefreshToken = refresh.Token,
+            RefreshTokenExpiresAt = refresh.ExpiresAt
+        });
     }
 
     
@@ -133,8 +143,60 @@ public class AuthController : ControllerBase
 
         var dto = user.ToDto();
         var token = GenerateJwt(user);
+        var refresh = await IssueRefreshTokenAsync(user.Id, ct);
         LoginAttempts.TryRemove(attemptKey, out _);
-        return Ok(new AuthResponse(dto, token));
+        return Ok(new AuthResponse(dto, token)
+        {
+            RefreshToken = refresh.Token,
+            RefreshTokenExpiresAt = refresh.ExpiresAt
+        });
+    }
+
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest req, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(req?.RefreshToken))
+            return Unauthorized("Invalid refresh token.");
+
+        var now = DateTimeOffset.UtcNow;
+        var existing = await _refreshTokens.GetByHashAsync(HashRefreshToken(req.RefreshToken), ct);
+        if (existing is null || existing.RevokedAt is not null || existing.ExpiresAt <= now)
+            return Unauthorized("Invalid refresh token.");
+
+        var user = await _users.GetByIdAsync(existing.UserId, ct);
+        if (user is null) return Unauthorized("Invalid refresh token.");
+
+        var replacement = CreateRefreshToken(user.Id);
+        existing.RevokedAt = now;
+        existing.ReplacedByTokenHash = replacement.Entity.TokenHash;
+        await _refreshTokens.AddAsync(replacement.Entity, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        return Ok(new AuthResponse(user.ToDto(), GenerateJwt(user))
+        {
+            RefreshToken = replacement.Token,
+            RefreshTokenExpiresAt = replacement.Entity.ExpiresAt
+        });
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Logout([FromBody] LogoutRequest req, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(req?.RefreshToken))
+        {
+            var existing = await _refreshTokens.GetByHashAsync(HashRefreshToken(req.RefreshToken), ct);
+            if (existing is not null && existing.RevokedAt is null)
+            {
+                existing.RevokedAt = DateTimeOffset.UtcNow;
+                await _uow.SaveChangesAsync(ct);
+            }
+        }
+
+        return NoContent();
     }
 
     
@@ -203,6 +265,37 @@ public class AuthController : ControllerBase
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private async Task<(string Token, DateTimeOffset ExpiresAt)> IssueRefreshTokenAsync(Guid userId, CancellationToken ct)
+    {
+        var token = CreateRefreshToken(userId);
+        await _refreshTokens.AddAsync(token.Entity, ct);
+        await _uow.SaveChangesAsync(ct);
+        return (token.Token, token.Entity.ExpiresAt);
+    }
+
+    private (string Token, RefreshToken Entity) CreateRefreshToken(Guid userId)
+    {
+        var raw = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var now = DateTimeOffset.UtcNow;
+        var days = _config.GetValue<int?>("Jwt:RefreshTokenDays") ?? 30;
+        var entity = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            TokenHash = HashRefreshToken(raw),
+            CreatedAt = now,
+            ExpiresAt = now.AddDays(Math.Clamp(days, 1, 365)),
+            DeviceId = Request.Headers.TryGetValue("X-Device-Id", out var deviceId) ? deviceId.ToString() : null,
+            UserAgent = Request.Headers.UserAgent.ToString()
+        };
+        return (raw, entity);
+    }
+
+    private static string HashRefreshToken(string token)
+    {
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
     }
 
     private static bool IsStrongPassword(string password)

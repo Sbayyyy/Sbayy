@@ -67,7 +67,26 @@ public sealed class ChatService : IChatService
             throw new ForbiddenException("Blocked");
 
         var chat = await _chats.FindByParticipantsAsync(buyerId, sellerId, listingId, ct);
-        if (chat is not null) return chat;
+        if (chat is not null)
+        {
+            var changed = false;
+            if (me == chat.BuyerId && chat.BuyerArchived)
+            {
+                chat.BuyerArchived = false;
+                changed = true;
+            }
+            if (me == chat.SellerId && chat.SellerArchived)
+            {
+                chat.SellerArchived = false;
+                changed = true;
+            }
+            if (changed)
+            {
+                await _chats.UpdateAsync(chat, ct);
+                await _uow.SaveChangesAsync(ct);
+            }
+            return chat;
+        }
 
         chat = new Chat { Id = Guid.NewGuid(), BuyerId = buyerId, SellerId = sellerId, ListingId = listingId };
         await _chats.AddAsync(chat, ct);
@@ -159,6 +178,13 @@ public sealed class ChatService : IChatService
         await _uow.SaveChangesAsync(ct);
 
         await _events.MessageDeletedAsync(message.Id, message.ChatId, message.SenderId, message.ReceiverId, message.IsRead, ct);
+    }
+
+    public async Task ArchiveChatAsync(Guid chatId, Guid requesterId, CancellationToken ct = default)
+    {
+        var archived = await _chats.ArchiveForUserAsync(chatId, requesterId, ct);
+        if (!archived) throw new InvalidOperationException("Chat not found");
+        await _uow.SaveChangesAsync(ct);
     }
 
     public async Task<int> GetUnreadCountAsync(Guid userId, CancellationToken ct = default)

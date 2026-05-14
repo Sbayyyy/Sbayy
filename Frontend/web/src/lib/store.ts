@@ -7,7 +7,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   hasHydrated: boolean;
-  login: (user: User, token: string) => void;
+  login: (user: User, token: string, refreshToken?: string | null) => void;
   logout: () => void;
   setUser: (user: User) => void;
   setHasHydrated: () => void;
@@ -20,10 +20,13 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       hasHydrated: false,
-      login: (user, token) => {
+      login: (user, token, refreshToken) => {
         // Store in both localStorage (for API interceptor) and Zustand (for React state)
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', token);
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
         }
         set({ user, token, isAuthenticated: true });
       },
