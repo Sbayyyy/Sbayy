@@ -18,6 +18,7 @@ public interface IChatService
 
     Task<Message> UpdateMessageAsync(Guid messageId, Guid editorId, string content, CancellationToken ct = default);
     Task DeleteMessageAsync(Guid messageId, Guid requesterId, CancellationToken ct = default);
+    Task ArchiveChatAsync(Guid chatId, Guid requesterId, CancellationToken ct = default);
 
     Task<IReadOnlyList<ChatSummaryDto>> GetInboxSummaryAsync(
         Guid me,

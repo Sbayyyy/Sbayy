@@ -3,4 +3,8 @@
 
 public record LoginRequest(string Email, string Password);
 public record UserDto(Guid Id, string Email, string? DisplayName, string? Phone, string Role, DateTime CreatedAt);
-public record AuthResponse(UserDto User, string Token);
+public record AuthResponse(UserDto User, string Token)
+{
+    public string? RefreshToken { get; init; }
+    public DateTimeOffset? RefreshTokenExpiresAt { get; init; }
+}

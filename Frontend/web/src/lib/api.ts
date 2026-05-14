@@ -79,9 +79,12 @@ if (typeof window !== 'undefined') {
         if (refreshToken) {
           try {
             const response = await axios.post(`${config.apiUrl}/auth/refresh`, { refreshToken });
-            const { token } = response.data;
+            const { token, refreshToken: nextRefreshToken } = response.data;
 
             localStorage.setItem('token', token);
+            if (nextRefreshToken) {
+              localStorage.setItem('refreshToken', nextRefreshToken);
+            }
             originalRequest.headers.Authorization = `Bearer ${token}`;
             
             return api.request(originalRequest);

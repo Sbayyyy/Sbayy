@@ -66,11 +66,34 @@ public class FirebaseChatRepository : IChatRepository
         var docs = buyerTask.Result.Documents.Concat(sellerTask.Result.Documents)
             .Where(d => d.Exists)
             .Select(Convert)
+            .Where(c =>
+                (c.BuyerId == userId && !c.BuyerArchived) ||
+                (c.SellerId == userId && !c.SellerArchived))
             .OrderByDescending(c => c.LastMessageAt ?? c.CreatedAt)
             .Skip(skip)
             .Take(take)
             .ToList();
         return docs;
+    }
+
+    public async Task<bool> ArchiveForUserAsync(Guid chatId, Guid userId, CancellationToken ct)
+    {
+        var chat = await GetByIdAsync(chatId, ct);
+        if (chat is null) return false;
+        if (chat.BuyerId == userId)
+        {
+            chat.BuyerArchived = true;
+        }
+        else if (chat.SellerId == userId)
+        {
+            chat.SellerArchived = true;
+        }
+        else
+        {
+            return false;
+        }
+        await UpdateAsync(chat, ct);
+        return true;
     }
 
     public async Task<bool> UpdateLastMessageTimestampAsync(Guid chatId, DateTime timestamp, CancellationToken ct)

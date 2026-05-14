@@ -222,4 +222,25 @@ public sealed class ChatServiceTests
         Assert.Equal(1, unreadForMe);
         Assert.Equal(1, unreadForThird);
     }
+
+    [Fact]
+    public async Task ArchiveChatAsync_HidesChatAndRemovesUnreadBadgeForThatUser()
+    {
+        using var db = NewDb();
+        var me = Guid.NewGuid();
+        var other = Guid.NewGuid();
+        var svc = CreateService(db, me);
+        var chat = await svc.OpenOrGetAsync(me, other, null, default);
+
+        await svc.SendAsync(chat.Id, me, "m1", default);
+        await svc.ArchiveChatAsync(chat.Id, other, default);
+
+        var otherInbox = await svc.GetInboxAsync(other, 10, 0, default);
+        var myInbox = await svc.GetInboxAsync(me, 10, 0, default);
+        var unreadForOther = await svc.GetUnreadCountAsync(other, default);
+
+        Assert.Empty(otherInbox);
+        Assert.Single(myInbox);
+        Assert.Equal(0, unreadForOther);
+    }
 }

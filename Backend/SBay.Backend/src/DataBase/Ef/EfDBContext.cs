@@ -20,6 +20,7 @@ using ListingBoostPurchase = SBay.Domain.Entities.ListingBoostPurchase;
 using PlatformFee = SBay.Domain.Entities.PlatformFee;
 using SponsoredAd = SBay.Domain.Entities.SponsoredAd;
 using UserNotification = SBay.Domain.Entities.UserNotification;
+using RefreshToken = SBay.Domain.Entities.RefreshToken;
 
 namespace SBay.Domain.Database
 {
@@ -39,6 +40,7 @@ namespace SBay.Domain.Database
         public DbSet<ReviewHelpful> ReviewHelpfuls => Set<ReviewHelpful>();
         public DbSet<PushToken> PushTokens => Set<PushToken>();
         public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<Report> Reports => Set<Report>();
         public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
         public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
@@ -166,6 +168,23 @@ namespace SBay.Domain.Database
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
                 e.Property(x => x.ReadAt).HasColumnName("read_at");
                 e.HasIndex(x => new { x.UserId, x.IsRead, x.IsArchived, x.CreatedAt });
+            });
+            modelBuilder.Entity<RefreshToken>(e =>
+            {
+                e.ToTable("refresh_tokens");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+                e.Property(x => x.TokenHash).HasColumnName("token_hash").IsRequired().HasMaxLength(128);
+                e.Property(x => x.ReplacedByTokenHash).HasColumnName("replaced_by_token_hash").HasMaxLength(128);
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
+                e.Property(x => x.ExpiresAt).HasColumnName("expires_at").IsRequired();
+                e.Property(x => x.RevokedAt).HasColumnName("revoked_at");
+                e.Property(x => x.DeviceId).HasColumnName("device_id").HasMaxLength(128);
+                e.Property(x => x.UserAgent).HasColumnName("user_agent").HasMaxLength(512);
+                e.Ignore(x => x.IsActive);
+                e.HasIndex(x => x.TokenHash).IsUnique();
+                e.HasIndex(x => new { x.UserId, x.ExpiresAt });
             });
             modelBuilder.Entity<Report>(e =>
             {

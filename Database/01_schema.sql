@@ -93,6 +93,21 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS ix_notifications_user_unread ON notifications(user_id, is_read, is_archived, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash VARCHAR(128) NOT NULL UNIQUE,
+  replaced_by_token_hash VARCHAR(128),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  device_id VARCHAR(128),
+  user_agent VARCHAR(512)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS ix_refresh_tokens_user_expires ON refresh_tokens(user_id, expires_at);
+
 CREATE TABLE IF NOT EXISTS categories (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE

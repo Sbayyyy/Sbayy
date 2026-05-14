@@ -34,13 +34,14 @@ describe('Auth Store', () => {
       };
 
       act(() => {
-        result.current.login(mockUser, 'test-token');
+        result.current.login(mockUser, 'test-token', 'test-refresh-token');
       });
 
       expect(result.current.user).toEqual(mockUser);
       expect(result.current.token).toBe('test-token');
       expect(result.current.isAuthenticated).toBe(true);
       expect(localStorage.setItem).toHaveBeenCalledWith('token', 'test-token');
+      expect(localStorage.setItem).toHaveBeenCalledWith('refreshToken', 'test-refresh-token');
     });
   });
 

@@ -7,5 +7,6 @@ namespace SBay.Domain.Database
         Task<Chat?> FindByParticipantsAsync(Guid buyerId, Guid sellerId, Guid? listingId, CancellationToken ct);
         Task<IReadOnlyList<Chat>> GetInboxAsync(Guid userId, int take, int skip, CancellationToken ct);
         Task<bool> UpdateLastMessageTimestampAsync(Guid chatId, DateTime timestamp, CancellationToken ct);
+        Task<bool> ArchiveForUserAsync(Guid chatId, Guid userId, CancellationToken ct);
     }
 }

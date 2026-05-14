@@ -207,7 +207,7 @@ export default function Login() {
                 password
             });
 
-            loginStore(data.user, data.token);
+            loginStore(data.user, data.token, data.refreshToken);
 
             const queryRedirect = typeof router.query.redirect === 'string' ? router.query.redirect : '';
             const storedRedirect = typeof window !== 'undefined'
