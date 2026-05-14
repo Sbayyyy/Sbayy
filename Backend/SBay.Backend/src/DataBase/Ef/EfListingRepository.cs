@@ -181,6 +181,17 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
         {
             if (entity is null) throw new ArgumentNullException(nameof(entity));
             _db.Entry(entity).State = EntityState.Modified;
+            var priceEntry = _db.Entry(entity).Reference(l => l.Price).TargetEntry;
+            if (priceEntry is not null)
+                priceEntry.State = EntityState.Modified;
+
+            if (entity.OriginalPrice is not null)
+            {
+                var originalPriceEntry = _db.Entry(entity).Reference(l => l.OriginalPrice).TargetEntry;
+                if (originalPriceEntry is not null)
+                    originalPriceEntry.State = EntityState.Modified;
+            }
+
             foreach (var image in entity.Images)
                 _db.Entry(image).State = EntityState.Detached;
             return Task.CompletedTask;
