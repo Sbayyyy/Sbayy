@@ -691,6 +691,9 @@
     "browseProducts": "تصفح المنتجات",
     "you": "أنت:",
     "productFallback": "منتج {{id}}",
+    "userFallback": "مستخدم {{id}}",
+    "unknownUser": "مستخدم غير معروف",
+    "generalChat": "محادثة",
     "time": {
       "now": "الآن",
       "minutesAgo": "منذ {{count}} دقيقة",

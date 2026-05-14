@@ -181,6 +181,17 @@ public sealed class ListingsController : ControllerBase
     public async Task<ActionResult<ListingResponse>> GetById(Guid id, CancellationToken ct)
     {
         var listing = await _repo.GetByIdAsync(id, ct);
+        if (listing is null)
+        {
+            var me = await _resolver.GetUserIdAsync(User, ct);
+            if (me.HasValue && me.Value != Guid.Empty)
+            {
+                var managementListing = await _repo.GetByIdForManagementAsync(id, ct);
+                if (managementListing != null && (managementListing.SellerId == me.Value || User.IsInRole("admin")))
+                    listing = managementListing;
+            }
+        }
+
         if (listing is null) return NotFound();
         var seller = await _users.GetByIdAsync(listing.SellerId, ct);
         return ToResponse(listing, seller);

@@ -691,6 +691,9 @@
     "browseProducts": "Browse products",
     "you": "You:",
     "productFallback": "Product {{id}}",
+    "userFallback": "User {{id}}",
+    "unknownUser": "Unknown user",
+    "generalChat": "Conversation",
     "time": {
       "now": "Just now",
       "minutesAgo": "{{count}} min ago",
