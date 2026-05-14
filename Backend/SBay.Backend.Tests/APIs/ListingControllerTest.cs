@@ -327,4 +327,60 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
 
         res.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task GetById_Should_Expose_Inactive_Listing_ToOwner()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+        var hidden = new Listing(TestAuthHandler.SellerId, "Hidden owner item", "desc", new Money(100m, "EUR"), stock: 1);
+        await SeedListingsAsync(hidden);
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+            var hiddenEntity = await db.Listings.FindAsync(hidden.Id);
+            db.Entry(hiddenEntity!).Property(l => l.Status).CurrentValue = "hidden";
+            await db.SaveChangesAsync();
+        }
+
+        var res = await _client.GetAsync($"/api/listings/{hidden.Id}");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await res.Content.ReadFromJsonAsync<ListingResponse>();
+        body!.Id.Should().Be(hidden.Id);
+    }
+
+    [Fact]
+    public async Task PutListing_Should_Update_Price_Without_Replacing_Existing_Images()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        var create = new
+        {
+            title = "Priced item",
+            description = "Item with images",
+            priceAmount = 100m,
+            priceCurrency = "SYP",
+            stock = 1,
+            condition = "New",
+            categoryPath = "electronics",
+            region = "Damascus",
+            imageUrls = new[] { "/uploads/priced-item.jpg" }
+        };
+        var createdResponse = await _client.PostAsJsonAsync("/api/listings", create);
+        createdResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createdResponse.Content.ReadFromJsonAsync<ListingResponse>();
+        created.Should().NotBeNull();
+
+        var update = new
+        {
+            priceAmount = 125m
+        };
+        var updateResponse = await _client.PutAsJsonAsync($"/api/listings/{created!.Id}", update);
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await updateResponse.Content.ReadFromJsonAsync<ListingResponse>();
+        updated!.PriceAmount.Should().Be(125m);
+        updated.ImageUrls.Should().BeEquivalentTo(created.ImageUrls, options => options.WithStrictOrdering());
+    }
 }
