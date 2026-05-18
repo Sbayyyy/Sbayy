@@ -8,6 +8,7 @@ public sealed record UpdateListingRequest
     public string? PriceCurrency { get; init; }
     public string? CategoryPath { get; init; }
     public string? Region { get; init; }
+    public string? SpecificLocation { get; init; }
     public List<string>? ImageUrls { get; init; }
     public int? Stock { get; init; }
     public string? Condition { get; init; }

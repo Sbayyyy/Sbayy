@@ -144,6 +144,7 @@ public sealed class FavoritesController : ControllerBase
             Status = l.Status,
             CategoryPath = l.CategoryPath,
             Region = l.Region,
+            SpecificLocation = l.SpecificLocation,
             CreatedAt = new DateTimeOffset(l.CreatedAt),
             ThumbnailUrl = l.ThumbnailUrl,
             Images = images,

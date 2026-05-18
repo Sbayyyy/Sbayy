@@ -437,17 +437,18 @@ export default function MessagesPage() {
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      {chat.listingImageUrl ? (
-                        <img
-                          src={chat.listingImageUrl}
-                          alt={chat.listingTitle ?? t('messages.generalChat')}
-                          className="h-12 w-12 rounded-xl object-cover ring-2 ring-white shadow-sm"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">
+                        {chat.listingImageUrl ? (
+                          <img
+                            src={chat.listingImageUrl}
+                            alt={chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId?.substring(0, 8) ?? '' })}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
                           <Package className="w-6 h-6" />
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex-1 min-w-0">

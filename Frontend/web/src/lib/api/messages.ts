@@ -72,7 +72,11 @@ export const sendMessage = async (chatId: string, content: string): Promise<Mess
 export const openChat = async (data: OpenChatRequest): Promise<OpenChatResponse> => {
   try {
     const response = await api.post<OpenChatResponse>('/chats/open', data);
-    return response.data;
+    const chatId = response.data.id || response.data.chatId;
+    if (!chatId) {
+      throw new Error('Missing chat id in backend response');
+    }
+    return { ...response.data, id: chatId };
   } catch (error) {
     console.error('Failed to open chat:', error);
     throw error;

@@ -71,6 +71,7 @@ public sealed class ListingsController : ControllerBase
             Status = l.Status,
             CategoryPath = l.CategoryPath,
             Region = l.Region,
+            SpecificLocation = l.SpecificLocation,
             CreatedAt = new DateTimeOffset(l.CreatedAt),
             BoostedUntil = l.BoostedUntil.HasValue ? new DateTimeOffset(l.BoostedUntil.Value) : null,
             IsBoosted = l.BoostedUntil.HasValue && l.BoostedUntil.Value > DateTime.UtcNow,
@@ -93,6 +94,7 @@ public sealed class ListingsController : ControllerBase
         if (body.PriceAmount < 0)                          return ValidationProblem("Price cannot be negative.");
         if (body.Stock < 0)                                return ValidationProblem("Stock cannot be negative.");
         if (string.IsNullOrWhiteSpace(body.PriceCurrency)) return ValidationProblem("Price currency is required.");
+        if (body.SpecificLocation?.Trim().Length > 200)    return ValidationProblem("Specific location must be 200 characters or less.");
         if (body.ImageUrls.Count > 10)                     return ValidationProblem("A listing can have at most 10 images.");
         if (body.ImageUrls.Any(url => !StoredImageUrlValidator.IsAllowed(url, _config)))
             return ValidationProblem("One or more image URLs are invalid.");
@@ -123,6 +125,9 @@ public sealed class ListingsController : ControllerBase
         
         var currency = body.PriceCurrency.Trim().ToUpperInvariant();
         var primaryImage = body.ImageUrls?.FirstOrDefault();
+        var specificLocation = string.IsNullOrWhiteSpace(body.SpecificLocation)
+            ? null
+            : body.SpecificLocation.Trim();
 
         var listing = new Listing(
             sellerId: sellerId,
@@ -134,7 +139,8 @@ public sealed class ListingsController : ControllerBase
             thumb: string.IsNullOrWhiteSpace(primaryImage) ? null : primaryImage.Trim(),
             categoryPath: body.CategoryPath,
             original: null,
-            region: body.Region
+            region: body.Region,
+            specificLocation: specificLocation
         );
 
         
@@ -222,6 +228,8 @@ public sealed class ListingsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(body.Status)
             && body.Status.Trim().ToLowerInvariant() is not ("active" or "sold" or "hidden"))
             return BadRequest("Invalid listing status.");
+        if (body.SpecificLocation?.Trim().Length > 200)
+            return BadRequest("Specific location must be 200 characters or less.");
         if (body.ImageUrls != null)
         {
             if (body.ImageUrls.Count > 10)
@@ -256,7 +264,8 @@ public sealed class ListingsController : ControllerBase
             body.Stock,
             condition,
             body.CategoryPath,
-            body.Region);
+            body.Region,
+            body.SpecificLocation);
 
         if (!string.IsNullOrWhiteSpace(body.Status))
         {

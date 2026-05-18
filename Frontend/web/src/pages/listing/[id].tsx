@@ -198,6 +198,7 @@ export default function ListingDetail() {
       ? t(regionI18nKey, getCityLabel(listing.region, locale))
       : getCityLabel(listing.region, locale)
     : '';
+  const locationLabel = [regionLabel, listing.specificLocation].filter(Boolean).join(' - ');
 
   return (
     <>
@@ -286,12 +287,12 @@ export default function ListingDetail() {
                           <p className="font-semibold text-slate-900">{conditionLabels[listing.condition] || listing.condition}</p>
                         </div>
                       )}
-                      {regionLabel && (
+                      {locationLabel && (
                         <div>
                           <p className="text-sm text-slate-500">{t('listing.details.region', 'Region')}</p>
                           <p className="font-semibold text-slate-900 flex items-center gap-1">
                             <MapPin size={16} />
-                            {regionLabel}
+                            {locationLabel}
                           </p>
                         </div>
                       )}

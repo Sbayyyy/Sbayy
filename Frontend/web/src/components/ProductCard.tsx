@@ -64,6 +64,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
       ? t(regionI18nKey, getCityLabel(product.region, i18n.language))
       : getCityLabel(product.region, i18n.language)
     : '';
+  const locationLabel = [regionLabel, product.specificLocation].filter(Boolean).join(' - ');
 
   return (
     <article className="surface-card surface-card-hover group h-full overflow-hidden">
@@ -130,10 +131,10 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
         </Link>
 
           <div className="mb-3 flex h-5 items-center gap-1 text-sm text-slate-500">
-            {regionLabel && (
+            {locationLabel && (
               <>
                 <MapPin size={14} />
-                <span className="truncate">{regionLabel}</span>
+                <span className="truncate">{locationLabel}</span>
               </>
             )}
           </div>
