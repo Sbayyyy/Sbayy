@@ -171,6 +171,7 @@ export default function Home() {
       while (browseById.size < targetCount && hasMorePages) {
         const data = await getAllListings(page, perPage);
         const products = data?.items ?? [];
+        const totalPages = data?.totalPages ?? 0;
 
         if (page === 1) {
           products
@@ -186,7 +187,7 @@ export default function Home() {
             }
           });
 
-        hasMorePages = products.length > 0 && page < data.totalPages;
+        hasMorePages = products.length > 0 && page < totalPages;
         page += 1;
       }
 
