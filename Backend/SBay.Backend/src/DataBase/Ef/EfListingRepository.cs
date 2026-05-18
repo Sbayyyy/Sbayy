@@ -27,7 +27,7 @@ namespace SBay.Domain.Database
                     l.Id == id &&
                     l.Status == "active" &&
                     l.StockQuantity > 0 &&
-                    _db.Users.Any(u => u.Id == l.SellerId && u.Status == "active"), ct);
+                    !_db.Users.Any(u => u.Id == l.SellerId && u.Status != "active"), ct);
         }
 
         public async Task<Listing?> GetByIdForManagementAsync(Guid id, CancellationToken ct = default)
@@ -54,7 +54,7 @@ namespace SBay.Domain.Database
                     l.SellerId == sellerId &&
                     l.Status == "active" &&
                     l.StockQuantity > 0 &&
-                    _db.Users.Any(u => u.Id == sellerId && u.Status == "active"))
+                    !_db.Users.Any(u => u.Id == sellerId && u.Status != "active"))
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync(ct);
         }
@@ -83,7 +83,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
         .Where(l =>
             l.Status == "active" &&
             l.StockQuantity > 0 &&
-            _db.Users.Any(u => u.Id == l.SellerId && u.Status == "active"));
+            !_db.Users.Any(u => u.Id == l.SellerId && u.Status != "active"));
     var isPostgres = _isPostgres;
 
     if (!string.IsNullOrEmpty(q.Category))
@@ -178,7 +178,7 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
                     idsArray.Contains(l.Id) &&
                     l.Status == "active" &&
                     l.StockQuantity > 0 &&
-                    _db.Users.Any(u => u.Id == l.SellerId && u.Status == "active"))
+                    !_db.Users.Any(u => u.Id == l.SellerId && u.Status != "active"))
                 .ToListAsync(ct);
         }
 

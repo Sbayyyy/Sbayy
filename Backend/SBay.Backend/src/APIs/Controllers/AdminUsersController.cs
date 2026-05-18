@@ -151,14 +151,14 @@ public sealed class AdminUsersController : ControllerBase
 
         var me = await _resolver.GetUserIdAsync(User, ct);
         if (me == user.Id && (!string.IsNullOrWhiteSpace(req.Role) || !string.IsNullOrWhiteSpace(req.Status)))
-            throw new InvalidInputException("Admins cannot change their own role or status.");
+            return BadRequest("Admins cannot change their own role or status.");
 
         var revokeSessions = false;
         if (!string.IsNullOrWhiteSpace(req.Role))
         {
             var role = NormalizeRole(req.Role);
-            if (user.Role == "admin" && role != "admin")
-                await EnsureAnotherAdminExistsAsync(user.Id, ct);
+            if (user.Role == "admin" && role != "admin" && !await HasAnotherAdminExistsAsync(user.Id, ct))
+                return BadRequest("Cannot remove or block the last active admin.");
             revokeSessions = !string.Equals(user.Role, role, StringComparison.Ordinal);
             user.Role = role;
             user.IsSeller = role is "seller" or "admin" || user.IsSeller;
@@ -167,8 +167,8 @@ public sealed class AdminUsersController : ControllerBase
         if (!string.IsNullOrWhiteSpace(req.Status))
         {
             var status = NormalizeStatus(req.Status);
-            if (user.Role == "admin" && status != "active")
-                await EnsureAnotherAdminExistsAsync(user.Id, ct);
+            if (user.Role == "admin" && status != "active" && !await HasAnotherAdminExistsAsync(user.Id, ct))
+                return BadRequest("Cannot remove or block the last active admin.");
 
             revokeSessions = revokeSessions || !string.Equals(user.Status, status, StringComparison.Ordinal);
             user.Status = status;
@@ -193,13 +193,11 @@ public sealed class AdminUsersController : ControllerBase
         return Ok(ToDto(user));
     }
 
-    private async Task EnsureAnotherAdminExistsAsync(Guid userId, CancellationToken ct)
+    private async Task<bool> HasAnotherAdminExistsAsync(Guid userId, CancellationToken ct)
     {
-        var hasAnotherAdmin = await _db.Users
+        return await _db.Users
             .AsNoTracking()
             .AnyAsync(u => u.Id != userId && u.Role == "admin" && u.Status == "active", ct);
-        if (!hasAnotherAdmin)
-            throw new InvalidInputException("Cannot remove or block the last active admin.");
     }
 
     private static string NormalizeRole(string role)
