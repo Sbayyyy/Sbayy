@@ -21,7 +21,10 @@ public class ChatEvents:IChatEvents
             m.ChatId,
             m.SenderId,
             m.ReceiverId,
+            m.ListingId,
             m.Content,
+            m.Type,
+            m.DataJson,
             m.CreatedAt,
             m.IsRead
         };
@@ -62,7 +65,10 @@ public class ChatEvents:IChatEvents
             m.ChatId,
             m.SenderId,
             m.ReceiverId,
+            m.ListingId,
             m.Content,
+            m.Type,
+            m.DataJson,
             m.CreatedAt,
             m.IsRead
         };

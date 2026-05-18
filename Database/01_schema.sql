@@ -131,6 +131,7 @@ CREATE TABLE IF NOT EXISTS listings (
   region TEXT,
   specific_location VARCHAR(200),
   status TEXT NOT NULL DEFAULT 'active',
+  sold_until TIMESTAMPTZ,
   boosted_until TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ,
@@ -140,6 +141,7 @@ CREATE TABLE IF NOT EXISTS listings (
 );
 
 ALTER TABLE IF EXISTS listings ADD COLUMN IF NOT EXISTS boosted_until TIMESTAMPTZ;
+ALTER TABLE IF EXISTS listings ADD COLUMN IF NOT EXISTS sold_until TIMESTAMPTZ;
 ALTER TABLE IF EXISTS listings ADD COLUMN IF NOT EXISTS specific_location VARCHAR(200);
 CREATE INDEX IF NOT EXISTS idx_listings_seller        ON listings(seller_id);
 CREATE INDEX IF NOT EXISTS idx_listings_category      ON listings(category_id);
@@ -237,9 +239,14 @@ CREATE TABLE IF NOT EXISTS messages (
   receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
   content TEXT NOT NULL,
+  type VARCHAR(32) NOT NULL DEFAULT 'text',
+  data_json JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   is_read BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+ALTER TABLE IF EXISTS messages ADD COLUMN IF NOT EXISTS type VARCHAR(32) NOT NULL DEFAULT 'text';
+ALTER TABLE IF EXISTS messages ADD COLUMN IF NOT EXISTS data_json JSONB;
 
 CREATE INDEX IF NOT EXISTS idx_messages_chat_time        ON messages(chat_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_time      ON messages(sender_id, created_at DESC);

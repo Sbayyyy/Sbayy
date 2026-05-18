@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { getMyListings, deleteListing } from '@/lib/api/listings';
+import { getMyListings, deleteListing, markListingSold, relistListing } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
-import { Loader2, AlertCircle, Plus, Edit, Trash2, Eye, Package, Zap } from 'lucide-react';
+import { Loader2, AlertCircle, Plus, Edit, Trash2, Eye, Package, Zap, CheckCircle } from 'lucide-react';
 import { formatPrice } from '@/lib/cartStore';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useTranslation } from 'next-i18next';
@@ -26,6 +26,8 @@ export default function MyListingsPage() {
   const [boostListingId, setBoostListingId] = useState<string | null>(null);
   const [selectedBoostOption, setSelectedBoostOption] = useState('');
   const [boosting, setBoosting] = useState(false);
+  const [markingSoldId, setMarkingSoldId] = useState<string | null>(null);
+  const [relistingId, setRelistingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -85,6 +87,36 @@ export default function MyListingsPage() {
       toast.error('Unable to create boost payment.');
     } finally {
       setBoosting(false);
+    }
+  };
+
+  const handleMarkSold = async (id: string) => {
+    if (markingSoldId) return;
+    try {
+      setMarkingSoldId(id);
+      const updated = await markListingSold(id);
+      setListings(prev => prev.map(listing => listing.id === id ? updated : listing));
+      toast.success(t('myListings.markSoldSuccess', { defaultValue: 'Listing marked as sold.' }));
+    } catch (err) {
+      console.error('Mark sold failed:', err);
+      toast.error(t('myListings.markSoldError', { defaultValue: 'Unable to mark listing as sold.' }));
+    } finally {
+      setMarkingSoldId(null);
+    }
+  };
+
+  const handleRelist = async (id: string) => {
+    if (relistingId) return;
+    try {
+      setRelistingId(id);
+      const updated = await relistListing(id);
+      setListings(prev => prev.map(listing => listing.id === id ? updated : listing));
+      toast.success(t('myListings.relistSuccess', { defaultValue: 'Listing is live again.' }));
+    } catch (err) {
+      console.error('Relist failed:', err);
+      toast.error(t('myListings.relistError', { defaultValue: 'Unable to relist this listing.' }));
+    } finally {
+      setRelistingId(null);
     }
   };
 
@@ -267,6 +299,33 @@ export default function MyListingsPage() {
                         <Edit size={16} />
                         {t('myListings.edit')}
                       </button>
+                      {getListingStatus(listing) === 'sold' ? (
+                        <button
+                          onClick={() => void handleRelist(listing.id)}
+                          disabled={relistingId === listing.id}
+                          className="btn btn-outline border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                        >
+                          {relistingId === listing.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
+                          {t('myListings.relist', { defaultValue: 'Relist' })}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => void handleMarkSold(listing.id)}
+                          disabled={getListingStatus(listing) !== 'active' || markingSoldId === listing.id}
+                          className="btn btn-outline border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                        >
+                          {markingSoldId === listing.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
+                          {t('myListings.markSold', { defaultValue: 'Mark sold' })}
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setBoostListingId(listing.id);

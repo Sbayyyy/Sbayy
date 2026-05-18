@@ -9,6 +9,11 @@ public interface IChatService
 
     Task<Message> SendAsync(Guid chatId, Guid senderId, string content, CancellationToken ct = default);
 
+    Task<Message> SendOfferAsync(Guid chatId, Guid senderId, decimal amount, string? currency, CancellationToken ct = default);
+    Task<Message> AcceptOfferAsync(Guid chatId, Guid messageId, Guid responderId, CancellationToken ct = default);
+    Task<Message> RejectOfferAsync(Guid chatId, Guid messageId, Guid responderId, CancellationToken ct = default);
+    Task<Message> CounterOfferAsync(Guid chatId, Guid messageId, Guid responderId, decimal amount, string? currency, CancellationToken ct = default);
+
     Task<IReadOnlyList<Message>> GetMessagesAsync(Guid chatId, int take = 50, DateTime? before = null,
         CancellationToken ct = default);
 

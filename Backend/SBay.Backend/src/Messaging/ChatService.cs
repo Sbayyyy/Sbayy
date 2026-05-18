@@ -2,6 +2,8 @@ using SBay.Backend.APIs.Records;
 using SBay.Backend.Exceptions;
 using SBay.Backend.Utils;
 using SBay.Domain.Database;
+using SBay.Domain.Entities;
+using System.Text.Json;
 
 namespace SBay.Backend.Messaging;
 
@@ -20,6 +22,8 @@ public sealed class ChatService : IChatService
     private readonly IChatEvents _events;
     private readonly IUnitOfWork _uow;
     private readonly IUserBlockRepository _blocks;
+    private readonly IListingRepository _listings;
+    private readonly INotificationRepository _notifications;
 
     public ChatService(
         IChatRepository chats,
@@ -29,7 +33,9 @@ public sealed class ChatService : IChatService
         IUserOwnership ownership,
         IChatEvents events,
         IUnitOfWork uow,
-        IUserBlockRepository blocks)
+        IUserBlockRepository blocks,
+        IListingRepository listings,
+        INotificationRepository notifications)
     {
         _chats = chats;
         _messages = messages;
@@ -39,6 +45,8 @@ public sealed class ChatService : IChatService
         _events = events;
         _uow = uow;
         _blocks = blocks;
+        _listings = listings;
+        _notifications = notifications;
     }
 
     public async Task<Chat> OpenOrGetAsync(Guid me, Guid otherUserId, Guid? listingId, CancellationToken ct = default)
@@ -123,6 +131,96 @@ public sealed class ChatService : IChatService
         return msg;
     }
 
+    public async Task<Message> SendOfferAsync(Guid chatId, Guid senderId, decimal amount, string? currency, CancellationToken ct = default)
+    {
+        if (amount < 0) throw new InvalidOperationException("Offer cannot be negative");
+        var chat = await GetParticipantChatAsync(chatId, senderId, ct);
+        if (!chat.ListingId.HasValue) throw new InvalidOperationException("Offers require a listing chat");
+        var listing = await _listings.GetByIdForManagementAsync(chat.ListingId.Value, ct)
+                      ?? throw new InvalidOperationException("Listing not found");
+        if (listing.Status != "active") throw new InvalidOperationException("Listing is not active");
+
+        var receiverId = senderId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
+        if (senderId == chat.SellerId) throw new InvalidOperationException("Seller should send a counter offer");
+
+        var payload = new OfferPayload(
+            OfferId: Guid.NewGuid(),
+            ListingId: chat.ListingId.Value,
+            Amount: amount,
+            Currency: NormalizeCurrency(currency, listing.Price.Currency),
+            Status: "pending",
+            ParentOfferId: null,
+            ExpiresAt: null);
+        var message = await AddOfferMessageAsync(chat, senderId, receiverId, payload, ct);
+
+        await _notifications.AddAsync(new UserNotification
+        {
+            UserId = receiverId,
+            Type = "offer_received",
+            Title = "New offer received",
+            Body = $"{payload.Amount:0.##} {payload.Currency} offer for {listing.Title}",
+            Href = $"/messages/{chat.Id}",
+            DataJson = JsonSerializer.Serialize(new { chatId = chat.Id, messageId = message.Id, listingId = chat.ListingId, amount = payload.Amount, currency = payload.Currency }),
+            CreatedAt = DateTimeOffset.UtcNow
+        }, ct);
+        await _uow.SaveChangesAsync(ct);
+        return message;
+    }
+
+    public async Task<Message> AcceptOfferAsync(Guid chatId, Guid messageId, Guid responderId, CancellationToken ct = default)
+    {
+        var (chat, offerMessage, payload) = await GetPendingOfferAsync(chatId, messageId, responderId, ct);
+        payload = payload with { Status = "accepted" };
+        offerMessage.DataJson = JsonSerializer.Serialize(payload);
+        offerMessage.Content = FormatOfferContent(payload);
+        await _messages.UpdateAsync(offerMessage, ct);
+
+        var listing = await _listings.GetByIdForManagementAsync(payload.ListingId, ct)
+                      ?? throw new InvalidOperationException("Listing not found");
+        listing.MarkSoldUntil(_clock.UtcNow.AddDays(15));
+        await _listings.UpdateAsync(listing, ct);
+
+        await AddSystemMessageAsync(chat, responderId, offerMessage.SenderId, $"Offer accepted: {payload.Amount:0.##} {payload.Currency}", ct);
+        await _uow.SaveChangesAsync(ct);
+        await _events.MessageUpdatedAsync(offerMessage, ct);
+        return offerMessage;
+    }
+
+    public async Task<Message> RejectOfferAsync(Guid chatId, Guid messageId, Guid responderId, CancellationToken ct = default)
+    {
+        var (_, offerMessage, payload) = await GetPendingOfferAsync(chatId, messageId, responderId, ct);
+        payload = payload with { Status = "rejected" };
+        offerMessage.DataJson = JsonSerializer.Serialize(payload);
+        offerMessage.Content = FormatOfferContent(payload);
+        await _messages.UpdateAsync(offerMessage, ct);
+        await _uow.SaveChangesAsync(ct);
+        await _events.MessageUpdatedAsync(offerMessage, ct);
+        return offerMessage;
+    }
+
+    public async Task<Message> CounterOfferAsync(Guid chatId, Guid messageId, Guid responderId, decimal amount, string? currency, CancellationToken ct = default)
+    {
+        if (amount < 0) throw new InvalidOperationException("Offer cannot be negative");
+        var (chat, offerMessage, payload) = await GetPendingOfferAsync(chatId, messageId, responderId, ct);
+        payload = payload with { Status = "countered" };
+        offerMessage.DataJson = JsonSerializer.Serialize(payload);
+        offerMessage.Content = FormatOfferContent(payload);
+        await _messages.UpdateAsync(offerMessage, ct);
+
+        var counterPayload = new OfferPayload(
+            OfferId: Guid.NewGuid(),
+            ListingId: payload.ListingId,
+            Amount: amount,
+            Currency: NormalizeCurrency(currency, payload.Currency),
+            Status: "pending",
+            ParentOfferId: payload.OfferId,
+            ExpiresAt: null);
+        var counter = await AddOfferMessageAsync(chat, responderId, offerMessage.SenderId, counterPayload, ct);
+        await _uow.SaveChangesAsync(ct);
+        await _events.MessageUpdatedAsync(offerMessage, ct);
+        return counter;
+    }
+
     public async Task<IReadOnlyList<Message>> GetMessagesAsync(Guid chatId, int take = 50, DateTime? before = null, CancellationToken ct = default)
     {
         var normalizedTake = take < 1 ? 50 : Math.Min(take, 100);
@@ -146,6 +244,7 @@ public sealed class ChatService : IChatService
     {
         var message = await _messages.GetByIdAsync(messageId, ct)
                       ?? throw new InvalidOperationException("Message not found");
+        if (message.Type != "text") throw new InvalidOperationException("Only text messages can be edited");
         if (message.SenderId != editorId) throw new InvalidOperationException("Forbidden");
         if (_clock.UtcNow - message.CreatedAt > EditWindow) throw new InvalidOperationException("Edit window expired");
 
@@ -164,6 +263,7 @@ public sealed class ChatService : IChatService
     {
         var message = await _messages.GetByIdAsync(messageId, ct)
                       ?? throw new InvalidOperationException("Message not found");
+        if (message.Type != "text") throw new InvalidOperationException("Only text messages can be deleted");
         if (message.SenderId != requesterId) throw new InvalidOperationException("Forbidden");
         if (_clock.UtcNow - message.CreatedAt > EditWindow) throw new InvalidOperationException("Delete window expired");
 
@@ -198,6 +298,71 @@ public sealed class ChatService : IChatService
                || await _blocks.IsBlockedAsync(otherUserId, userId, ct);
     }
 
+    private async Task<Chat> GetParticipantChatAsync(Guid chatId, Guid userId, CancellationToken ct)
+    {
+        var chat = await _chats.GetByIdAsync(chatId, ct) ?? throw new InvalidOperationException("Chat not found");
+        if (userId != chat.BuyerId && userId != chat.SellerId) throw new InvalidOperationException("Forbidden");
+        return chat;
+    }
+
+    private async Task<Message> AddOfferMessageAsync(Chat chat, Guid senderId, Guid receiverId, OfferPayload payload, CancellationToken ct)
+    {
+        var message = new Message(chat.Id, FormatOfferContent(payload), senderId, receiverId, chat.ListingId, "offer", JsonSerializer.Serialize(payload))
+        {
+            CreatedAt = _clock.UtcNow
+        };
+        await _messages.AddAsync(message, ct);
+        await _chats.UpdateLastMessageTimestampAsync(chat.Id, message.CreatedAt, ct);
+        await _uow.SaveChangesAsync(ct);
+        await _events.MessageNewAsync(message, ct);
+        return message;
+    }
+
+    private async Task AddSystemMessageAsync(Chat chat, Guid senderId, Guid receiverId, string content, CancellationToken ct)
+    {
+        var message = new Message(chat.Id, content, senderId, receiverId, chat.ListingId, "system")
+        {
+            CreatedAt = _clock.UtcNow
+        };
+        await _messages.AddAsync(message, ct);
+        await _chats.UpdateLastMessageTimestampAsync(chat.Id, message.CreatedAt, ct);
+        await _events.MessageNewAsync(message, ct);
+    }
+
+    private async Task<(Chat Chat, Message Message, OfferPayload Payload)> GetPendingOfferAsync(Guid chatId, Guid messageId, Guid responderId, CancellationToken ct)
+    {
+        var chat = await GetParticipantChatAsync(chatId, responderId, ct);
+        var message = await _messages.GetByIdAsync(messageId, ct) ?? throw new InvalidOperationException("Offer not found");
+        if (message.ChatId != chat.Id || message.Type != "offer") throw new InvalidOperationException("Offer not found");
+        if (message.ReceiverId != responderId) throw new InvalidOperationException("Forbidden");
+        var payload = string.IsNullOrWhiteSpace(message.DataJson)
+            ? null
+            : JsonSerializer.Deserialize<OfferPayload>(message.DataJson);
+        if (payload is null || payload.Status != "pending") throw new InvalidOperationException("Offer is not pending");
+        return (chat, message, payload);
+    }
+
+    private static string NormalizeCurrency(string? currency, string fallback)
+    {
+        var normalized = string.IsNullOrWhiteSpace(currency) ? fallback : currency.Trim().ToUpperInvariant();
+        return normalized.Length > 8 ? normalized[..8] : normalized;
+    }
+
+    private static string FormatOfferContent(OfferPayload offer)
+    {
+        var prefix = offer.ParentOfferId.HasValue ? "Counter offer" : "Offer";
+        return $"{prefix}: {offer.Amount:0.##} {offer.Currency} ({offer.Status})";
+    }
+
+    private sealed record OfferPayload(
+        Guid OfferId,
+        Guid ListingId,
+        decimal Amount,
+        string Currency,
+        string Status,
+        Guid? ParentOfferId,
+        DateTime? ExpiresAt);
+
     public async Task<IReadOnlyList<ChatSummaryDto>> GetInboxSummaryAsync(Guid me, int take = 20, int skip = 0, CancellationToken ct = default)
     {
         var normalizedTake = take < 1 ? 20 : Math.Min(take, 100);
@@ -218,7 +383,10 @@ public sealed class ChatService : IChatService
                     lastMessage.ChatId,
                     lastMessage.SenderId,
                     lastMessage.ReceiverId,
+                    lastMessage.ListingId,
                     lastMessage.Content,
+                    lastMessage.Type,
+                    lastMessage.DataJson,
                     lastMessage.CreatedAt,
                     lastMessage.IsRead);
             unreadByChat.TryGetValue(chat.Id, out var unreadCount);

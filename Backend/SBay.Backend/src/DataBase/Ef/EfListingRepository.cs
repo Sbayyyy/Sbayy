@@ -53,10 +53,13 @@ namespace SBay.Domain.Database
 
         public async Task<IReadOnlyList<Listing>> GetBySellerForManagementAsync(Guid sellerId, CancellationToken ct = default)
         {
+            var now = DateTime.UtcNow;
             return await _db.Set<Listing>()
                 .Include(l => l.Images)
                 .AsNoTracking()
-                .Where(l => l.SellerId == sellerId && l.Status != "deleted")
+                .Where(l => l.SellerId == sellerId
+                    && l.Status != "deleted"
+                    && !(l.Status == "sold" && l.SoldUntil != null && l.SoldUntil < now))
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync(ct);
         }

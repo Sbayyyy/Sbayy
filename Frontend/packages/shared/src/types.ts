@@ -50,6 +50,7 @@ export interface Product {
   thumbnailUrl?: string;      // Backend field name
   createdAt: string;
   boostedUntil?: string;
+  soldUntil?: string;
   isBoosted?: boolean;
   
   // Optional frontend helper properties
@@ -98,8 +99,20 @@ export interface Message {
   receiverId: string;
   listingId?: string;
   content: string;
+  type?: 'text' | 'offer' | 'system';
+  dataJson?: string;
   isRead: boolean;
   createdAt: string;
+}
+
+export interface OfferMessageData {
+  offerId: string;
+  listingId: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'countered';
+  parentOfferId?: string | null;
+  expiresAt?: string | null;
 }
 
 export interface Chat {
@@ -191,7 +204,7 @@ export interface ProductUpdate {
   region?: string;
   specificLocation?: string;
   stock?: number;
-  status?: 'active' | 'sold' | 'inactive';
+  status?: 'active' | 'sold' | 'inactive' | 'hidden';
 }
 
 // Seller Stats

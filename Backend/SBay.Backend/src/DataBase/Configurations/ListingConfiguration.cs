@@ -92,6 +92,9 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
          .HasMaxLength(50)
          .HasDefaultValue("active");
 
+        e.Property(x => x.SoldUntil)
+         .HasColumnName("sold_until");
+
         e.Property(x => x.BoostedUntil)
          .HasColumnName("boosted_until");
 

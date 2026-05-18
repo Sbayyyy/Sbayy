@@ -77,6 +77,50 @@ public class ChatsController : ControllerBase
         return Ok(ToMessageDto(dto));
     }
 
+    [HttpPost("{chatId:guid}/offers")]
+    [Authorize(Policy = ScopePolicies.MessagesWrite)]
+    [EnableRateLimiting("chat")]
+    public async Task<ActionResult<MessageDto>> SendOffer(Guid chatId, [FromBody] CreateOfferRequest req, CancellationToken ct)
+    {
+        if (req == null || req.Amount < 0)
+            return BadRequest(ApiProblemDetails.Validation("Offer amount cannot be negative.", nameof(req.Amount)));
+        var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var message = await _svc.SendOfferAsync(chatId, me, req.Amount, req.Currency, ct);
+        return Ok(ToMessageDto(message));
+    }
+
+    [HttpPost("{chatId:guid}/offers/{messageId:guid}/accept")]
+    [Authorize(Policy = ScopePolicies.MessagesWrite)]
+    [EnableRateLimiting("chat")]
+    public async Task<ActionResult<MessageDto>> AcceptOffer(Guid chatId, Guid messageId, CancellationToken ct)
+    {
+        var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var message = await _svc.AcceptOfferAsync(chatId, messageId, me, ct);
+        return Ok(ToMessageDto(message));
+    }
+
+    [HttpPost("{chatId:guid}/offers/{messageId:guid}/reject")]
+    [Authorize(Policy = ScopePolicies.MessagesWrite)]
+    [EnableRateLimiting("chat")]
+    public async Task<ActionResult<MessageDto>> RejectOffer(Guid chatId, Guid messageId, CancellationToken ct)
+    {
+        var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var message = await _svc.RejectOfferAsync(chatId, messageId, me, ct);
+        return Ok(ToMessageDto(message));
+    }
+
+    [HttpPost("{chatId:guid}/offers/{messageId:guid}/counter")]
+    [Authorize(Policy = ScopePolicies.MessagesWrite)]
+    [EnableRateLimiting("chat")]
+    public async Task<ActionResult<MessageDto>> CounterOffer(Guid chatId, Guid messageId, [FromBody] CounterOfferRequest req, CancellationToken ct)
+    {
+        if (req == null || req.Amount < 0)
+            return BadRequest(ApiProblemDetails.Validation("Offer amount cannot be negative.", nameof(req.Amount)));
+        var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var message = await _svc.CounterOfferAsync(chatId, messageId, me, req.Amount, req.Currency, ct);
+        return Ok(ToMessageDto(message));
+    }
+
     [HttpPost("{chatId:guid}/read")]
     [Authorize(Policy = "CanReadThread")]
     [Authorize(Policy = ScopePolicies.MessagesWrite)]
@@ -123,7 +167,10 @@ public class ChatsController : ControllerBase
         message.ChatId,
         message.SenderId,
         message.ReceiverId,
+        message.ListingId,
         message.Content,
+        message.Type,
+        message.DataJson,
         message.CreatedAt,
         message.IsRead
     );

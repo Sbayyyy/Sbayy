@@ -117,6 +117,8 @@ namespace SBay.Domain.Database
                 e.HasKey(m => m.Id);
                 e.HasIndex(m => new { m.SenderId, m.ReceiverId });
                 e.Property(m => m.Content).IsRequired();
+                e.Property(m => m.Type).HasColumnName("type").HasMaxLength(32).HasDefaultValue("text");
+                e.Property(m => m.DataJson).HasColumnName("data_json").HasColumnType("jsonb");
 
                 e.HasOne(m => m.Chat)
                     .WithMany(c => c.Messages)
