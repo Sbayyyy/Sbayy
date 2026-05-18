@@ -458,7 +458,8 @@
       "titlePlaceholder": "e.g. iPhone 15 Pro Max 256GB",
       "description": "Product Description *",
       "descriptionPlaceholder": "Write a detailed description...",
-      "price": "Price (SYP) *",
+      "price": "Price *",
+      "currency": "Currency",
       "pricePlaceholder": "100000",
       "stock": "Available Quantity *",
       "stockPlaceholder": "1",
@@ -471,6 +472,16 @@
     "submit": "Publish Product",
     "submitting": "Publishing...",
     "cancel": "Cancel",
+    "boost": {
+      "kicker": "Optional boost",
+      "title": "Make this listing stand out",
+      "description": "Basic listings are free. A boost is paid separately and activates only after payment confirmation.",
+      "freeTitle": "Free listing",
+      "freeDescription": "Standard feed placement",
+      "freePrice": "Free",
+      "days": "days",
+      "submit": "Create listing and continue to payment"
+    },
     "validation": {
       "stockRequired": "Quantity is required",
       "stockInteger": "Quantity must be a whole number",
@@ -482,7 +493,7 @@
       "categoryRequired": "Please select a category.",
       "locationRequired": "Location is required.",
       "priceRequired": "Price is required.",
-      "priceMin": "Price must be greater than 0.",
+      "priceMin": "Price cannot be negative.",
       "minLength": "Must be at least {{count}} characters.",
       "maxLength": "Must be at most {{count}} characters."
     }
@@ -680,6 +691,9 @@
     "browseProducts": "Browse products",
     "you": "You:",
     "productFallback": "Product {{id}}",
+    "userFallback": "User {{id}}",
+    "unknownUser": "Unknown user",
+    "generalChat": "Conversation",
     "time": {
       "now": "Just now",
       "minutesAgo": "{{count}} min ago",
@@ -872,7 +886,8 @@
       "description": "Description *",
       "descriptionPlaceholder": "Write a detailed description...",
       "images": "Product Images",
-      "price": "Price (SYP) *",
+      "price": "Price *",
+      "currency": "Currency",
       "stock": "Available Quantity *",
       "category": "Category",
       "categoryPlaceholder": "Select category",
@@ -897,7 +912,7 @@
     "validation": {
       "titleRequired": "Title is required",
       "descriptionRequired": "Description is required",
-      "pricePositive": "Price must be greater than 0",
+      "pricePositive": "Price cannot be negative",
       "locationRequired": "Location is required",
       "stockMin": "Quantity must be 0 or more"
     },

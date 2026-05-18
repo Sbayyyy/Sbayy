@@ -5,6 +5,8 @@ import { toUser, type BackendUserDto } from './transforms';
 type AuthResponse = {
   user: BackendUserDto;
   token: string;
+  refreshToken?: string | null;
+  refreshTokenExpiresAt?: string | null;
 };
 
 /**

@@ -15,6 +15,7 @@
         public decimal? MaxPrice { get; set; }
         public string? Region { get; set; }
         public string? Condition { get; set; }
+        public bool Featured { get; set; }
 
         public void Validate()
         {

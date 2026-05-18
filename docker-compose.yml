@@ -53,6 +53,7 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE:-SBayClients}
       Jwt__Secret: ${JWT_SECRET:-dev_only_change_me_32_bytes_minimum_value}
       Jwt__ExpMinutes: ${JWT_EXP_MINUTES:-60}
+      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-30}
       Redis__Host: redis
       Redis__Port: 6379
       App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-http://localhost:8080}

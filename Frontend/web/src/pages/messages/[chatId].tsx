@@ -54,7 +54,6 @@ export default function ChatPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [otherUserName, setOtherUserName] = useState('');
-  const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [listingTitle, setListingTitle] = useState<string | null>(null);
   const [listingImageUrl, setListingImageUrl] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<string | null>(null);
@@ -243,11 +242,9 @@ export default function ChatPage() {
         ]);
 
         if (profile) {
-          setOtherUserName(profile.name || `User ${otherUserId.substring(0, 8)}`);
-          setOtherUserAvatar(profile.avatar ?? null);
+          setOtherUserName(profile.name || t('messages.userFallback', { id: otherUserId.substring(0, 8) }));
         } else if (otherUserId) {
-          setOtherUserName(`User ${otherUserId.substring(0, 8)}`);
-          setOtherUserAvatar(null);
+          setOtherUserName(t('messages.userFallback', { id: otherUserId.substring(0, 8) }));
         }
 
         if (listing) {
@@ -434,7 +431,11 @@ export default function ChatPage() {
   const getOtherUserName = () => {
     if (otherUserName) return otherUserName;
     const otherUserId = getOtherUserId();
-    return otherUserId ? `User ${otherUserId.substring(0, 8)}` : '';
+    return otherUserId ? t('messages.userFallback', { id: otherUserId.substring(0, 8) }) : t('messages.unknownUser');
+  };
+
+  const getChatTitle = () => {
+    return listingTitle ?? t('messages.generalChat');
   };
 
   if (loading) {
@@ -468,7 +469,7 @@ export default function ChatPage() {
   return (
     <Layout hideHeader hideFooter>
       <Head>
-        <title>{t('chat.title', { name: getOtherUserName() })}</title>
+        <title>{t('chat.title', { name: getChatTitle() })}</title>
       </Head>
 
       <div className="app-page flex h-screen flex-col overflow-hidden">
@@ -484,55 +485,53 @@ export default function ChatPage() {
                 </Link>
 
                 <div className="flex items-center gap-3">
-                  {getOtherUserId() ? (
+                  {chat.listingId ? (
                     <Link
-                      href={`/seller/${getOtherUserId()}`}
-                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-2 ring-white shadow-sm"
+                      href={`/listing/${chat.listingId}`}
+                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm"
                     >
-                      {otherUserAvatar ? (
+                      {listingImageUrl ? (
                         <img
-                          src={otherUserAvatar}
-                          alt={getOtherUserName()}
+                          src={listingImageUrl}
+                          alt={listingTitle ?? getChatTitle()}
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                          <User className="w-5 h-5 text-slate-500" />
+                        <Package className="w-5 h-5" />
                       )}
                     </Link>
                   ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 ring-2 ring-white shadow-sm">
-                      <User className="w-5 h-5 text-slate-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">
+                      <Package className="w-5 h-5" />
                     </div>
                   )}
                   <div>
-                    {getOtherUserId() ? (
+                    {chat.listingId ? (
                       <Link
-                        href={`/seller/${getOtherUserId()}`}
+                        href={`/listing/${chat.listingId}`}
                         className="font-semibold text-slate-950 hover:text-primary-700"
                       >
-                        {getOtherUserName()}
+                        {getChatTitle()}
                       </Link>
                     ) : (
                       <h2 className="font-semibold text-slate-950">
-                        {getOtherUserName()}
+                        {getChatTitle()}
                       </h2>
                     )}
-                    {listingTitle ? (
-                      <div className="flex max-w-[16rem] items-center gap-1.5 text-xs text-slate-500">
-                        {listingImageUrl ? (
-                          <img
-                            src={listingImageUrl}
-                            alt={listingTitle}
-                            className="h-6 w-6 flex-shrink-0 rounded-md object-cover ring-1 ring-slate-200"
-                          />
-                        ) : (
-                          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-slate-100 ring-1 ring-slate-200">
-                            <Package className="w-3 h-3" />
-                          </span>
-                        )}
-                        <span className="truncate">{listingTitle}</span>
+                    {getOtherUserId() ? (
+                      <Link
+                        href={`/seller/${getOtherUserId()}`}
+                        className="flex max-w-[16rem] items-center gap-1 text-xs text-slate-500 hover:text-primary-700"
+                      >
+                        <User className="w-3 h-3" />
+                        <span className="truncate">{getOtherUserName()}</span>
+                      </Link>
+                    ) : (
+                      <div className="flex max-w-[16rem] items-center gap-1 text-xs text-slate-500">
+                        <User className="w-3 h-3" />
+                        <span className="truncate">{getOtherUserName()}</span>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </div>

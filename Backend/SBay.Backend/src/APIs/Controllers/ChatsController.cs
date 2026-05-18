@@ -96,6 +96,17 @@ public class ChatsController : ControllerBase
         return Ok(n);
     }
 
+    [HttpDelete("{chatId:guid}")]
+    [Authorize(Policy = "CanReadThread")]
+    [Authorize(Policy = ScopePolicies.MessagesWrite)]
+    [EnableRateLimiting("chat")]
+    public async Task<IActionResult> Archive(Guid chatId, CancellationToken ct)
+    {
+        var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await _svc.ArchiveChatAsync(chatId, me, ct);
+        return NoContent();
+    }
+
     private static ChatDto ToDto(Chat chat) => new(
         chat.Id,
         chat.BuyerId,

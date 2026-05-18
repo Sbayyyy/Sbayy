@@ -7,20 +7,21 @@ interface Toast {
   id: string;
   message: string;
   type: ToastType;
+  title?: string;
 }
 
 interface ToastStore {
   toasts: Toast[];
-  addToast: (message: string, type: ToastType) => void;
+  addToast: (message: string, type: ToastType, title?: string) => void;
   removeToast: (id: string) => void;
 }
 
 export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
-  addToast: (message, type) => {
+  addToast: (message, type, title) => {
     const id = Math.random().toString(36).substr(2, 9);
     set((state) => ({
-      toasts: [...state.toasts, { id, message, type }]
+      toasts: [...state.toasts, { id, message, type, title }]
     }));
     setTimeout(() => {
       set((state) => ({
@@ -36,10 +37,10 @@ export const useToastStore = create<ToastStore>((set) => ({
 }));
 
 export const toast = {
-  success: (message: string) => useToastStore.getState().addToast(message, 'success'),
-  error: (message: string) => useToastStore.getState().addToast(message, 'error'),
-  warning: (message: string) => useToastStore.getState().addToast(message, 'warning'),
-  info: (message: string) => useToastStore.getState().addToast(message, 'info')
+  success: (message: string, title?: string) => useToastStore.getState().addToast(message, 'success', title),
+  error: (message: string, title?: string) => useToastStore.getState().addToast(message, 'error', title),
+  warning: (message: string, title?: string) => useToastStore.getState().addToast(message, 'warning', title),
+  info: (message: string, title?: string) => useToastStore.getState().addToast(message, 'info', title)
 };
 
 export function ToastContainer() {
@@ -48,51 +49,75 @@ export function ToastContainer() {
   const getIcon = (type: ToastType) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+        return <CheckCircle className="h-5 w-5 text-white" />;
       case 'error':
-        return <XCircle className="w-5 h-5 text-red-600" />;
+        return <XCircle className="h-5 w-5 text-white" />;
       case 'warning':
-        return <AlertCircle className="w-5 h-5 text-yellow-600" />;
+        return <AlertCircle className="h-5 w-5 text-white" />;
       case 'info':
-        return <AlertCircle className="w-5 h-5 text-blue-600" />;
+        return <AlertCircle className="h-5 w-5 text-white" />;
     }
   };
 
-  const getBgColor = (type: ToastType) => {
+  const getTone = (type: ToastType) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200';
+        return {
+          card: 'border-emerald-200 bg-white',
+          icon: 'bg-emerald-600',
+          title: 'Success'
+        };
       case 'error':
-        return 'bg-red-50 border-red-200';
+        return {
+          card: 'border-red-200 bg-white',
+          icon: 'bg-red-600',
+          title: 'Something went wrong'
+        };
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200';
+        return {
+          card: 'border-amber-200 bg-white',
+          icon: 'bg-amber-600',
+          title: 'Check this'
+        };
       case 'info':
-        return 'bg-blue-50 border-blue-200';
+        return {
+          card: 'border-primary-200 bg-white',
+          icon: 'bg-primary-600',
+          title: 'SBay'
+        };
     }
   };
 
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 left-4 z-50 w-[calc(100%-2rem)] max-w-md space-y-2 sm:w-auto">
-      {toasts.map((toast) => (
+    <div className="fixed top-4 left-4 z-50 w-[calc(100%-2rem)] max-w-md space-y-3 sm:w-auto">
+      {toasts.map((toast) => {
+        const tone = getTone(toast.type);
+        return (
         <div
           key={toast.id}
-          className={`flex items-start gap-3 rounded-2xl border p-4 shadow-xl shadow-slate-950/10 backdrop-blur animate-in slide-in-from-top duration-200 ${getBgColor(toast.type)}`}
-          role="status"
-          aria-live="polite"
+          className={`flex items-start gap-3 rounded-2xl border p-4 shadow-2xl shadow-slate-950/15 backdrop-blur animate-in slide-in-from-top duration-200 ${tone.card}`}
+          role={toast.type === 'error' ? 'alert' : 'status'}
+          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
         >
-          {getIcon(toast.type)}
-          <p className="flex-1 text-sm font-medium text-slate-900">{toast.message}</p>
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tone.icon}`}>
+            {getIcon(toast.type)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-slate-950">{toast.title ?? tone.title}</p>
+            <p className="mt-1 text-sm leading-5 text-slate-600">{toast.message}</p>
+          </div>
           <button
             onClick={() => removeToast(toast.id)}
             className="rounded-full p-1 text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
             aria-label="Dismiss notification"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
           </button>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

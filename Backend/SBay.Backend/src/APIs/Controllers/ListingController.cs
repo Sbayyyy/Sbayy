@@ -91,7 +91,7 @@ public sealed class ListingsController : ControllerBase
         
         if (string.IsNullOrWhiteSpace(body.Title))         return ValidationProblem("Title is required.");
         if (string.IsNullOrWhiteSpace(body.Description))   return ValidationProblem("Description is required.");
-        if (body.PriceAmount <= 0)                         return ValidationProblem("Price must be greater than 0.");
+        if (body.PriceAmount < 0)                          return ValidationProblem("Price cannot be negative.");
         if (body.Stock < 0)                                return ValidationProblem("Stock cannot be negative.");
         if (string.IsNullOrWhiteSpace(body.PriceCurrency)) return ValidationProblem("Price currency is required.");
         if (body.SpecificLocation?.Trim().Length > 200)    return ValidationProblem("Specific location must be 200 characters or less.");
@@ -187,6 +187,17 @@ public sealed class ListingsController : ControllerBase
     public async Task<ActionResult<ListingResponse>> GetById(Guid id, CancellationToken ct)
     {
         var listing = await _repo.GetByIdAsync(id, ct);
+        if (listing is null)
+        {
+            var me = await _resolver.GetUserIdAsync(User, ct);
+            if (me.HasValue && me.Value != Guid.Empty)
+            {
+                var managementListing = await _repo.GetByIdForManagementAsync(id, ct);
+                if (managementListing != null && (managementListing.SellerId == me.Value || User.IsInRole("admin")))
+                    listing = managementListing;
+            }
+        }
+
         if (listing is null) return NotFound();
         var seller = await _users.GetByIdAsync(listing.SellerId, ct);
         return ToResponse(listing, seller);
@@ -209,8 +220,8 @@ public sealed class ListingsController : ControllerBase
             return BadRequest("Title cannot be empty.");
         if (body.Description != null && string.IsNullOrWhiteSpace(body.Description))
             return BadRequest("Description cannot be empty.");
-        if (body.PriceAmount.HasValue && body.PriceAmount <= 0)
-            return BadRequest("Price must be greater than 0.");
+        if (body.PriceAmount.HasValue && body.PriceAmount < 0)
+            return BadRequest("Price cannot be negative.");
         if (body.Stock.HasValue && body.Stock.Value < 0)
             return BadRequest("Stock cannot be negative.");
         if (body.SpecificLocation?.Trim().Length > 200)

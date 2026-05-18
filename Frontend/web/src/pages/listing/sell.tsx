@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
+import { Check, Loader2, Sparkles } from 'lucide-react';
 import Layout from '@/components/Layout';
 import {
   createOptionalTextInputValidator,
@@ -9,6 +10,7 @@ import {
 } from '@sbay/shared';
 import type { ProductCreate } from '@sbay/shared';
 import { createListing } from '../../lib/api/listings';
+import { createBoostPayment, getBoostOptions, type BoostOption } from '@/lib/api/monetization';
 import { getCurrentUser } from '@/lib/api/users';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '../../lib/store';
@@ -32,6 +34,9 @@ interface ProductFormData {
   stock?: number | string;
 }
 
+const sanitizeWhileTyping = (value: string): string => value.replace(/[<>]/g, '');
+const PRICE_CURRENCIES = ['SYP', 'USD', 'EUR'];
+
 export default function SellPage() {
   const router = useRouter();
   const { isAuthenticated, setUser } = useAuthStore();
@@ -54,6 +59,8 @@ export default function SellPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [boostOptions, setBoostOptions] = useState<BoostOption[]>([]);
+  const [selectedBoostOption, setSelectedBoostOption] = useState('none');
 
   const textInputValidator = useMemo(
     () =>
@@ -76,6 +83,19 @@ export default function SellPage() {
   useEffect(() => {
     void loadProfanityListFromUrl('/profanities.txt');
   }, []);
+
+  useEffect(() => {
+    getBoostOptions()
+      .then(setBoostOptions)
+      .catch(() => setBoostOptions([]));
+  }, []);
+
+  const formatBoostPrice = (option: BoostOption) =>
+    new Intl.NumberFormat(i18n.language === 'ar' ? 'ar-SY' : 'en-US', {
+      style: 'currency',
+      currency: option.currency,
+      maximumFractionDigits: option.currency === 'SYP' ? 0 : 2
+    }).format(option.price);
 
   if (isAuthed === undefined) {
     return (
@@ -162,7 +182,7 @@ export default function SellPage() {
 
     if (Number.isNaN(price)) {
       newErrors.priceAmount = t('sell.validation.priceRequired');
-    } else if (price <= 0) {
+    } else if (price < 0) {
       newErrors.priceAmount = t('sell.validation.priceMin');
     }
 
@@ -234,7 +254,7 @@ export default function SellPage() {
     const nextValue =
       name === 'priceAmount' || name === 'stock'
         ? value
-        : sanitizeInput(value);
+        : sanitizeWhileTyping(value);
 
     setFormData(prev => ({
       ...prev,
@@ -299,6 +319,19 @@ export default function SellPage() {
       };
 
       const response = await createListing(submitData);
+      const returnUrl =
+        typeof window === 'undefined'
+          ? undefined
+          : `${window.location.origin}/listing/${response.id}`;
+
+      if (selectedBoostOption !== 'none') {
+        const payment = await createBoostPayment(response.id, selectedBoostOption, returnUrl);
+
+        if (payment.checkoutUrl) {
+          window.location.href = payment.checkoutUrl;
+          return;
+        }
+      }
 
       if (isAuthenticated) {
         try {
@@ -380,18 +413,33 @@ export default function SellPage() {
                   <label htmlFor="priceAmount" className="block text-sm font-medium mb-2">
                     {t('sell.fields.price')}
                   </label>
-                  <input
-                    type="number"
-                    id="priceAmount"
-                    name="priceAmount"
-                    value={formData.priceAmount}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    min="0"
-                    step="1000"
-                    className={`w-full input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
-                    placeholder={t('sell.fields.pricePlaceholder')}
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      id="priceAmount"
+                      name="priceAmount"
+                      value={formData.priceAmount}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      min="0"
+                      step="any"
+                      className={`min-w-0 flex-1 input ${errors.priceAmount ? 'border-2 border-red-500' : ''}`}
+                      placeholder={t('sell.fields.pricePlaceholder')}
+                    />
+                    <Select
+                      id="priceCurrency"
+                      name="priceCurrency"
+                      value={formData.priceCurrency || 'SYP'}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      aria-label={t('sell.fields.currency')}
+                      className="w-28 flex-shrink-0"
+                    >
+                      {PRICE_CURRENCIES.map(currency => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                    </Select>
+                  </div>
                   {errors.priceAmount && <p className="mt-1 text-sm text-red-500">{errors.priceAmount}</p>}
                 </div>
 
@@ -499,6 +547,92 @@ export default function SellPage() {
                 )}
               </div>
 
+              <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-primary-700">
+                      {t('sell.boost.kicker', 'Optional boost')}
+                    </p>
+                    <h2 className="mt-1 text-xl font-bold text-slate-950">
+                      {t('sell.boost.title', 'Make this listing stand out')}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {t('sell.boost.description', 'Basic listings are free. A boost is paid separately and activates only after payment confirmation.')}
+                    </p>
+                  </div>
+                  <Sparkles className="mt-1 h-5 w-5 flex-shrink-0 text-amber-500" />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBoostOption('none')}
+                    disabled={isLoading}
+                    className={`rounded-xl border p-4 text-left transition ${
+                      selectedBoostOption === 'none'
+                        ? 'border-primary-600 bg-white shadow-sm ring-2 ring-primary-100'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-slate-950">
+                          {t('sell.boost.freeTitle', 'Free listing')}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t('sell.boost.freeDescription', 'Standard feed placement')}
+                        </p>
+                      </div>
+                      {selectedBoostOption === 'none' ? (
+                        <span className="rounded-full bg-primary-600 p-1 text-white">
+                          <Check size={14} />
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-4 text-lg font-bold text-slate-950">
+                      {t('sell.boost.freePrice', 'Free')}
+                    </p>
+                  </button>
+
+                  {boostOptions.map(option => {
+                    const isSelected = selectedBoostOption === option.id;
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setSelectedBoostOption(option.id)}
+                        disabled={isLoading}
+                        className={`rounded-xl border p-4 text-left transition ${
+                          isSelected
+                            ? 'border-primary-600 bg-white shadow-sm ring-2 ring-primary-100'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-slate-950">
+                              {option.durationDays} {t('sell.boost.days', 'days')}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                              {option.name}
+                            </p>
+                          </div>
+                          {isSelected ? (
+                            <span className="rounded-full bg-primary-600 p-1 text-white">
+                              <Check size={14} />
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-4 text-lg font-bold text-slate-950">
+                          {formatBoostPrice(option)}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
               <div className="flex gap-4">
                 <button
                   type="submit"
@@ -507,7 +641,16 @@ export default function SellPage() {
                     isLoading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  {isLoading ? t('sell.submitting') : t('sell.submit')}
+                  {isLoading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('sell.submitting')}
+                    </span>
+                  ) : selectedBoostOption === 'none' ? (
+                    t('sell.submit')
+                  ) : (
+                    t('sell.boost.submit', 'Create listing and continue to payment')
+                  )}
                 </button>
                 <button
                   type="button"

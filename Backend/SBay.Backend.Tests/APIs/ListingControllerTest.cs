@@ -71,6 +71,8 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         result.PriceCurrency.Should().Be("EUR");
         result.Stock.Should().Be(2);
         result.Condition.ToString().Should().Be("New");
+        result.IsBoosted.Should().BeFalse();
+        result.BoostedUntil.Should().BeNull();
 
         
         result.ImageUrls.Should().NotBeNull();
@@ -78,6 +80,52 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         result.ImageUrls[0].Should().Be("/uploads/phone1-1.jpg");
         result.ImageUrls[1].Should().Be("/uploads/phone1-2.jpg");
         result.ThumbnailUrl.Should().Be("/uploads/phone1-1.jpg");
+    }
+
+    [Fact]
+    public async Task PostListing_ShouldAccept_AnyNonNegativePrice()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        var request = new
+        {
+            title = "Custom Price Item",
+            description = "Listing with a custom non-rounded price",
+            priceAmount = 12001m,
+            priceCurrency = "EUR",
+            stock = 1,
+            condition = "New",
+            categoryPath = "electronics",
+            region = "BW"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/listings", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<ListingResponse>();
+        result!.PriceAmount.Should().Be(12001m);
+    }
+
+    [Fact]
+    public async Task PostListing_ShouldReject_NegativePrice()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        var request = new
+        {
+            title = "Negative Price Item",
+            description = "Listing with an invalid negative price",
+            priceAmount = -1m,
+            priceCurrency = "EUR",
+            stock = 1,
+            condition = "New",
+            categoryPath = "electronics",
+            region = "BW"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/listings", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -224,6 +272,23 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
+    public async Task Search_Should_Filter_By_Featured()
+    {
+        var boosted = new Listing(Guid.NewGuid(), "Boosted", "desc", new Money(100m, "EUR"));
+        var normal = new Listing(Guid.NewGuid(), "Normal", "desc", new Money(50m, "EUR"));
+        boosted.ActivateBoost(DateTime.UtcNow.AddDays(2));
+
+        await SeedListingsAsync(boosted, normal);
+
+        var results = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/listings?featured=true");
+
+        results.Should().NotBeNull();
+        results!.Should().ContainSingle();
+        results[0].Id.Should().Be(boosted.Id);
+        results[0].IsBoosted.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Search_Should_Only_Return_Active_Stocked_Listings()
     {
         var active = new Listing(Guid.NewGuid(), "Active", "desc", new Money(100m, "EUR"), stock: 1);
@@ -261,5 +326,67 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         var res = await _client.GetAsync($"/api/listings/{hidden.Id}");
 
         res.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetById_Should_Expose_Inactive_Listing_ToOwner()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+        var hidden = new Listing(TestAuthHandler.SellerId, "Hidden owner item", "desc", new Money(100m, "EUR"), stock: 1);
+        await SeedListingsAsync(hidden);
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+            var hiddenEntity = await db.Listings.FindAsync(hidden.Id);
+            db.Entry(hiddenEntity!).Property(l => l.Status).CurrentValue = "hidden";
+            await db.SaveChangesAsync();
+        }
+
+        var res = await _client.GetAsync($"/api/listings/{hidden.Id}");
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await res.Content.ReadFromJsonAsync<ListingResponse>();
+        body!.Id.Should().Be(hidden.Id);
+    }
+
+    [Fact]
+    public async Task PutListing_Should_Update_Price_Without_Replacing_Existing_Images()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        var create = new
+        {
+            title = "Priced item",
+            description = "Item with images",
+            priceAmount = 100m,
+            priceCurrency = "SYP",
+            stock = 1,
+            condition = "New",
+            categoryPath = "electronics",
+            region = "Damascus",
+            imageUrls = new[] { "/uploads/priced-item.jpg" }
+        };
+        var createdResponse = await _client.PostAsJsonAsync("/api/listings", create);
+        createdResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createdResponse.Content.ReadFromJsonAsync<ListingResponse>();
+        created.Should().NotBeNull();
+
+        var update = new
+        {
+            priceAmount = 125m
+        };
+        var updateResponse = await _client.PutAsJsonAsync($"/api/listings/{created!.Id}", update);
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await updateResponse.Content.ReadFromJsonAsync<ListingResponse>();
+        updated!.PriceAmount.Should().Be(125m);
+        updated.ImageUrls.Should().BeEquivalentTo(created.ImageUrls, options => options.WithStrictOrdering());
+
+        var reloadedResponse = await _client.GetAsync($"/api/listings/{created.Id}");
+        reloadedResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var reloaded = await reloadedResponse.Content.ReadFromJsonAsync<ListingResponse>();
+        reloaded!.PriceAmount.Should().Be(125m);
+        reloaded.ImageUrls.Should().BeEquivalentTo(created.ImageUrls, options => options.WithStrictOrdering());
     }
 }

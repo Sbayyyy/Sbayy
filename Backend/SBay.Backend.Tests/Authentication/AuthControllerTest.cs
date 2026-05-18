@@ -21,6 +21,7 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         body.Should().NotBeNull();
         body!.User.Email.Should().Be(req.Email.ToLowerInvariant());
         body.Token.Should().NotBeNullOrWhiteSpace();
+        body.RefreshToken.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -42,6 +43,30 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         auth.Should().NotBeNull();
         auth!.User.Email.Should().Be(email.ToLowerInvariant());
         auth.Token.Should().NotBeNullOrWhiteSpace();
+        auth.RefreshToken.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Refresh_RotatesRefreshToken_AndOldTokenStopsWorking()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+        var pwd = "Password1!";
+
+        var login = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, pwd, "Refresh"));
+        login.EnsureSuccessStatusCode();
+        var initial = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        initial!.RefreshToken.Should().NotBeNullOrWhiteSpace();
+
+        var refresh = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = initial.RefreshToken });
+        refresh.StatusCode.Should().Be(HttpStatusCode.OK);
+        var refreshed = await refresh.Content.ReadFromJsonAsync<AuthResponse>();
+        refreshed!.Token.Should().NotBeNullOrWhiteSpace();
+        refreshed.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        refreshed.RefreshToken.Should().NotBe(initial.RefreshToken);
+
+        var reuse = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = initial.RefreshToken });
+        reuse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]

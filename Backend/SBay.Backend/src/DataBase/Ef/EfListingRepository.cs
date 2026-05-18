@@ -94,6 +94,12 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             query = query.Where(l => l.Condition == parsedCondition);
     }
 
+    if (q.Featured)
+    {
+        var now = DateTime.UtcNow;
+        query = query.Where(l => l.BoostedUntil != null && l.BoostedUntil > now);
+    }
+
     if (!string.IsNullOrWhiteSpace(text))
     {
         if (isPostgres)
@@ -174,7 +180,20 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
         public Task UpdateAsync(Listing entity, CancellationToken ct = default)
         {
             if (entity is null) throw new ArgumentNullException(nameof(entity));
-            _db.Set<Listing>().Update(entity);
+            _db.Entry(entity).State = EntityState.Modified;
+            var priceEntry = _db.Entry(entity).Reference(l => l.Price).TargetEntry;
+            if (priceEntry is not null)
+                priceEntry.State = EntityState.Modified;
+
+            if (entity.OriginalPrice is not null)
+            {
+                var originalPriceEntry = _db.Entry(entity).Reference(l => l.OriginalPrice).TargetEntry;
+                if (originalPriceEntry is not null)
+                    originalPriceEntry.State = EntityState.Modified;
+            }
+
+            foreach (var image in entity.Images)
+                _db.Entry(image).State = EntityState.Detached;
             return Task.CompletedTask;
         }
 
@@ -182,9 +201,19 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
         {
             if (entity.Images == null) return;
 
-            await _db.Set<ListingImage>()
-                .Where(i => i.ListingId == entity.Id)
-                .ExecuteDeleteAsync(ct);
+            if (_db.Database.IsRelational())
+            {
+                await _db.Set<ListingImage>()
+                    .Where(i => i.ListingId == entity.Id)
+                    .ExecuteDeleteAsync(ct);
+            }
+            else
+            {
+                var existing = await _db.Set<ListingImage>()
+                    .Where(i => i.ListingId == entity.Id)
+                    .ToListAsync(ct);
+                _db.Set<ListingImage>().RemoveRange(existing);
+            }
 
             if (entity.Images.Count == 0) return;
 
