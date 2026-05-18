@@ -37,7 +37,7 @@
     <Folder Include="src\APIs\interfaces\" />
   </ItemGroup>
 <ItemGroup>
-  <Content Include="**/Messaging/Filters/**/*.txt">
+  <Content Include="src/Messaging/Filters/**/*.txt">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </Content>
 </ItemGroup>

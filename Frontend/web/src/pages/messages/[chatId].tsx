@@ -4,10 +4,10 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ReportDialog from '@/components/ReportDialog';
-import { getMessages, sendMessage, markAsRead, getChats, updateMessage, deleteMessage } from '@/lib/api/messages';
+import { getMessages, sendMessage, markAsRead, getChats, updateMessage, deleteMessage, sendOffer, acceptOffer, rejectOffer, counterOffer } from '@/lib/api/messages';
 import { getListingById } from '@/lib/api/listings';
 import { getSellerProfile } from '@/lib/api/users';
-import { Message, Chat, defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
+import { Message, Chat, OfferMessageData, Product, defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { createChatConnection, onMessageNew, onMessagesRead, onMessageUpdated, onMessageDeleted } from '@/lib/realtime/chat';
@@ -55,9 +55,12 @@ export default function ChatPage() {
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [otherUserName, setOtherUserName] = useState('');
   const [listingTitle, setListingTitle] = useState<string | null>(null);
+  const [listing, setListing] = useState<Product | null>(null);
   const [listingImageUrl, setListingImageUrl] = useState<string | null>(null);
   const [listingImageFailed, setListingImageFailed] = useState(false);
   const [reportTarget, setReportTarget] = useState<string | null>(null);
+  const [offerAmount, setOfferAmount] = useState('');
+  const [offerBusyId, setOfferBusyId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -253,12 +256,15 @@ export default function ChatPage() {
         }
 
         if (listing) {
+          setListing(listing);
           setListingTitle(listing.title ?? null);
           setListingImageUrl(listing.thumbnailUrl || listing.imageUrls?.[0] || null);
         } else if (foundChat.listingId) {
+          setListing(null);
           setListingTitle(t('messages.productFallback', { id: foundChat.listingId.substring(0, 8) }));
           setListingImageUrl(null);
         } else {
+          setListing(null);
           setListingTitle(null);
           setListingImageUrl(null);
         }
@@ -372,12 +378,93 @@ export default function ChatPage() {
     setReportTarget(message.id);
   };
 
+  const parseOfferData = (message: Message): OfferMessageData | null => {
+    if (message.type !== 'offer' || !message.dataJson) return null;
+    try {
+      const raw = JSON.parse(message.dataJson) as Record<string, unknown>;
+      return {
+        offerId: String(raw.offerId ?? raw.OfferId ?? ''),
+        listingId: String(raw.listingId ?? raw.ListingId ?? ''),
+        amount: Number(raw.amount ?? raw.Amount ?? 0),
+        currency: String(raw.currency ?? raw.Currency ?? listing?.priceCurrency ?? 'SYP'),
+        status: String(raw.status ?? raw.Status ?? 'pending') as OfferMessageData['status'],
+        parentOfferId: (raw.parentOfferId ?? raw.ParentOfferId ?? null) as string | null,
+        expiresAt: (raw.expiresAt ?? raw.ExpiresAt ?? null) as string | null,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const upsertMessage = (updated: Message) => {
+    setMessages((prev) => {
+      const exists = prev.some((m) => m.id === updated.id);
+      const next = exists ? prev.map((m) => (m.id === updated.id ? updated : m)) : [...prev, updated];
+      next.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      return next;
+    });
+  };
+
+  const handleSendOffer = async () => {
+    if (!chatIdValue || !offerAmount.trim()) return;
+    const amount = Number(offerAmount);
+    if (!Number.isFinite(amount) || amount < 0) {
+      toast.warning(t('chat.offerInvalid', 'Enter a valid offer amount.'));
+      return;
+    }
+    try {
+      setOfferBusyId('new');
+      const message = await sendOffer(chatIdValue, amount, listing?.priceCurrency ?? 'SYP');
+      upsertMessage(message);
+      setOfferAmount('');
+      toast.success(t('chat.offerSent', 'Offer sent.'));
+    } catch (err) {
+      console.error('Error sending offer:', err);
+      toast.error(t('chat.offerError', 'Unable to send offer.'));
+    } finally {
+      setOfferBusyId(null);
+    }
+  };
+
+  const handleOfferAction = async (message: Message, action: 'accept' | 'reject' | 'counter') => {
+    if (!chatIdValue) return;
+    try {
+      setOfferBusyId(message.id);
+      let updated: Message;
+      if (action === 'accept') {
+        updated = await acceptOffer(chatIdValue, message.id);
+        toast.success(t('chat.offerAccepted', 'Offer accepted. Listing marked as sold for 15 days.'));
+      } else if (action === 'reject') {
+        updated = await rejectOffer(chatIdValue, message.id);
+        toast.success(t('chat.offerRejected', 'Offer rejected.'));
+      } else {
+        const rawAmount = window.prompt(t('chat.counterPrompt', 'Counter offer amount'), listing?.priceAmount ? String(listing.priceAmount) : '');
+        if (!rawAmount) return;
+        const amount = Number(rawAmount);
+        if (!Number.isFinite(amount) || amount < 0) {
+          toast.warning(t('chat.offerInvalid', 'Enter a valid offer amount.'));
+          return;
+        }
+        updated = await counterOffer(chatIdValue, message.id, amount, listing?.priceCurrency ?? 'SYP');
+        toast.success(t('chat.counterSent', 'Counter offer sent.'));
+      }
+      upsertMessage(updated);
+    } catch (err) {
+      console.error('Error handling offer:', err);
+      toast.error(t('chat.offerError', 'Unable to update offer.'));
+    } finally {
+      setOfferBusyId(null);
+    }
+  };
+
   const canEdit = (message: Message) => {
+    if (message.type && message.type !== 'text') return false;
     if (message.senderId !== user?.id) return false;
     return Date.now() - new Date(message.createdAt).getTime() <= 15 * 60 * 1000;
   };
 
   const canDelete = (message: Message) => {
+    if (message.type && message.type !== 'text') return false;
     if (message.senderId !== user?.id) return false;
     return Date.now() - new Date(message.createdAt).getTime() <= 15 * 60 * 1000;
   };
@@ -442,6 +529,8 @@ export default function ChatPage() {
   const getChatTitle = () => {
     return listingTitle ?? t('messages.generalChat');
   };
+
+  const canMakeOffer = Boolean(chat?.listingId && user?.id === chat?.buyerId && listing?.status === 'active');
 
   if (loading) {
     return (
@@ -600,6 +689,59 @@ export default function ChatPage() {
                           <MoreVertical className="h-4 w-4" />
                         </button>
                         {(() => {
+                          const offer = parseOfferData(message);
+                          if (offer) {
+                            const canRespond = offer.status === 'pending' && message.receiverId === user?.id;
+                            return (
+                              <div className={isOwn ? 'text-white' : 'text-slate-900'}>
+                                <div className={`mb-2 rounded-2xl border px-3 py-3 ${
+                                  isOwn
+                                    ? 'border-white/20 bg-white/10'
+                                    : 'border-emerald-200 bg-emerald-50'
+                                }`}>
+                                  <div className={`text-xs font-semibold uppercase tracking-wide ${
+                                    isOwn ? 'text-white/80' : 'text-emerald-700'
+                                  }`}>
+                                    {offer.parentOfferId ? t('chat.counterOffer', 'Counter offer') : t('chat.offer', 'Offer')}
+                                  </div>
+                                  <div className="mt-1 text-xl font-bold">
+                                    {offer.amount.toLocaleString(i18n.language === 'ar' ? 'ar-SY' : 'en-US')} {offer.currency}
+                                  </div>
+                                  <div className={`mt-1 text-xs ${isOwn ? 'text-white/80' : 'text-slate-600'}`}>
+                                    {t(`chat.offerStatus.${offer.status}`, offer.status)}
+                                  </div>
+                                  {canRespond && (
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        disabled={offerBusyId === message.id}
+                                        onClick={() => void handleOfferAction(message, 'accept')}
+                                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                                      >
+                                        {t('chat.acceptOffer', 'Accept')}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={offerBusyId === message.id}
+                                        onClick={() => void handleOfferAction(message, 'reject')}
+                                        className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60"
+                                      >
+                                        {t('chat.rejectOffer', 'Reject')}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={offerBusyId === message.id}
+                                        onClick={() => void handleOfferAction(message, 'counter')}
+                                        className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+                                      >
+                                        {t('chat.counterOfferAction', 'Counter')}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
                           const parsed = parseReplyContent(message.content);
                           const replyTarget = parsed.replyId
                             ? messages.find((m) => m.id === parsed.replyId) ?? null
@@ -733,6 +875,27 @@ export default function ChatPage() {
                 </div>
               )}
               <div className="flex items-end gap-2">
+              {canMakeOffer && (
+                <div className="flex w-44 items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={offerAmount}
+                    onChange={(e) => setOfferAmount(e.target.value)}
+                    placeholder={t('chat.offerAmount', 'Offer')}
+                    className="input h-11 rounded-2xl"
+                  />
+                  <button
+                    type="button"
+                    disabled={!offerAmount.trim() || offerBusyId === 'new'}
+                    onClick={() => void handleSendOffer()}
+                    className="btn btn-secondary h-11 px-3"
+                  >
+                    {offerBusyId === 'new' ? <Loader2 className="h-4 w-4 animate-spin" /> : t('chat.makeOffer', 'Offer')}
+                  </button>
+                </div>
+              )}
               <textarea
                 ref={inputRef}
                 value={newMessage}

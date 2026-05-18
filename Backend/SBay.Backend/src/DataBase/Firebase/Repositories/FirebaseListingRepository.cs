@@ -131,6 +131,9 @@ public class FirebaseListingRepository : IListingRepository
             .Where(d => d.Exists)
             .Select(Convert)
             .Where(l => !string.Equals(l.Status, "deleted", StringComparison.OrdinalIgnoreCase))
+            .Where(l => !(string.Equals(l.Status, "sold", StringComparison.OrdinalIgnoreCase)
+                          && l.SoldUntil.HasValue
+                          && l.SoldUntil.Value < DateTime.UtcNow))
             .OrderByDescending(l => l.CreatedAt)
             .ToList();
     }

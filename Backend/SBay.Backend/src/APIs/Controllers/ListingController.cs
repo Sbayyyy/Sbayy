@@ -73,6 +73,7 @@ public sealed class ListingsController : ControllerBase
             Region = l.Region,
             SpecificLocation = l.SpecificLocation,
             CreatedAt = new DateTimeOffset(l.CreatedAt),
+            SoldUntil = l.SoldUntil.HasValue ? new DateTimeOffset(l.SoldUntil.Value) : null,
             BoostedUntil = l.BoostedUntil.HasValue ? new DateTimeOffset(l.BoostedUntil.Value) : null,
             IsBoosted = l.BoostedUntil.HasValue && l.BoostedUntil.Value > DateTime.UtcNow,
             ThumbnailUrl = l.ThumbnailUrl,
@@ -226,6 +227,12 @@ public sealed class ListingsController : ControllerBase
             return BadRequest("Stock cannot be negative.");
         if (body.SpecificLocation?.Trim().Length > 200)
             return BadRequest("Specific location must be 200 characters or less.");
+        if (!string.IsNullOrWhiteSpace(body.Status))
+        {
+            var status = body.Status.Trim().ToLowerInvariant();
+            if (status is not ("active" or "sold" or "hidden"))
+                return BadRequest("Invalid listing status.");
+        }
         if (body.ImageUrls != null)
         {
             if (body.ImageUrls.Count > 10)
@@ -262,6 +269,9 @@ public sealed class ListingsController : ControllerBase
             body.CategoryPath,
             body.Region,
             body.SpecificLocation);
+
+        if (!string.IsNullOrWhiteSpace(body.Status))
+            listing.UpdateStatus(body.Status);
 
         await _repo.UpdateAsync(listing, ct);
         if (body.ImageUrls != null)

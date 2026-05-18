@@ -12,7 +12,10 @@ export type RealtimeMessage = {
   chatId: string;
   senderId: string;
   receiverId: string;
+  listingId?: string;
   content: string;
+  type?: 'text' | 'offer' | 'system';
+  dataJson?: string;
   createdAt: string;
   isRead: boolean;
 };
@@ -30,14 +33,20 @@ type RawMessage = {
   chatId?: string;
   senderId?: string;
   receiverId?: string;
+  listingId?: string;
   content?: string;
+  type?: 'text' | 'offer' | 'system';
+  dataJson?: string;
   createdAt?: string;
   isRead?: boolean;
   Id?: string;
   ChatId?: string;
   SenderId?: string;
   ReceiverId?: string;
+  ListingId?: string;
   Content?: string;
+  Type?: 'text' | 'offer' | 'system';
+  DataJson?: string;
   CreatedAt?: string;
   IsRead?: boolean;
 };
@@ -67,12 +76,15 @@ function normalizeMessage(payload: RawMessage): RealtimeMessage | null {
   const chatId = payload.chatId ?? payload.ChatId;
   const senderId = payload.senderId ?? payload.SenderId;
   const receiverId = payload.receiverId ?? payload.ReceiverId;
+  const listingId = payload.listingId ?? payload.ListingId;
   const content = payload.content ?? payload.Content;
+  const type = payload.type ?? payload.Type;
+  const dataJson = payload.dataJson ?? payload.DataJson;
   const createdAt = payload.createdAt ?? payload.CreatedAt;
   const isRead = payload.isRead ?? payload.IsRead ?? false;
 
   if (!id || !chatId || !senderId || !receiverId || !content || !createdAt) return null;
-  return { id, chatId, senderId, receiverId, content, createdAt, isRead };
+  return { id, chatId, senderId, receiverId, listingId, content, type, dataJson, createdAt, isRead };
 }
 
 function normalizeRead(payload: ReadEvent): { chatId: string; readerId: string } | null {

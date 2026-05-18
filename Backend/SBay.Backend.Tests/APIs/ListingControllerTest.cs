@@ -389,4 +389,42 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         reloaded!.PriceAmount.Should().Be(125m);
         reloaded.ImageUrls.Should().BeEquivalentTo(created.ImageUrls, options => options.WithStrictOrdering());
     }
+
+    [Fact]
+    public async Task PutListing_Should_Mark_Listing_As_Sold()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        var create = new
+        {
+            title = "Sold item",
+            description = "Item that has been sold",
+            priceAmount = 100m,
+            priceCurrency = "SYP",
+            stock = 1,
+            condition = "New",
+            categoryPath = "electronics",
+            region = "Damascus"
+        };
+        var createdResponse = await _client.PostAsJsonAsync("/api/listings", create);
+        createdResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createdResponse.Content.ReadFromJsonAsync<ListingResponse>();
+        created.Should().NotBeNull();
+
+        var updateResponse = await _client.PutAsJsonAsync($"/api/listings/{created!.Id}", new { status = "sold" });
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await updateResponse.Content.ReadFromJsonAsync<ListingResponse>();
+        updated!.Status.Should().Be("sold");
+
+        var searchResults = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/listings");
+        searchResults!.Select(item => item.Id).Should().NotContain(created.Id);
+
+        var publicClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var publicResponse = await publicClient.GetAsync($"/api/listings/{created.Id}");
+        publicResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

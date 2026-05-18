@@ -672,7 +672,13 @@
     "stock": "المخزون: {{count}}",
     "views": "المشاهدات: {{count}}",
     "view": "عرض",
-    "edit": "تعديل"
+    "edit": "تعديل",
+    "markSold": "تحديد كمباع",
+    "markSoldSuccess": "تم تحديد الإعلان كمباع.",
+    "markSoldError": "تعذر تحديد الإعلان كمباع.",
+    "relist": "إعادة النشر",
+    "relistSuccess": "تم نشر الإعلان مرة أخرى.",
+    "relistError": "تعذر إعادة نشر هذا الإعلان."
   },
   "messages": {
     "title": "الرسائل - Sbay سباي",
@@ -720,7 +726,27 @@
     "copy": "نسخ",
     "edit": "تعديل",
     "delete": "حذف",
-    "report": "إبلاغ"
+    "report": "إبلاغ",
+    "offer": "عرض سعر",
+    "counterOffer": "عرض مضاد",
+    "offerAmount": "العرض",
+    "makeOffer": "عرض",
+    "acceptOffer": "قبول",
+    "rejectOffer": "رفض",
+    "counterOfferAction": "عرض مضاد",
+    "counterPrompt": "قيمة العرض المضاد",
+    "offerInvalid": "أدخل قيمة عرض صحيحة.",
+    "offerSent": "تم إرسال العرض.",
+    "offerAccepted": "تم قبول العرض. تم تحديد الإعلان كمباع لمدة 15 يوماً.",
+    "offerRejected": "تم رفض العرض.",
+    "counterSent": "تم إرسال العرض المضاد.",
+    "offerError": "تعذر تحديث العرض.",
+    "offerStatus": {
+      "pending": "قيد الانتظار",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "countered": "تم إرسال عرض مضاد"
+    }
   },
   "category": {
     "title": "{{name}} - Sbay سباي",

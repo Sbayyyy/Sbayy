@@ -58,7 +58,10 @@ public sealed class MessagesController : ControllerBase
         message.ChatId,
         message.SenderId,
         message.ReceiverId,
+        message.ListingId,
         message.Content,
+        message.Type,
+        message.DataJson,
         message.CreatedAt,
         message.IsRead
     );

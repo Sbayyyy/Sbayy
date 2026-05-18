@@ -23,6 +23,7 @@ public class Listing :
 
     public ItemCondition Condition { get; private set; } = ItemCondition.Unknown;
     public string Status { get; private set; } = "active";
+    public DateTime? SoldUntil { get; private set; }
     public DateTime? BoostedUntil { get; private set; }
 
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
@@ -63,6 +64,32 @@ public class Listing :
     public void SetThumbnail(string? url)
     {
         ThumbnailUrl = string.IsNullOrWhiteSpace(url) ? null : url.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateStatus(string status)
+    {
+        var normalized = status.Trim().ToLowerInvariant();
+        if (normalized is not ("active" or "sold" or "hidden"))
+            throw new ArgumentException(nameof(status));
+
+        Status = normalized;
+        SoldUntil = normalized == "sold" ? DateTime.UtcNow.AddDays(15) : null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MarkSoldUntil(DateTime soldUntil)
+    {
+        if (soldUntil <= DateTime.UtcNow) throw new ArgumentOutOfRangeException(nameof(soldUntil));
+        Status = "sold";
+        SoldUntil = soldUntil;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Relist()
+    {
+        Status = "active";
+        SoldUntil = null;
         UpdatedAt = DateTime.UtcNow;
     }
 
