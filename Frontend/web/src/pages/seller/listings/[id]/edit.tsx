@@ -22,6 +22,7 @@ interface ProductFormData {
   stock: string;
   condition: string;
   region: string;
+  specificLocation: string;
 }
 
 export default function EditListingPage() {
@@ -44,7 +45,8 @@ export default function EditListingPage() {
     categoryPath: '',
     stock: '',
     condition: 'New',
-    region: ''
+    region: '',
+    specificLocation: ''
   });
 
   const [errors, setErrors] = useState<Partial<ProductFormData>>({});
@@ -71,7 +73,8 @@ export default function EditListingPage() {
         categoryPath: data.categoryPath || '',
         stock: data.stock.toString(),
         condition: data.condition,
-        region: normalizeCityValue(data.region || '')
+        region: normalizeCityValue(data.region || ''),
+        specificLocation: data.specificLocation || ''
       });
     } catch (err: unknown) {
       console.error('Error loading listing:', err);
@@ -131,7 +134,8 @@ export default function EditListingPage() {
         categoryPath: formData.categoryPath.trim() || undefined,
         stock: parseInt(formData.stock),
         condition: formData.condition,
-        region: normalizeCityValue(formData.region.trim())
+        region: normalizeCityValue(formData.region.trim()),
+        specificLocation: formData.specificLocation.trim()
       };
 
       await updateListing(id as string, updateData);
@@ -333,7 +337,7 @@ export default function EditListingPage() {
               {/* Location */}
               <div>
                 <label htmlFor="region" className="block text-sm font-medium mb-2">
-                  {t('editListing.fields.location')}
+                  {t('editListing.fields.region', 'Region *')}
                 </label>
                 <Select
                   id="region"
@@ -343,12 +347,28 @@ export default function EditListingPage() {
                   disabled={submitting}
                   className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
                 >
-                  <option value="">{t('editListing.fields.locationPlaceholder')}</option>
+                  <option value="">{t('editListing.fields.regionPlaceholder', 'Select region')}</option>
                   {CITIES.map(city => (
                     <option key={city.value} value={city.value}>{t(city.i18nKey, city.i18nDefault)}</option>
                   ))}
                 </Select>
                 {errors.region && <p className="mt-1 text-sm text-red-500">{errors.region}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="specificLocation" className="block text-sm font-medium mb-2">
+                  {t('editListing.fields.specificLocation', 'Specific location (optional)')}
+                </label>
+                <input
+                  type="text"
+                  id="specificLocation"
+                  name="specificLocation"
+                  value={formData.specificLocation}
+                  onChange={handleChange}
+                  disabled={submitting}
+                  className="w-full input"
+                  placeholder={t('editListing.fields.specificLocationPlaceholder', 'Neighborhood, street, or landmark')}
+                />
               </div>
 
               {/* Submit Buttons */}

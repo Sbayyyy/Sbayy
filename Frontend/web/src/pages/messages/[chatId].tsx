@@ -56,6 +56,7 @@ export default function ChatPage() {
   const [otherUserName, setOtherUserName] = useState('');
   const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [listingTitle, setListingTitle] = useState<string | null>(null);
+  const [listingImageUrl, setListingImageUrl] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -251,10 +252,13 @@ export default function ChatPage() {
 
         if (listing) {
           setListingTitle(listing.title ?? null);
+          setListingImageUrl(listing.thumbnailUrl || listing.imageUrls?.[0] || null);
         } else if (foundChat.listingId) {
           setListingTitle(t('messages.productFallback', { id: foundChat.listingId.substring(0, 8) }));
+          setListingImageUrl(null);
         } else {
           setListingTitle(null);
+          setListingImageUrl(null);
         }
       }
       
@@ -514,8 +518,18 @@ export default function ChatPage() {
                       </h2>
                     )}
                     {listingTitle ? (
-                      <div className="flex max-w-[16rem] items-center gap-1 text-xs text-slate-500">
-                        <Package className="w-3 h-3" />
+                      <div className="flex max-w-[16rem] items-center gap-1.5 text-xs text-slate-500">
+                        {listingImageUrl ? (
+                          <img
+                            src={listingImageUrl}
+                            alt={listingTitle}
+                            className="h-6 w-6 flex-shrink-0 rounded-md object-cover ring-1 ring-slate-200"
+                          />
+                        ) : (
+                          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-slate-100 ring-1 ring-slate-200">
+                            <Package className="w-3 h-3" />
+                          </span>
+                        )}
                         <span className="truncate">{listingTitle}</span>
                       </div>
                     ) : null}

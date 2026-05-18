@@ -30,6 +30,7 @@ interface ChatWithParticipant {
   lastMessageAt?: string;
   participant?: User;
   listingTitle?: string;
+  listingImageUrl?: string;
   lastMessage?: {
     id?: string;
     content: string;
@@ -85,14 +86,19 @@ export default function MessagesPage() {
         }),
       );
 
-      const listingMap = new Map<string, string>();
+      const listingMap = new Map<string, { title: string; imageUrl?: string }>();
       await Promise.all(
         listingIds.map(async (listingId) => {
           try {
             const listing = await getListingById(listingId);
-            listingMap.set(listingId, listing.title);
+            listingMap.set(listingId, {
+              title: listing.title,
+              imageUrl: listing.thumbnailUrl || listing.imageUrls?.[0],
+            });
           } catch {
-            listingMap.set(listingId, t('messages.productFallback', { id: listingId.substring(0, 8) }));
+            listingMap.set(listingId, {
+              title: t('messages.productFallback', { id: listingId.substring(0, 8) }),
+            });
           }
         }),
       );
@@ -118,8 +124,9 @@ export default function MessagesPage() {
             createdAt: ''
           },
           listingTitle: chat.listingId
-            ? listingMap.get(chat.listingId) ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })
+            ? listingMap.get(chat.listingId)?.title ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })
             : undefined,
+          listingImageUrl: chat.listingId ? listingMap.get(chat.listingId)?.imageUrl : undefined,
           lastMessage: lastMessage ? {
             id: lastMessage.id,
             content: lastMessage.content,
@@ -459,7 +466,18 @@ export default function MessagesPage() {
                       {/* Product Reference */}
                       {chat.listingId && (
                         <div className="mb-1 flex items-center gap-2 text-sm text-slate-600">
-                          <Package className="w-4 h-4" />
+                          {chat.listingImageUrl ? (
+                            <img
+                              src={chat.listingImageUrl}
+                              alt={chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })}
+                              className="h-7 w-7 flex-shrink-0 rounded-md object-cover ring-1 ring-slate-200"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-slate-100 ring-1 ring-slate-200">
+                              <Package className="w-4 h-4" />
+                            </span>
+                          )}
                           <span className="truncate">
                             {chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })}
                           </span>

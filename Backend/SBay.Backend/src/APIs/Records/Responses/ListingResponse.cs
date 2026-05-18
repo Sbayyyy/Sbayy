@@ -15,6 +15,7 @@
 
         public string? CategoryPath { get; init; }
         public string? Region { get; init; }
+        public string? SpecificLocation { get; init; }
 
         public DateTimeOffset CreatedAt { get; init; }
         public DateTimeOffset? BoostedUntil { get; init; }

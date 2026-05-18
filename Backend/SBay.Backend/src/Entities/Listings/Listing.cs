@@ -19,6 +19,7 @@ public class Listing :
     public string? ThumbnailUrl { get; private set; }  
     public string? CategoryPath { get; private set; }
     public string? Region { get; private set; }
+    public string? SpecificLocation { get; private set; }
 
     public ItemCondition Condition { get; private set; } = ItemCondition.Unknown;
     public string Status { get; private set; } = "active";
@@ -36,6 +37,7 @@ public class Listing :
                    int stock = 1, ItemCondition condition = ItemCondition.New,
                    string? thumb = null, string? categoryPath = null,
                    Money? original = null, string? region = null,
+                   string? specificLocation = null,
                    IEnumerable<ListingImage>? images = null)
     {
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException(nameof(title));
@@ -51,6 +53,7 @@ public class Listing :
         ThumbnailUrl = string.IsNullOrWhiteSpace(thumb) ? null : thumb.Trim();
         CategoryPath = categoryPath;
         Region = region;
+        SpecificLocation = string.IsNullOrWhiteSpace(specificLocation) ? null : specificLocation.Trim();
         CreatedAt = DateTime.UtcNow;
 
         if (images != null)
@@ -63,7 +66,7 @@ public class Listing :
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void UpdateDetails(string? title, string? description, Money? price, int? stock, ItemCondition? condition, string? categoryPath, string? region)
+    public void UpdateDetails(string? title, string? description, Money? price, int? stock, ItemCondition? condition, string? categoryPath, string? region, string? specificLocation)
     {
         if (title != null)
         {
@@ -88,6 +91,8 @@ public class Listing :
             CategoryPath = categoryPath;
         if (region != null)
             Region = region;
+        if (specificLocation != null)
+            SpecificLocation = string.IsNullOrWhiteSpace(specificLocation) ? null : specificLocation.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
 
