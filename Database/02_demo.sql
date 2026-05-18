@@ -77,6 +77,7 @@ ALTER TABLE listings
     ADD COLUMN IF NOT EXISTS original_price_amount   numeric(12,2),
     ADD COLUMN IF NOT EXISTS original_price_currency varchar(3),
     ADD COLUMN IF NOT EXISTS region        text,
+    ADD COLUMN IF NOT EXISTS specific_location varchar(200),
     ADD COLUMN IF NOT EXISTS search_vec    tsvector;
 
 CREATE OR REPLACE FUNCTION listings_search_vec_tsv()

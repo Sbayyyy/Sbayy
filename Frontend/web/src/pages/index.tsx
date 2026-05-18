@@ -20,14 +20,26 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('');
   const [regionMenuOpen, setRegionMenuOpen] = useState(false);
+  const [activeRegionIndex, setActiveRegionIndex] = useState(0);
   const [searchError, setSearchError] = useState('');
   const regionMenuRef = useRef<HTMLDivElement>(null);
+  const regionTriggerRef = useRef<HTMLButtonElement>(null);
+  const regionListboxRef = useRef<HTMLDivElement>(null);
+  const regionTypeaheadRef = useRef({ query: '', timestamp: 0 });
   const selectedRegionI18nKey = getCityI18nKeyFromValue(selectedRegion);
   const selectedRegionLabel = selectedRegion
     ? selectedRegionI18nKey
       ? t(selectedRegionI18nKey, getCityLabel(selectedRegion, i18n.language))
       : getCityLabel(selectedRegion, i18n.language)
     : '';
+  const regionOptions = [
+    { value: '', label: t('home.allRegions', 'All regions') },
+    ...CITIES.map(city => ({
+      value: city.value,
+      label: t(city.i18nKey, city.i18nDefault),
+    })),
+  ];
+  const activeRegionOptionId = `home-region-option-${regionOptions[activeRegionIndex]?.value || 'all'}`;
   
   useEffect(() => {
     loadHomeProducts();
@@ -61,15 +73,125 @@ export default function Home() {
     };
   }, [regionMenuOpen]);
 
+  useEffect(() => {
+    if (!regionMenuOpen) return;
+    regionListboxRef.current?.focus();
+  }, [regionMenuOpen]);
+
+  useEffect(() => {
+    if (!regionMenuOpen) return;
+    document.getElementById(activeRegionOptionId)?.scrollIntoView({ block: 'nearest' });
+  }, [activeRegionOptionId, regionMenuOpen]);
+
+  const openRegionMenu = () => {
+    const selectedIndex = regionOptions.findIndex(option => option.value === selectedRegion);
+    setActiveRegionIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setRegionMenuOpen(true);
+  };
+
+  const closeRegionMenu = (restoreFocus = false) => {
+    setRegionMenuOpen(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => regionTriggerRef.current?.focus());
+    }
+  };
+
+  const selectRegionOption = (index: number) => {
+    const option = regionOptions[index];
+    if (!option) return;
+    setSelectedRegion(option.value);
+    closeRegionMenu(true);
+  };
+
+  const handleRegionListboxKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        setActiveRegionIndex(index => Math.min(index + 1, regionOptions.length - 1));
+        return;
+      case 'ArrowUp':
+        event.preventDefault();
+        setActiveRegionIndex(index => Math.max(index - 1, 0));
+        return;
+      case 'Home':
+        event.preventDefault();
+        setActiveRegionIndex(0);
+        return;
+      case 'End':
+        event.preventDefault();
+        setActiveRegionIndex(regionOptions.length - 1);
+        return;
+      case 'Enter':
+        event.preventDefault();
+        selectRegionOption(activeRegionIndex);
+        return;
+      case 'Escape':
+        event.preventDefault();
+        closeRegionMenu(true);
+        return;
+      default:
+        break;
+    }
+
+    if (event.key.length !== 1 || event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const now = Date.now();
+    const nextQuery =
+      now - regionTypeaheadRef.current.timestamp > 500
+        ? event.key
+        : regionTypeaheadRef.current.query + event.key;
+
+    regionTypeaheadRef.current = { query: nextQuery, timestamp: now };
+    const normalizedQuery = nextQuery.toLocaleLowerCase(i18n.language);
+    const nextIndex = regionOptions.findIndex(option =>
+      option.label.toLocaleLowerCase(i18n.language).startsWith(normalizedQuery)
+    );
+
+    if (nextIndex >= 0) {
+      setActiveRegionIndex(nextIndex);
+    }
+  };
+
+  const handleRegionTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      openRegionMenu();
+    }
+  };
+
   const loadHomeProducts = async () => {
     try {
-      const data = await getAllListings(1, 24);
-      const products = data?.items ?? (Array.isArray(data) ? data : []);
-      const featured = products.filter(product => product.isBoosted);
-      const regular = products.filter(product => !product.isBoosted);
+      const targetCount = 8;
+      const perPage = 24;
+      let page = 1;
+      let hasMorePages = true;
+      const featuredById = new Map<string, Product>();
+      const browseById = new Map<string, Product>();
 
-      setFeaturedProducts(featured.slice(0, 8));
-      setBrowseProducts((regular.length > 0 ? regular : products).slice(0, 8));
+      while (browseById.size < targetCount && hasMorePages) {
+        const data = await getAllListings(page, perPage);
+        const products = data?.items ?? [];
+
+        if (page === 1) {
+          products
+            .filter(product => product.isBoosted)
+            .forEach(product => featuredById.set(product.id, product));
+        }
+
+        products
+          .filter(product => !product.isBoosted && !featuredById.has(product.id))
+          .forEach(product => {
+            if (browseById.size < targetCount) {
+              browseById.set(product.id, product);
+            }
+          });
+
+        hasMorePages = products.length > 0 && page < data.totalPages;
+        page += 1;
+      }
+
+      setFeaturedProducts(Array.from(featuredById.values()).slice(0, targetCount));
+      setBrowseProducts(Array.from(browseById.values()).slice(0, targetCount));
     } catch (err) {
       console.error('Error loading home products:', err);
     } finally {
@@ -114,11 +236,14 @@ export default function Home() {
                 </div>
                 <div ref={regionMenuRef} className="relative">
                   <button
+                    ref={regionTriggerRef}
                     type="button"
-                    onClick={() => setRegionMenuOpen(open => !open)}
+                    onClick={() => (regionMenuOpen ? closeRegionMenu() : openRegionMenu())}
+                    onKeyDown={handleRegionTriggerKeyDown}
                     className="input flex h-14 items-center justify-between rounded-2xl text-left"
                     aria-expanded={regionMenuOpen}
                     aria-haspopup="listbox"
+                    aria-controls="home-region-listbox"
                     aria-label={t('home.regionSelect', 'Select region')}
                   >
                     <span className="truncate">{selectedRegionLabel || t('home.allRegions', 'All regions')}</span>
@@ -127,37 +252,40 @@ export default function Home() {
 
                   {regionMenuOpen && (
                     <div
+                      id="home-region-listbox"
+                      ref={regionListboxRef}
                       role="listbox"
+                      tabIndex={-1}
+                      aria-activedescendant={activeRegionOptionId}
+                      onKeyDown={handleRegionListboxKeyDown}
                       className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
                     >
-                      {[
-                        { value: '', label: t('home.allRegions', 'All regions') },
-                        ...CITIES.map(city => ({
-                          value: city.value,
-                          label: t(city.i18nKey, city.i18nDefault),
-                        })),
-                      ].map(option => {
+                      {regionOptions.map((option, index) => {
                         const selected = selectedRegion === option.value;
+                        const active = activeRegionIndex === index;
 
                         return (
-                          <button
+                          <div
                             key={option.value || 'all'}
-                            type="button"
+                            id={`home-region-option-${option.value || 'all'}`}
                             role="option"
                             aria-selected={selected}
                             onClick={() => {
-                              setSelectedRegion(option.value);
-                              setRegionMenuOpen(false);
+                              setActiveRegionIndex(index);
+                              selectRegionOption(index);
                             }}
-                            className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                            onMouseEnter={() => setActiveRegionIndex(index)}
+                            className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                               selected
                                 ? 'bg-primary-50 text-primary-700'
-                                : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
-                            }`}
+                                : active
+                                  ? 'bg-slate-100 text-slate-950'
+                                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                            } ${active ? 'ring-2 ring-primary-200' : ''}`}
                           >
                             <span className="truncate">{option.label}</span>
                             {selected && <Check className="h-4 w-4 flex-shrink-0" />}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
