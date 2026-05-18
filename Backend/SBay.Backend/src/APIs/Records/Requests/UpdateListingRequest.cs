@@ -11,4 +11,5 @@ public sealed record UpdateListingRequest
     public List<string>? ImageUrls { get; init; }
     public int? Stock { get; init; }
     public string? Condition { get; init; }
+    public string? Status { get; init; }
 }

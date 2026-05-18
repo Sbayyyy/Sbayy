@@ -126,4 +126,21 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         var res = await client.GetAsync("/api/auth/me");
         res.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task DeactivatedAccount_IsBlocked_AndCannotLoginAgain()
+    {
+        var password = "Password1!";
+        var (client, auth) = await AuthTestClient.CreateAuthedAsync(_factory, "deactivate", password);
+
+        var deactivate = await client.DeleteAsync("/api/users/me");
+        deactivate.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var authedMe = await client.GetAsync("/api/auth/me");
+        authedMe.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var login = await _factory.CreateClient().PostAsJsonAsync("/api/auth/login",
+            new LoginRequest(auth.User.Email, password));
+        login.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
 }

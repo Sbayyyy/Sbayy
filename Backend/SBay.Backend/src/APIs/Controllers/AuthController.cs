@@ -134,6 +134,9 @@ public class AuthController : ControllerBase
             return Unauthorized("Invalid email or password.");
         }
 
+        if (!user.IsActive)
+            return StatusCode(StatusCodes.Status403Forbidden, "This account is inactive.");
+
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
             user.PasswordHash = _hasher.HashPassword(user, pwd);
@@ -167,6 +170,7 @@ public class AuthController : ControllerBase
 
         var user = await _users.GetByIdAsync(existing.UserId, ct);
         if (user is null) return Unauthorized("Invalid refresh token.");
+        if (!user.IsActive) return Unauthorized("Invalid refresh token.");
 
         var replacement = CreateRefreshToken(user.Id);
         await using var tx = await _uow.BeginTransactionAsync(ct);
@@ -216,6 +220,7 @@ public class AuthController : ControllerBase
         if (!Guid.TryParse(sub, out var id)) return Unauthorized();
         var user = await _users.GetByIdAsync(id, ct);
         if (user is null) return NotFound();
+        if (!user.IsActive) return Forbid();
 
         return Ok(user.ToDto());
     }
@@ -235,6 +240,7 @@ public class AuthController : ControllerBase
         if (!Guid.TryParse(sub, out var id)) return Unauthorized();
         var user = await _users.GetByIdAsync(id, ct);
         if (user is null) return NotFound();
+        if (!user.IsActive) return Forbid();
 
         var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, req.CurrentPassword);
         if (result == PasswordVerificationResult.Failed)

@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading.RateLimiting;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -80,6 +81,8 @@ if (useEf)
     builder.Services.AddScoped<IUserBlockRepository, EfUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, EfUserAnalyticsService>();
+    builder.Services.AddScoped<AccountDeletionService>();
+    builder.Services.AddHostedService<DeactivatedAccountCleanupHostedService>();
 }
 else
 {
@@ -315,6 +318,11 @@ builder.Services.AddCors(o =>
 
 var app = builder.Build();
 
+if (useEf)
+{
+    await AdminBootstrap.BootstrapAdminAsync(app);
+}
+
 app.Use(async (ctx, next) =>
 {
     var requestId = ctx.Request.Headers.TryGetValue("X-Request-ID", out var v)
@@ -387,6 +395,29 @@ if (useSentry)
 app.UseCors("AllowAll");
 app.UseRateLimiter();
 app.UseAuthentication();
+app.Use(async (ctx, next) =>
+{
+    if (ctx.User?.Identity?.IsAuthenticated == true &&
+        Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var userId) &&
+        userId != Guid.Empty)
+    {
+        var users = ctx.RequestServices.GetRequiredService<IUserRepository>();
+        var user = await users.GetByIdAsync(userId, ctx.RequestAborted);
+        if (user is not null && !user.IsActive)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await ctx.Response.WriteAsJsonAsync(new
+            {
+                status = StatusCodes.Status403Forbidden,
+                code = "account_inactive",
+                message = "This account is inactive."
+            }, ctx.RequestAborted);
+            return;
+        }
+    }
+
+    await next();
+});
 app.UseAuthorization();
 
 app.MapControllers();
@@ -489,5 +520,55 @@ internal static class RateLimitKeys
             : forwarded.Split(',')[0].Trim();
 
         return string.IsNullOrWhiteSpace(ip) ? "anonymous" : $"ip:{ip}";
+    }
+}
+
+internal static partial class AdminBootstrap
+{
+    public static async Task BootstrapAdminAsync(WebApplication app)
+    {
+        var email = app.Configuration["Admin:Bootstrap:Email"];
+        var password = app.Configuration["Admin:Bootstrap:Password"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            return;
+
+        email = email.Trim().ToLowerInvariant();
+        if (password.Length < 12)
+            throw new InvalidOperationException("Admin:Bootstrap:Password must be at least 12 characters.");
+
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+
+        var hasActiveAdmin = await db.Users.AsNoTracking().AnyAsync(u => u.Role == "admin" && u.Status == "active");
+        if (hasActiveAdmin)
+            return;
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user is null)
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                DisplayName = "Admin",
+                Role = "admin",
+                Status = "active",
+                IsSeller = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            user.PasswordHash = hasher.HashPassword(user, password);
+            await db.Users.AddAsync(user);
+        }
+        else
+        {
+            user.Role = "admin";
+            user.Status = "active";
+            user.DeactivatedAt = null;
+            user.PasswordHash = hasher.HashPassword(user, password);
+        }
+
+        await db.SaveChangesAsync();
+        app.Logger.LogWarning("Bootstrap admin account ensured for {Email}. Remove Admin:Bootstrap credentials after first successful deploy.", email);
     }
 }

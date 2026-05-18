@@ -83,8 +83,12 @@ export default function ListingDetail() {
     }
     setContactLoading(true);
     openChat({ otherUserId, listingId: listing.id })
-      .then(({ id }) => {
-        router.push(`/messages/${id}`);
+      .then((response) => {
+        const chatId = response.chatId ?? response.id;
+        if (!chatId) {
+          throw new Error('Missing chat id');
+        }
+        router.push(`/messages/${chatId}`);
       })
       .catch((err) => {
         console.error('Error opening chat:', err);

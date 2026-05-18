@@ -103,6 +103,7 @@ public sealed class ListingsController : ControllerBase
 
         var sellerUser = await _users.GetByIdAsync(sellerId, ct);
         if (sellerUser == null) return Forbid();
+        if (!sellerUser.IsActive) return Forbid();
         if (!User.IsInRole("admin"))
         {
             if (sellerUser.ListingBanned) return Forbid();
@@ -218,6 +219,9 @@ public sealed class ListingsController : ControllerBase
             return BadRequest("Price cannot be negative.");
         if (body.Stock.HasValue && body.Stock.Value < 0)
             return BadRequest("Stock cannot be negative.");
+        if (!string.IsNullOrWhiteSpace(body.Status)
+            && body.Status.Trim().ToLowerInvariant() is not ("active" or "sold" or "hidden"))
+            return BadRequest("Invalid listing status.");
         if (body.ImageUrls != null)
         {
             if (body.ImageUrls.Count > 10)
@@ -253,6 +257,11 @@ public sealed class ListingsController : ControllerBase
             condition,
             body.CategoryPath,
             body.Region);
+
+        if (!string.IsNullOrWhiteSpace(body.Status))
+        {
+            listing.SetStatus(body.Status);
+        }
 
         await _repo.UpdateAsync(listing, ct);
         if (body.ImageUrls != null)

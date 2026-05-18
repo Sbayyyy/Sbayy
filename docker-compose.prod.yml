@@ -65,6 +65,11 @@ services:
       Payments__Mock__WebhookSecret: ${PAYMENTS_MOCK_WEBHOOK_SECRET}
       Monetization__Currency: ${MONETIZATION_CURRENCY:-SYP}
       Monetization__CommissionPercent: ${MONETIZATION_COMMISSION_PERCENT:-5}
+      AccountDeletion__GraceDays: ${ACCOUNT_DELETION_GRACE_DAYS:-90}
+      AccountDeletion__CleanupEnabled: ${ACCOUNT_DELETION_CLEANUP_ENABLED:-true}
+      AccountDeletion__CleanupIntervalHours: ${ACCOUNT_DELETION_CLEANUP_INTERVAL_HOURS:-24}
+      Admin__Bootstrap__Email: ${ADMIN_BOOTSTRAP_EMAIL:-}
+      Admin__Bootstrap__Password: ${ADMIN_BOOTSTRAP_PASSWORD:-}
     ports:
       - "127.0.0.1:${API_HOST_PORT:-5000}:8080"
     volumes:

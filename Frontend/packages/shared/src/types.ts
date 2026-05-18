@@ -118,7 +118,8 @@ export interface OpenChatRequest {
 }
 
 export interface OpenChatResponse {
-  id: string;
+  id?: string;
+  chatId?: string;
 }
 
 // Legacy types (keeping for compatibility)

@@ -122,4 +122,13 @@ public class Listing :
         BoostedUntil = until;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void SetStatus(string status)
+    {
+        var normalized = status.Trim().ToLowerInvariant();
+        if (normalized is not ("active" or "sold" or "hidden" or "deleted"))
+            throw new ArgumentException(nameof(status));
+        Status = normalized;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

@@ -64,7 +64,12 @@ namespace SBay.Domain.Database
                 e.Property(x => x.City).HasColumnName("city");
                 e.Property(x => x.AvatarUrl).HasColumnName("avatar_url");
                 e.Property(x => x.Role).HasColumnName("role");
+                e.Property(x => x.Status)
+                    .HasColumnName("status")
+                    .HasMaxLength(32)
+                    .HasDefaultValue("active");
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
+                e.Property(x => x.DeactivatedAt).HasColumnName("deactivated_at");
                 e.Property(x => x.LastSeen).HasColumnName("last_seen");
                 e.Property(x => x.IsSeller).HasColumnName("is_seller").HasDefaultValue(true);
                 e.Property(x => x.TotalRevenue)
@@ -102,6 +107,8 @@ namespace SBay.Domain.Database
                     .IsRequired(false);
                 e.HasIndex(x => x.Email).IsUnique();
                 e.HasIndex(x => x.ExternalId).IsUnique().HasFilter("external_id IS NOT NULL");
+                e.HasIndex(x => new { x.Status, x.DeactivatedAt });
+                e.Ignore(x => x.IsActive);
                 e.Ignore(x => x.Region);
                 e.Ignore(x => x.UserName);
                 e.Ignore(x => x.Cart);
