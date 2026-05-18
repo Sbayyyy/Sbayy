@@ -45,6 +45,7 @@ export interface Product {
   categoryPath?: string;      // Backend field name
   condition: string;          // Backend: "New" | "Used" | "Refurbished" (PascalCase)
   region?: string;            // Backend field name
+  specificLocation?: string;  // Optional detailed location text
   stock: number;              // Backend field name
   thumbnailUrl?: string;      // Backend field name
   createdAt: string;
@@ -76,6 +77,7 @@ export interface ProductCreate {
   stock?: number;
   condition: string;  // "New" | "Used" | "Refurbished"
   region: string;
+  specificLocation?: string;
 }
 
 // Category types
@@ -119,6 +121,7 @@ export interface OpenChatRequest {
 
 export interface OpenChatResponse {
   id: string;
+  chatId?: string;
 }
 
 // Legacy types (keeping for compatibility)
@@ -186,6 +189,7 @@ export interface ProductUpdate {
   categoryPath?: string;
   condition?: string;
   region?: string;
+  specificLocation?: string;
   stock?: number;
   status?: 'active' | 'sold' | 'inactive';
 }

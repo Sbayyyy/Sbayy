@@ -55,6 +55,8 @@ export default function ChatPage() {
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [otherUserName, setOtherUserName] = useState('');
   const [listingTitle, setListingTitle] = useState<string | null>(null);
+  const [listingImageUrl, setListingImageUrl] = useState<string | null>(null);
+  const [listingImageFailed, setListingImageFailed] = useState(false);
   const [reportTarget, setReportTarget] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -99,6 +101,10 @@ export default function ChatPage() {
   useEffect(() => {
     void loadProfanityListFromUrl('/profanities.txt');
   }, []);
+
+  useEffect(() => {
+    setListingImageFailed(false);
+  }, [listingImageUrl]);
 
   useEffect(() => {
     if (!menu) return;
@@ -248,10 +254,13 @@ export default function ChatPage() {
 
         if (listing) {
           setListingTitle(listing.title ?? null);
+          setListingImageUrl(listing.thumbnailUrl || listing.imageUrls?.[0] || null);
         } else if (foundChat.listingId) {
           setListingTitle(t('messages.productFallback', { id: foundChat.listingId.substring(0, 8) }));
+          setListingImageUrl(null);
         } else {
           setListingTitle(null);
+          setListingImageUrl(null);
         }
       }
       
@@ -484,9 +493,19 @@ export default function ChatPage() {
                   {chat.listingId ? (
                     <Link
                       href={`/listing/${chat.listingId}`}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm"
+                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm"
                     >
-                      <Package className="w-5 h-5" />
+                      {listingImageUrl && !listingImageFailed ? (
+                        <img
+                          src={listingImageUrl}
+                          alt={listingTitle ?? getChatTitle()}
+                          className="h-full w-full object-cover"
+                          onError={() => setListingImageFailed(true)}
+                          onLoad={() => setListingImageFailed(false)}
+                        />
+                      ) : (
+                        <Package className="w-5 h-5" />
+                      )}
                     </Link>
                   ) : (
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">

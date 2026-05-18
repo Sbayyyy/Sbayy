@@ -19,6 +19,7 @@ internal sealed class ListingDocument
     [FirestoreProperty] public string? ThumbnailUrl { get; set; }
     [FirestoreProperty] public string? CategoryPath { get; set; }
     [FirestoreProperty] public string? Region { get; set; }
+    [FirestoreProperty] public string? SpecificLocation { get; set; }
     [FirestoreProperty] public string Status { get; set; } = "active";
     [FirestoreProperty] public string Condition { get; set; } = ItemCondition.Unknown.ToString();
     [FirestoreProperty] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -39,6 +40,7 @@ internal sealed class ListingDocument
         ThumbnailUrl = entity.ThumbnailUrl,
         CategoryPath = entity.CategoryPath,
         Region = entity.Region,
+        SpecificLocation = entity.SpecificLocation,
         Status = entity.Status,
         Condition = entity.Condition.ToString(),
         CreatedAt = entity.CreatedAt,
@@ -66,6 +68,7 @@ internal sealed class ListingDocument
         DomainObjectFactory.SetProperty(listing, nameof(Listing.ThumbnailUrl), ThumbnailUrl);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.CategoryPath), CategoryPath);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.Region), Region);
+        DomainObjectFactory.SetProperty(listing, nameof(Listing.SpecificLocation), SpecificLocation);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.Condition), Enum.TryParse<ItemCondition>(Condition, true, out var cond) ? cond : ItemCondition.Unknown);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.Status), Status);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.CreatedAt), CreatedAt);

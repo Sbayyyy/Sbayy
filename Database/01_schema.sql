@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS listings (
   original_price_currency VARCHAR(8),
   stock_quantity INT NOT NULL DEFAULT 1 CHECK (stock_quantity >= 0),
   region TEXT,
+  specific_location VARCHAR(200),
   status TEXT NOT NULL DEFAULT 'active',
   boosted_until TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -139,6 +140,7 @@ CREATE TABLE IF NOT EXISTS listings (
 );
 
 ALTER TABLE IF EXISTS listings ADD COLUMN IF NOT EXISTS boosted_until TIMESTAMPTZ;
+ALTER TABLE IF EXISTS listings ADD COLUMN IF NOT EXISTS specific_location VARCHAR(200);
 CREATE INDEX IF NOT EXISTS idx_listings_seller        ON listings(seller_id);
 CREATE INDEX IF NOT EXISTS idx_listings_category      ON listings(category_id);
 CREATE INDEX IF NOT EXISTS idx_listings_category_path ON listings(category_path);

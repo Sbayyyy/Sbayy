@@ -30,6 +30,7 @@ interface ProductFormData {
   categoryPath: string;
   condition: string;
   region: string;
+  specificLocation: string;
   stock?: number | string;
 }
 
@@ -51,6 +52,7 @@ export default function SellPage() {
     categoryPath: '',
     condition: 'New',
     region: '',
+    specificLocation: '',
     stock: ''
   });
 
@@ -74,7 +76,8 @@ export default function SellPage() {
     title: textInputValidator,
     description: textInputValidator,
     categoryPath: textInputValidator,
-    region: textInputValidator
+    region: textInputValidator,
+    specificLocation: textInputValidator
   };
 
   useEffect(() => {
@@ -205,6 +208,18 @@ export default function SellPage() {
       newErrors.region = locationError;
     }
 
+    const specificLocationError = validateTextField(
+      'specificLocation',
+      formData.specificLocation,
+      undefined,
+      undefined,
+      200
+    );
+
+    if (specificLocationError) {
+      newErrors.specificLocation = specificLocationError;
+    }
+
     if (formData.stock === '' || formData.stock === undefined) {
       newErrors.stock = t('sell.validation.stockRequired');
     } else {
@@ -294,6 +309,7 @@ export default function SellPage() {
         categoryPath: formData.categoryPath,
         condition: formData.condition,
         region: normalizeCityValue(sanitizeInput(formData.region)),
+        specificLocation: sanitizeInput(formData.specificLocation) || undefined,
         stock:
           typeof formData.stock === 'string'
             ? formData.stock === ''
@@ -492,7 +508,7 @@ export default function SellPage() {
 
               <div>
                 <label htmlFor="region" className="block text-sm font-medium mb-2">
-                  {t('sell.fields.location')}
+                  {t('sell.fields.region', 'Region *')}
                 </label>
                 <Select
                   id="region"
@@ -502,13 +518,32 @@ export default function SellPage() {
                   disabled={isLoading}
                   className={`w-full input ${errors.region ? 'border-2 border-red-500' : ''}`}
                 >
-                  <option value="">{t('sell.fields.locationPlaceholder')}</option>
+                  <option value="">{t('sell.fields.regionPlaceholder', 'Select region')}</option>
                   {CITIES.map(city => (
                     <option key={city.value} value={city.value}>{t(city.i18nKey, city.i18nDefault)}</option>
                   ))}
                 </Select>
                 {errors.region && (
                   <p className="mt-1 text-sm text-red-500">{errors.region}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="specificLocation" className="block text-sm font-medium mb-2">
+                  {t('sell.fields.specificLocation', 'Specific location (optional)')}
+                </label>
+                <input
+                  type="text"
+                  id="specificLocation"
+                  name="specificLocation"
+                  value={formData.specificLocation}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  className={`w-full input ${errors.specificLocation ? 'border-2 border-red-500' : ''}`}
+                  placeholder={t('sell.fields.specificLocationPlaceholder', 'Neighborhood, street, or landmark')}
+                />
+                {errors.specificLocation && (
+                  <p className="mt-1 text-sm text-red-500">{errors.specificLocation}</p>
                 )}
               </div>
 

@@ -42,6 +42,10 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
         e.Property(x => x.Region)
          .HasColumnName("region");
 
+        e.Property(x => x.SpecificLocation)
+         .HasColumnName("specific_location")
+         .HasMaxLength(200);
+
         e.OwnsOne(x => x.Price, m =>
         {
             m.Property(p => p.Amount)

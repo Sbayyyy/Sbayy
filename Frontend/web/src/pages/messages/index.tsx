@@ -30,6 +30,7 @@ interface ChatWithParticipant {
   lastMessageAt?: string;
   participant?: User;
   listingTitle?: string;
+  listingImageUrl?: string;
   lastMessage?: {
     id?: string;
     content: string;
@@ -85,14 +86,19 @@ export default function MessagesPage() {
         }),
       );
 
-      const listingMap = new Map<string, string>();
+      const listingMap = new Map<string, { title: string; imageUrl?: string }>();
       await Promise.all(
         listingIds.map(async (listingId) => {
           try {
             const listing = await getListingById(listingId);
-            listingMap.set(listingId, listing.title);
+            listingMap.set(listingId, {
+              title: listing.title,
+              imageUrl: listing.thumbnailUrl || listing.imageUrls?.[0],
+            });
           } catch {
-            listingMap.set(listingId, t('messages.productFallback', { id: listingId.substring(0, 8) }));
+            listingMap.set(listingId, {
+              title: t('messages.productFallback', { id: listingId.substring(0, 8) }),
+            });
           }
         }),
       );
@@ -117,8 +123,9 @@ export default function MessagesPage() {
             createdAt: ''
           },
           listingTitle: chat.listingId
-            ? listingMap.get(chat.listingId) ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })
+            ? listingMap.get(chat.listingId)?.title ?? t('messages.productFallback', { id: chat.listingId.substring(0, 8) })
             : undefined,
+          listingImageUrl: chat.listingId ? listingMap.get(chat.listingId)?.imageUrl : undefined,
           lastMessage: lastMessage ? {
             id: lastMessage.id,
             content: lastMessage.content,
@@ -429,8 +436,17 @@ export default function MessagesPage() {
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">
-                        <Package className="w-6 h-6" />
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">
+                        {chat.listingImageUrl ? (
+                          <img
+                            src={chat.listingImageUrl}
+                            alt={chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId?.substring(0, 8) ?? '' })}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <Package className="w-6 h-6" />
+                        )}
                       </div>
                     </div>
 
