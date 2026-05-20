@@ -23,6 +23,7 @@ using AuthResponse= SBay.Backend.APIs.Records.Responses.AuthResponse;
 using ChangePasswordRequest = SBay.Backend.APIs.Records.ChangePasswordRequest;
 using RefreshTokenRequest = SBay.Backend.APIs.Records.RefreshTokenRequest;
 using LogoutRequest = SBay.Backend.APIs.Records.LogoutRequest;
+using VerifyEmailRequest = SBay.Backend.APIs.Records.Requests.VerifyEmailRequest;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
@@ -96,7 +97,16 @@ public class AuthController : ControllerBase
 
         await _users.AddAsync(user, ct);
         await _uow.SaveChangesAsync(ct);
-        await SendVerificationEmailAsync(user, verificationToken, ct);
+        try
+        {
+            await SendVerificationEmailAsync(user, verificationToken, ct);
+        }
+        catch
+        {
+            await _users.RemoveAsync(user, ct);
+            await _uow.SaveChangesAsync(ct);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send verification email. Please try registering again.");
+        }
 
         return CreatedAtAction(nameof(GetMe), new { }, new
         {
@@ -139,9 +149,6 @@ public class AuthController : ControllerBase
 
         if (!user.IsActive)
             return StatusCode(StatusCodes.Status403Forbidden, "This account is inactive.");
-        if (!user.EmailVerified)
-            return StatusCode(StatusCodes.Status403Forbidden, "Please verify your email before signing in.");
-
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
             user.PasswordHash = _hasher.HashPassword(user, pwd);
@@ -160,37 +167,44 @@ public class AuthController : ControllerBase
         });
     }
 
-    [HttpGet("verify-email")]
-    [AllowAnonymous]
-    [EnableRateLimiting("auth")]
-    public async Task<IActionResult> VerifyEmail([FromQuery] string token, CancellationToken ct)
+[HttpPost("verify-email")]
+[AllowAnonymous]
+[EnableRateLimiting("auth")]
+public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request, CancellationToken ct)
+{
+    if (request is null ||string.IsNullOrWhiteSpace(request.Token))
+        return BadRequest("Verification token is required.");
+
+    var tokenHash = HashToken(request.Token);
+    var user = await _users.GetByEmailVerificationTokenHashAsync(tokenHash, ct);
+
+    if (user is null ||
+        user.EmailVerificationExpiresAt is null ||
+        user.EmailVerificationExpiresAt <= DateTimeOffset.UtcNow)
     {
-        if (string.IsNullOrWhiteSpace(token))
-            return BadRequest("Verification token is required.");
-
-        var tokenHash = HashToken(token);
-        var user = await _users.GetByEmailVerificationTokenHashAsync(tokenHash, ct);
-        if (user is null ||
-            user.EmailVerificationExpiresAt is null ||
-            user.EmailVerificationExpiresAt <= DateTimeOffset.UtcNow)
-        {
-            return BadRequest("Verification link is invalid or expired.");
-        }
-
-        user.EmailVerified = true;
-        user.EmailVerifiedAt ??= DateTimeOffset.UtcNow;
-        user.EmailVerificationTokenHash = null;
-        user.EmailVerificationExpiresAt = null;
-        await _users.UpdateAsync(user, ct);
-        await _uow.SaveChangesAsync(ct);
-
-        var refresh = await IssueRefreshTokenAsync(user.Id, ct);
-        return Ok(new AuthResponse(user.ToDto(), GenerateJwt(user))
-        {
-            RefreshToken = refresh.Token,
-            RefreshTokenExpiresAt = refresh.ExpiresAt
-        });
+        return BadRequest("Verification link is invalid or expired.");
     }
+    if (user.EmailVerified)
+{
+    return Ok(new
+    {
+        Message = "Email already verified."
+    });
+}
+
+    user.EmailVerified = true;
+    user.EmailVerifiedAt ??= DateTimeOffset.UtcNow;
+    user.EmailVerificationTokenHash = null;
+    user.EmailVerificationExpiresAt = null;
+
+    await _users.UpdateAsync(user, ct);
+    await _uow.SaveChangesAsync(ct);
+
+    return Ok(new
+    {
+        Message = "Email verified successfully."
+    });
+}
 
     [HttpPost("refresh")]
     [AllowAnonymous]
@@ -359,7 +373,7 @@ public class AuthController : ControllerBase
             ?? _config["Cors:AllowedOrigins:0"]
             ?? _config["FRONTEND_URL"]
             ?? "http://localhost:3000").TrimEnd('/');
-        var verifyUrl = $"{baseUrl}/auth/verify-email?token={Uri.EscapeDataString(token)}";
+        var verifyUrl = $"{baseUrl}/auth/verify-email#token={Uri.EscapeDataString(token)}";
         var subject = "Verify your SBay email";
         var text = $"Welcome to SBay. Verify your email and sign in here: {verifyUrl}";
         var html = $"""

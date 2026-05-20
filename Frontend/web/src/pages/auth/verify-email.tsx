@@ -3,26 +3,36 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { verifyEmail } from '@/lib/api/auth';
-import { useAuthStore } from '@/lib/store';
 
 export default function VerifyEmailPage() {
   const router = useRouter();
-  const { login } = useAuthStore();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verifying your email...');
+  const [loginHref, setLoginHref] = useState('/auth/login?verified=true');
 
   useEffect(() => {
-    const token = typeof router.query.token === 'string' ? router.query.token : '';
-    if (!router.isReady || !token) return;
+    if (!router.isReady) return;
+
+    const hash = window.location.hash.replace('#', '');
+    const params = new URLSearchParams(hash);
+    const token = params.get('token') ?? '';
+    const redirect = params.get('redirect') ?? '';
+    const redirectSuffix = redirect.startsWith('/') && !redirect.startsWith('//')
+      ? `&redirect=${encodeURIComponent(redirect)}`
+      : '';
+    setLoginHref(`/auth/login?verified=true${redirectSuffix}`);
+
+    if (!token) {
+      setStatus('error');
+      setMessage('No verification token provided.');
+      return;
+    }
 
     const run = async () => {
       try {
-        const auth = await verifyEmail(token);
-        login(auth.user, auth.token, auth.refreshToken);
+        await verifyEmail(token);
         setStatus('success');
-        setMessage('Email verified. Signing you in...');
-        const redirect = typeof router.query.redirect === 'string' ? router.query.redirect : '/';
-        await router.replace(redirect);
+        setMessage('Email verified successfully. You can now sign in.');
       } catch {
         setStatus('error');
         setMessage('This verification link is invalid or expired.');
@@ -30,7 +40,7 @@ export default function VerifyEmailPage() {
     };
 
     void run();
-  }, [login, router]);
+  }, [router.isReady]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -40,9 +50,9 @@ export default function VerifyEmailPage() {
         {status === 'error' && <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />}
         <h1 className="text-xl font-semibold text-slate-950">Email verification</h1>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
-        {status === 'error' && (
-          <Link href="/auth/login" className="btn btn-primary mt-6">
-            Back to login
+        {status !== 'loading' && (
+          <Link href={loginHref} className="btn btn-primary mt-6">
+            Go to login
           </Link>
         )}
       </div>

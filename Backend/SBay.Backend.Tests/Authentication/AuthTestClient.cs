@@ -22,11 +22,14 @@ public static class AuthTestClient
 
         var emailSender = factory.Services.GetRequiredService<TestEmailSender>();
         var token = emailSender.GetLatestVerificationToken(uniqueEmail);
-        var verify = await client.GetAsync($"/api/auth/verify-email?token={Uri.EscapeDataString(token)}");
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token });
         verify.EnsureSuccessStatusCode();
 
-        var auth = await verify.Content.ReadFromJsonAsync<AuthResponse>()
-                   ?? throw new InvalidOperationException("Verify email returned no body");
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(uniqueEmail, password));
+        login.EnsureSuccessStatusCode();
+
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>()
+                   ?? throw new InvalidOperationException("Login returned no body");
 
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");

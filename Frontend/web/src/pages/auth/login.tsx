@@ -25,6 +25,8 @@ export default function Login() {
     const [apiError, setApiError] = useState('');
 
     const redirectParam = typeof router.query.redirect === 'string' ? router.query.redirect : '';
+    const showRegisteredNotice = router.query.registered === 'true';
+    const showVerifiedNotice = router.query.verified === 'true';
     const registerHref = redirectParam
       ? `/auth/register?redirect=${encodeURIComponent(redirectParam)}`
       : '/auth/register';
@@ -262,6 +264,16 @@ export default function Login() {
           </div>
 
           <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+              {showRegisteredNotice && (
+              <div className="mb-4 rounded border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  Check your email for a verification link before signing in.
+              </div>
+              )}
+              {showVerifiedNotice && (
+              <div className="mb-4 rounded border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  Email verified. You can now list items and message sellers.
+              </div>
+              )}
               {apiError && (
               <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
                   <span className="block sm:inline">{apiError}</span>

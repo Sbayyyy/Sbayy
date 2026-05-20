@@ -68,10 +68,17 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_reset_at TIME
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS external_id TEXT;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT 'active';
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ;
-ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verification_token_hash VARCHAR(128);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMPTZ;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+-- Preserve write access for accounts that existed before email verification.
+UPDATE users
+SET email_verified = TRUE,
+    email_verified_at = COALESCE(email_verified_at, created_at)
+WHERE email_verified IS NULL;
+ALTER TABLE IF EXISTS users ALTER COLUMN email_verified SET DEFAULT FALSE;
+ALTER TABLE IF EXISTS users ALTER COLUMN email_verified SET NOT NULL;
 UPDATE users SET role = lower(trim(role)) WHERE role IS NOT NULL AND lower(trim(role)) <> role;
 UPDATE users SET role = 'user' WHERE role IS NULL OR role NOT IN ('user','seller','support','admin');
 UPDATE users SET status = lower(trim(status)) WHERE status IS NOT NULL AND lower(trim(status)) <> status;

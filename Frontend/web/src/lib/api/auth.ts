@@ -28,14 +28,10 @@ export const register = async (data: UserRegistration) => {
   return response.data;
 };
 
-export const verifyEmail = async (token: string) => {
-  const response = await api.get<AuthResponse>('/auth/verify-email', {
-    params: { token }
+export const verifyEmail = async (token: string): Promise<void> => {
+  await api.post('/auth/verify-email', {
+    token
   });
-  return {
-    ...response.data,
-    user: toUser(response.data.user)
-  };
 };
 
 /**

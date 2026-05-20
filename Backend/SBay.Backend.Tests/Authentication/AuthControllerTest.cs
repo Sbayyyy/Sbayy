@@ -48,7 +48,7 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
 
         res.StatusCode.Should().Be(HttpStatusCode.Created);
         var emailSender = _factory.Services.GetRequiredService<TestEmailSender>();
-        emailSender.Sent.Last().To.Should().Be(req.Email.Trim().ToLowerInvariant());
+        emailSender.Sent.Should().Contain(m => m.To == req.Email.Trim().ToLowerInvariant());
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         reg.EnsureSuccessStatusCode();
 
         var token = _factory.Services.GetRequiredService<TestEmailSender>().GetLatestVerificationToken(email);
-        var verify = await client.GetAsync($"/api/auth/verify-email?token={Uri.EscapeDataString(token)}");
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token });
         verify.EnsureSuccessStatusCode();
 
         var login = await client.PostAsJsonAsync("/api/auth/login",
@@ -78,7 +78,7 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
-    public async Task Login_BeforeEmailVerification_ReturnsForbidden()
+    public async Task Login_BeforeEmailVerification_SucceedsWithUnverifiedUser()
     {
         var client = _factory.CreateClient();
         var email = $"{Guid.NewGuid():N}@example.com";
@@ -91,11 +91,14 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         var login = await client.PostAsJsonAsync("/api/auth/login",
             new LoginRequest(email, pwd));
 
-        login.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        auth!.User.Verified.Should().BeFalse();
+        auth.Token.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
-    public async Task VerifyEmail_ReturnsAuthResponse_AndMarksUserVerified()
+    public async Task VerifyEmail_MarksUserVerified_AndAllowsLogin()
     {
         var client = _factory.CreateClient();
         var email = $"{Guid.NewGuid():N}@example.com";
@@ -105,15 +108,14 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         reg.EnsureSuccessStatusCode();
         var token = _factory.Services.GetRequiredService<TestEmailSender>().GetLatestVerificationToken(email);
 
-        var verify = await client.GetAsync($"/api/auth/verify-email?token={Uri.EscapeDataString(token)}");
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token });
 
         verify.StatusCode.Should().Be(HttpStatusCode.OK);
-        var auth = await verify.Content.ReadFromJsonAsync<AuthResponse>();
-        auth.Should().NotBeNull();
-        auth!.User.Email.Should().Be(email.ToLowerInvariant());
-        auth.User.Verified.Should().BeTrue();
-        auth.Token.Should().NotBeNullOrWhiteSpace();
-        auth.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        var login = await client.PostAsJsonAsync("/api/auth/login",
+            new LoginRequest(email, "Password1!"));
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        auth!.User.Verified.Should().BeTrue();
     }
 
     [Fact]
@@ -126,9 +128,11 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         var login = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, pwd, "Refresh"));
         login.EnsureSuccessStatusCode();
         var token = _factory.Services.GetRequiredService<TestEmailSender>().GetLatestVerificationToken(email);
-        var verify = await client.GetAsync($"/api/auth/verify-email?token={Uri.EscapeDataString(token)}");
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token });
         verify.EnsureSuccessStatusCode();
-        var initial = await verify.Content.ReadFromJsonAsync<AuthResponse>();
+        var loginAuth = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, pwd));
+        loginAuth.EnsureSuccessStatusCode();
+        var initial = await loginAuth.Content.ReadFromJsonAsync<AuthResponse>();
         initial!.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
         var refresh = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = initial.RefreshToken });

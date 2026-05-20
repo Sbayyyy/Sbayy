@@ -117,7 +117,7 @@ namespace SBay.Domain.Database
                     .IsRequired(false);
                 e.HasIndex(x => x.Email).IsUnique();
                 e.HasIndex(x => x.ExternalId).IsUnique().HasFilter("external_id IS NOT NULL");
-                e.HasIndex(x => x.EmailVerificationTokenHash).HasFilter("email_verification_token_hash IS NOT NULL");
+                e.HasIndex(x => x.EmailVerificationTokenHash).IsUnique().HasFilter("email_verification_token_hash IS NOT NULL");
                 e.HasIndex(x => new { x.Status, x.DeactivatedAt });
                 e.Ignore(x => x.IsActive);
                 e.Ignore(x => x.Region);
