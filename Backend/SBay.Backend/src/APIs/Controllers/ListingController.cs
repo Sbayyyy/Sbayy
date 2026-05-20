@@ -73,6 +73,7 @@ public sealed class ListingsController : ControllerBase
             Region = l.Region,
             SpecificLocation = l.SpecificLocation,
             CreatedAt = new DateTimeOffset(l.CreatedAt),
+            SoldUntil = l.SoldUntil.HasValue ? new DateTimeOffset(l.SoldUntil.Value) : null,
             BoostedUntil = l.BoostedUntil.HasValue ? new DateTimeOffset(l.BoostedUntil.Value) : null,
             IsBoosted = l.BoostedUntil.HasValue && l.BoostedUntil.Value > DateTime.UtcNow,
             ThumbnailUrl = l.ThumbnailUrl,
@@ -266,7 +267,7 @@ public sealed class ListingsController : ControllerBase
 
         if (body.Status.HasValue)
         {
-            listing.SetStatus(body.Status.Value);
+            listing.UpdateStatus(body.Status.Value.ToStorageValue());
         }
 
         await _repo.UpdateAsync(listing, ct);

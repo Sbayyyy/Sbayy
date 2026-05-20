@@ -672,7 +672,13 @@
     "stock": "Stock: {{count}}",
     "views": "Views: {{count}}",
     "view": "View",
-    "edit": "Edit"
+    "edit": "Edit",
+    "markSold": "Mark sold",
+    "markSoldSuccess": "Listing marked as sold.",
+    "markSoldError": "Unable to mark listing as sold.",
+    "relist": "Relist",
+    "relistSuccess": "Listing is live again.",
+    "relistError": "Unable to relist this listing."
   },
   "messages": {
     "title": "Messages - SBay",
@@ -720,7 +726,27 @@
     "copy": "Copy",
     "edit": "Edit",
     "delete": "Delete",
-    "report": "Report"
+    "report": "Report",
+    "offer": "Offer",
+    "counterOffer": "Counter offer",
+    "offerAmount": "Offer",
+    "makeOffer": "Offer",
+    "acceptOffer": "Accept",
+    "rejectOffer": "Reject",
+    "counterOfferAction": "Counter",
+    "counterPrompt": "Counter offer amount",
+    "offerInvalid": "Enter a valid offer amount.",
+    "offerSent": "Offer sent.",
+    "offerAccepted": "Offer accepted. Listing marked as sold for 15 days.",
+    "offerRejected": "Offer rejected.",
+    "counterSent": "Counter offer sent.",
+    "offerError": "Unable to update offer.",
+    "offerStatus": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "countered": "Countered"
+    }
   },
   "category": {
     "title": "{{name}} - SBay",

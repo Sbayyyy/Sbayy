@@ -9,6 +9,8 @@ internal sealed class MessageDocument
     [FirestoreProperty] public string Id { get; set; } = string.Empty;
     [FirestoreProperty] public string ChatId { get; set; } = string.Empty;
     [FirestoreProperty] public string Content { get; set; } = string.Empty;
+    [FirestoreProperty] public string Type { get; set; } = "text";
+    [FirestoreProperty] public string? DataJson { get; set; }
     [FirestoreProperty] public string SenderId { get; set; } = string.Empty;
     [FirestoreProperty] public string ReceiverId { get; set; } = string.Empty;
     [FirestoreProperty] public string? ListingId { get; set; }
@@ -20,6 +22,8 @@ internal sealed class MessageDocument
         Id = FirestoreId.ToString(message.Id),
         ChatId = FirestoreId.ToString(message.ChatId),
         Content = message.Content,
+        Type = message.Type,
+        DataJson = message.DataJson,
         SenderId = FirestoreId.ToString(message.SenderId),
         ReceiverId = FirestoreId.ToString(message.ReceiverId),
         ListingId = FirestoreId.ToString(message.ListingId),
@@ -34,6 +38,8 @@ internal sealed class MessageDocument
             Id = FirestoreId.ParseRequired(Id),
             ChatId = FirestoreId.ParseRequired(ChatId),
             Content = Content,
+            Type = string.IsNullOrWhiteSpace(Type) ? "text" : Type,
+            DataJson = DataJson,
             SenderId = FirestoreId.ParseRequired(SenderId),
             ReceiverId = FirestoreId.ParseRequired(ReceiverId),
             ListingId = FirestoreId.ParseNullable(ListingId),

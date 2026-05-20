@@ -37,7 +37,10 @@ public class ChatEvents:IChatEvents
             m.ChatId,
             m.SenderId,
             m.ReceiverId,
+            m.ListingId,
             m.Content,
+            m.Type,
+            m.DataJson,
             m.CreatedAt,
             m.IsRead
         };
@@ -50,7 +53,10 @@ public class ChatEvents:IChatEvents
         };
 
         await Task.WhenAll(tasks);
-        await NotifyReceiverAsync(m, ct);
+        if (m.Type != "offer")
+        {
+            await NotifyReceiverAsync(m, ct);
+        }
     }
 
     private async Task NotifyReceiverAsync(Message m, CancellationToken ct)
@@ -95,7 +101,10 @@ public class ChatEvents:IChatEvents
             m.ChatId,
             m.SenderId,
             m.ReceiverId,
+            m.ListingId,
             m.Content,
+            m.Type,
+            m.DataJson,
             m.CreatedAt,
             m.IsRead
         };
@@ -142,4 +151,3 @@ public class ChatEvents:IChatEvents
         return Task.WhenAll(tasks);
     }
 }
-

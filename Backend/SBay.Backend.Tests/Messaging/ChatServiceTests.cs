@@ -7,6 +7,7 @@ using Moq;
 using SBay.Backend.Messaging;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
+using SBay.Domain.ValueObjects;
 using Xunit;
 
 public sealed class ChatServiceTests
@@ -104,6 +105,19 @@ public sealed class ChatServiceTests
         return m.Object;
     }
 
+    private static IListingRepository Listings()
+    {
+        return new Mock<IListingRepository>().Object;
+    }
+
+    private static INotificationRepository Notifications()
+    {
+        var m = new Mock<INotificationRepository>();
+        m.Setup(x => x.AddAsync(It.IsAny<UserNotification>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return m.Object;
+    }
+
     private static IUserRepository Users(params (Guid Id, string Status)[] users)
     {
         var m = new Mock<IUserRepository>();
@@ -122,7 +136,13 @@ public sealed class ChatServiceTests
         return m.Object;
     }
 
-    private static ChatService CreateService(EfDbContext db, Guid owner, SBay.Backend.Utils.IClock? clock = null, IUserRepository? users = null)
+    private static ChatService CreateService(
+        EfDbContext db,
+        Guid owner,
+        SBay.Backend.Utils.IClock? clock = null,
+        IListingRepository? listings = null,
+        INotificationRepository? notifications = null,
+        IUserRepository? users = null)
     {
         return new ChatService(
             new EfChatRepository(db),
@@ -133,6 +153,8 @@ public sealed class ChatServiceTests
             Events(),
             new EfUnitOfWork(db),
             Blocks(),
+            listings ?? Listings(),
+            notifications ?? Notifications(),
             users);
     }
 
@@ -261,6 +283,78 @@ public sealed class ChatServiceTests
         Assert.Empty(otherInbox);
         Assert.Single(myInbox);
         Assert.Equal(0, unreadForOther);
+    }
+
+    [Fact]
+    public async Task Offers_Should_Notify_Seller_And_Acceptance_Marks_Listing_Sold()
+    {
+        using var db = NewDb();
+        var seller = Guid.NewGuid();
+        var buyer = Guid.NewGuid();
+        var listing = new Listing(seller, "Phone", "Clean", new Money(120m, "SYP"));
+        var listingRepo = new Mock<IListingRepository>();
+        listingRepo.Setup(x => x.GetByIdForManagementAsync(listing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(listing);
+        listingRepo.Setup(x => x.UpdateAsync(listing, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var notifications = new List<UserNotification>();
+        var notificationRepo = new Mock<INotificationRepository>();
+        notificationRepo.Setup(x => x.AddAsync(It.IsAny<UserNotification>(), It.IsAny<CancellationToken>()))
+            .Callback<UserNotification, CancellationToken>((n, _) => notifications.Add(n))
+            .Returns(Task.CompletedTask);
+        var now = new DateTime(2026, 5, 18, 10, 0, 0, DateTimeKind.Utc);
+        var svc = CreateService(db, seller, Clock(now), listingRepo.Object, notificationRepo.Object);
+        var chat = await svc.OpenOrGetAsync(buyer, seller, listing.Id, default);
+
+        var offer = await svc.SendOfferAsync(chat.Id, buyer, 100m, "SYP", default);
+        db.ChangeTracker.Clear();
+        var accepted = await svc.AcceptOfferAsync(chat.Id, offer.Id, seller, default);
+
+        Assert.Equal("offer", offer.Type);
+        Assert.Single(notifications);
+        Assert.Equal(seller, notifications[0].UserId);
+        Assert.Equal("offer_received", notifications[0].Type);
+        Assert.Equal("sold", listing.Status);
+        Assert.Equal(now.AddDays(15), listing.SoldUntil);
+        Assert.Contains("accepted", accepted.DataJson);
+    }
+
+    [Fact]
+    public async Task SendOfferAsync_ShouldReject_ZeroAmount()
+    {
+        using var db = NewDb();
+        var seller = Guid.NewGuid();
+        var buyer = Guid.NewGuid();
+        var listing = new Listing(seller, "Phone", "Clean", new Money(120m, "SYP"));
+        var listingRepo = new Mock<IListingRepository>();
+        listingRepo.Setup(x => x.GetByIdForManagementAsync(listing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(listing);
+        var svc = CreateService(db, seller, listings: listingRepo.Object);
+        var chat = await svc.OpenOrGetAsync(buyer, seller, listing.Id, default);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.SendOfferAsync(chat.Id, buyer, 0m, "SYP", default));
+    }
+
+    [Fact]
+    public async Task AcceptOfferAsync_ShouldReject_WhenListingIsNoLongerActive()
+    {
+        using var db = NewDb();
+        var seller = Guid.NewGuid();
+        var buyer = Guid.NewGuid();
+        var listing = new Listing(seller, "Phone", "Clean", new Money(120m, "SYP"));
+        var listingRepo = new Mock<IListingRepository>();
+        listingRepo.Setup(x => x.GetByIdForManagementAsync(listing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(listing);
+        var svc = CreateService(db, seller, listings: listingRepo.Object);
+        var chat = await svc.OpenOrGetAsync(buyer, seller, listing.Id, default);
+        var offer = await svc.SendOfferAsync(chat.Id, buyer, 100m, "SYP", default);
+
+        listing.SetStatus("hidden");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.AcceptOfferAsync(chat.Id, offer.Id, seller, default));
+        Assert.Equal("hidden", listing.Status);
     }
 
     [Fact]

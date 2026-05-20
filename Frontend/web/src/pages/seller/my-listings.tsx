@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { getMyListings, deleteListing, updateListing } from '@/lib/api/listings';
+import { getMyListings, deleteListing, markListingSold, relistListing } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
-import { Loader2, AlertCircle, Plus, Edit, Trash2, Eye, Package, Zap } from 'lucide-react';
+import { Loader2, AlertCircle, Plus, Edit, Trash2, Eye, Package, Zap, CheckCircle } from 'lucide-react';
 import { formatPrice } from '@/lib/cartStore';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useTranslation } from 'next-i18next';
@@ -89,16 +89,31 @@ export default function MyListingsPage() {
     }
   };
 
-  const handleMarkSold = async (listing: Product) => {
+  const handleMarkSold = async (id: string) => {
     if (Boolean(statusUpdatingId)) return;
     try {
-      setStatusUpdatingId(listing.id);
-      const updated = await updateListing(listing.id, { status: 'sold' });
-      setListings(prev => prev.map(item => item.id === listing.id ? updated : item));
+      setStatusUpdatingId(id);
+      const updated = await markListingSold(id);
+      setListings(prev => prev.map(listing => listing.id === id ? updated : listing));
       toast.success(t('myListings.markSoldSuccess', { defaultValue: 'Listing marked as sold.' }));
     } catch (err) {
       console.error('Mark sold failed:', err);
       toast.error(t('myListings.markSoldError', { defaultValue: 'Unable to mark listing as sold.' }));
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
+  const handleRelist = async (id: string) => {
+    if (Boolean(statusUpdatingId)) return;
+    try {
+      setStatusUpdatingId(id);
+      const updated = await relistListing(id);
+      setListings(prev => prev.map(listing => listing.id === id ? updated : listing));
+      toast.success(t('myListings.relistSuccess', { defaultValue: 'Listing is live again.' }));
+    } catch (err) {
+      console.error('Relist failed:', err);
+      toast.error(t('myListings.relistError', { defaultValue: 'Unable to relist this listing.' }));
     } finally {
       setStatusUpdatingId(null);
     }
@@ -284,6 +299,33 @@ export default function MyListingsPage() {
                         <Edit size={16} />
                         {t('myListings.edit')}
                       </button>
+                      {getListingStatus(listing) === 'sold' ? (
+                        <button
+                          onClick={() => void handleRelist(listing.id)}
+                          disabled={isStatusUpdating}
+                          className="btn btn-outline border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                        >
+                          {statusUpdatingId === listing.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
+                          {t('myListings.relist', { defaultValue: 'Relist' })}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => void handleMarkSold(listing.id)}
+                          disabled={getListingStatus(listing) !== 'active' || isStatusUpdating}
+                          className="btn btn-outline border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                        >
+                          {statusUpdatingId === listing.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
+                          {t('myListings.markSold', { defaultValue: 'Mark sold' })}
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setBoostListingId(listing.id);
@@ -294,17 +336,6 @@ export default function MyListingsPage() {
                       >
                         <Zap size={16} />
                         Boost
-                      </button>
-                      <button
-                        onClick={() => void handleMarkSold(listing)}
-                        disabled={getListingStatus(listing) !== 'active' || isStatusUpdating}
-                        className="btn btn-outline border-slate-200 px-3 text-slate-700 hover:bg-slate-50"
-                      >
-                        {statusUpdatingId === listing.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          t('myListings.markSold', { defaultValue: 'Mark sold' })
-                        )}
                       </button>
                       <button
                         onClick={() => setDeleteId(listing.id)}

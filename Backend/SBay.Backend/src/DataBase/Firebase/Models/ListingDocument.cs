@@ -21,6 +21,7 @@ internal sealed class ListingDocument
     [FirestoreProperty] public string? Region { get; set; }
     [FirestoreProperty] public string? SpecificLocation { get; set; }
     [FirestoreProperty] public string Status { get; set; } = "active";
+    [FirestoreProperty] public DateTime? SoldUntil { get; set; }
     [FirestoreProperty] public string Condition { get; set; } = ItemCondition.Unknown.ToString();
     [FirestoreProperty] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     [FirestoreProperty] public DateTime? UpdatedAt { get; set; }
@@ -42,6 +43,7 @@ internal sealed class ListingDocument
         Region = entity.Region,
         SpecificLocation = entity.SpecificLocation,
         Status = entity.Status,
+        SoldUntil = entity.SoldUntil,
         Condition = entity.Condition.ToString(),
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt,
@@ -71,6 +73,7 @@ internal sealed class ListingDocument
         DomainObjectFactory.SetProperty(listing, nameof(Listing.SpecificLocation), SpecificLocation);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.Condition), Enum.TryParse<ItemCondition>(Condition, true, out var cond) ? cond : ItemCondition.Unknown);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.Status), Status);
+        DomainObjectFactory.SetProperty(listing, nameof(Listing.SoldUntil), SoldUntil);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.CreatedAt), CreatedAt);
         DomainObjectFactory.SetProperty(listing, nameof(Listing.UpdatedAt), UpdatedAt);
         var imgs = Images?.Select(i => i.ToDomain()).OrderBy(i => i.Position).ToList() ?? new List<ListingImage>();

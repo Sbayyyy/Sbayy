@@ -18,6 +18,14 @@ export const updateListing = async (id: string, data: ProductUpdate): Promise<Pr
   return response.data;
 };
 
+export const markListingSold = async (id: string): Promise<Product> => {
+  return updateListing(id, { status: 'sold' });
+};
+
+export const relistListing = async (id: string): Promise<Product> => {
+  return updateListing(id, { status: 'active' });
+};
+
 /**
  * Listing löschen
  */

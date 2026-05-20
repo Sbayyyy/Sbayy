@@ -18,6 +18,7 @@
         public string? SpecificLocation { get; init; }
 
         public DateTimeOffset CreatedAt { get; init; }
+        public DateTimeOffset? SoldUntil { get; init; }
         public DateTimeOffset? BoostedUntil { get; init; }
         public bool IsBoosted { get; init; }
 

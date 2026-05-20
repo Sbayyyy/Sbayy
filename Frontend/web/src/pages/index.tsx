@@ -217,7 +217,7 @@ export default function Home() {
     <Layout title={t('home.title')}>
       <div className="app-page space-y-8 py-6">
         <div className="container mx-auto px-4">
-          <div className="surface-card p-5 sm:p-6">
+          <div className="surface-card relative z-20 overflow-visible p-5 sm:p-6">
             <div className="mx-auto max-w-4xl space-y-4">
               <form onSubmit={handleSearch} className="grid gap-3 md:grid-cols-[1fr_15rem]">
                 <div className="relative">
@@ -235,7 +235,7 @@ export default function Home() {
                     className="input h-14 rounded-2xl pr-11"
                   />
                 </div>
-                <div ref={regionMenuRef} className="relative">
+                <div ref={regionMenuRef} className={`relative ${regionMenuOpen ? 'z-50' : 'z-0'}`}>
                   <button
                     ref={regionTriggerRef}
                     type="button"
@@ -259,7 +259,7 @@ export default function Home() {
                       tabIndex={-1}
                       aria-activedescendant={activeRegionOptionId}
                       onKeyDown={handleRegionListboxKeyDown}
-                      className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
+                      className="absolute left-0 right-0 top-full z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
                     >
                       {regionOptions.map((option, index) => {
                         const selected = selectedRegion === option.value;

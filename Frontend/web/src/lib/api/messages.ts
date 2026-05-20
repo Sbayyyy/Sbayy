@@ -63,6 +63,26 @@ export const sendMessage = async (chatId: string, content: string): Promise<Mess
   }
 };
 
+export const sendOffer = async (chatId: string, amount: number, currency?: string): Promise<Message> => {
+  const response = await api.post<Message>(`/chats/${chatId}/offers`, { amount, currency });
+  return response.data;
+};
+
+export const acceptOffer = async (chatId: string, messageId: string): Promise<Message> => {
+  const response = await api.post<Message>(`/chats/${chatId}/offers/${messageId}/accept`);
+  return response.data;
+};
+
+export const rejectOffer = async (chatId: string, messageId: string): Promise<Message> => {
+  const response = await api.post<Message>(`/chats/${chatId}/offers/${messageId}/reject`);
+  return response.data;
+};
+
+export const counterOffer = async (chatId: string, messageId: string, amount: number, currency?: string): Promise<Message> => {
+  const response = await api.post<Message>(`/chats/${chatId}/offers/${messageId}/counter`, { amount, currency });
+  return response.data;
+};
+
 /**
  * Open or get existing chat
  * 
@@ -164,8 +184,12 @@ export const messagesApi = {
   getChats,
   getMessages,
   sendMessage,
+  sendOffer,
   openChat,
   markAsRead,
+  acceptOffer,
+  rejectOffer,
+  counterOffer,
   updateMessage,
   deleteMessage,
   getUnreadCount,
