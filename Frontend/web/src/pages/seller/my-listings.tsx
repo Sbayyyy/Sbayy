@@ -26,8 +26,7 @@ export default function MyListingsPage() {
   const [boostListingId, setBoostListingId] = useState<string | null>(null);
   const [selectedBoostOption, setSelectedBoostOption] = useState('');
   const [boosting, setBoosting] = useState(false);
-  const [markingSoldId, setMarkingSoldId] = useState<string | null>(null);
-  const [relistingId, setRelistingId] = useState<string | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -91,9 +90,9 @@ export default function MyListingsPage() {
   };
 
   const handleMarkSold = async (id: string) => {
-    if (markingSoldId) return;
+    if (Boolean(statusUpdatingId)) return;
     try {
-      setMarkingSoldId(id);
+      setStatusUpdatingId(id);
       const updated = await markListingSold(id);
       setListings(prev => prev.map(listing => listing.id === id ? updated : listing));
       toast.success(t('myListings.markSoldSuccess', { defaultValue: 'Listing marked as sold.' }));
@@ -101,14 +100,14 @@ export default function MyListingsPage() {
       console.error('Mark sold failed:', err);
       toast.error(t('myListings.markSoldError', { defaultValue: 'Unable to mark listing as sold.' }));
     } finally {
-      setMarkingSoldId(null);
+      setStatusUpdatingId(null);
     }
   };
 
   const handleRelist = async (id: string) => {
-    if (relistingId) return;
+    if (Boolean(statusUpdatingId)) return;
     try {
-      setRelistingId(id);
+      setStatusUpdatingId(id);
       const updated = await relistListing(id);
       setListings(prev => prev.map(listing => listing.id === id ? updated : listing));
       toast.success(t('myListings.relistSuccess', { defaultValue: 'Listing is live again.' }));
@@ -116,7 +115,7 @@ export default function MyListingsPage() {
       console.error('Relist failed:', err);
       toast.error(t('myListings.relistError', { defaultValue: 'Unable to relist this listing.' }));
     } finally {
-      setRelistingId(null);
+      setStatusUpdatingId(null);
     }
   };
 
@@ -131,6 +130,7 @@ export default function MyListingsPage() {
   const visibleListings = listings.filter(listing => getListingStatus(listing) !== 'deleted');
   const activeListings = visibleListings.filter(listing => getListingStatus(listing) === 'active');
   const soldListings = visibleListings.filter(listing => getListingStatus(listing) === 'sold');
+  const isStatusUpdating = Boolean(statusUpdatingId);
 
   const filteredListings = listings.filter(listing => {
     const status = getListingStatus(listing);
@@ -302,10 +302,10 @@ export default function MyListingsPage() {
                       {getListingStatus(listing) === 'sold' ? (
                         <button
                           onClick={() => void handleRelist(listing.id)}
-                          disabled={relistingId === listing.id}
+                          disabled={isStatusUpdating}
                           className="btn btn-outline border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                         >
-                          {relistingId === listing.id ? (
+                          {statusUpdatingId === listing.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <CheckCircle size={16} />
@@ -315,10 +315,10 @@ export default function MyListingsPage() {
                       ) : (
                         <button
                           onClick={() => void handleMarkSold(listing.id)}
-                          disabled={getListingStatus(listing) !== 'active' || markingSoldId === listing.id}
+                          disabled={getListingStatus(listing) !== 'active' || isStatusUpdating}
                           className="btn btn-outline border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                         >
-                          {markingSoldId === listing.id ? (
+                          {statusUpdatingId === listing.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <CheckCircle size={16} />

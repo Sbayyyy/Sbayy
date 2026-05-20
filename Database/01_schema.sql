@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_url TEXT,
   external_id TEXT UNIQUE,
   role TEXT NOT NULL DEFAULT 'user',
+  status VARCHAR(32) NOT NULL DEFAULT 'active',
+  deactivated_at TIMESTAMPTZ,
   is_seller BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_seen TIMESTAMPTZ,
@@ -60,7 +62,26 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit INT;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_count INT NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_reset_at TIMESTAMPTZ;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT 'active';
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ;
+UPDATE users SET role = lower(trim(role)) WHERE role IS NOT NULL AND lower(trim(role)) <> role;
+UPDATE users SET role = 'user' WHERE role IS NULL OR role NOT IN ('user','seller','support','admin');
+UPDATE users SET status = lower(trim(status)) WHERE status IS NOT NULL AND lower(trim(status)) <> status;
+UPDATE users SET status = 'active' WHERE status IS NULL OR status NOT IN ('active','deactivated','blocked');
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_external_id ON users(external_id) WHERE external_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_users_status_deactivated_at ON users(status, deactivated_at);
+CREATE INDEX IF NOT EXISTS ix_users_role_status ON users(role, status);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_users_role') THEN
+    ALTER TABLE users ADD CONSTRAINT ck_users_role
+      CHECK (role IN ('user','seller','support','admin'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_users_status') THEN
+    ALTER TABLE users ADD CONSTRAINT ck_users_status
+      CHECK (status IN ('active','deactivated','blocked'));
+  END IF;
+END $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Categories
 -- ─────────────────────────────────────────────────────────────────────────────

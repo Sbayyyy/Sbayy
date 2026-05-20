@@ -96,7 +96,7 @@ export const openChat = async (data: OpenChatRequest): Promise<OpenChatResponse>
     if (!chatId) {
       throw new Error('Missing chat id in backend response');
     }
-    return { ...response.data, id: chatId };
+    return { id: chatId, chatId: response.data.chatId };
   } catch (error) {
     console.error('Failed to open chat:', error);
     throw error;

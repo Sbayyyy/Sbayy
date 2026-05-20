@@ -132,10 +132,12 @@ export interface OpenChatRequest {
   listingId?: string;
 }
 
-export interface OpenChatResponse {
-  id: string;
-  chatId?: string;
-}
+/**
+ * Response will contain at least one of id or chatId.
+ */
+export type OpenChatResponse =
+  | { id: string; chatId?: string }
+  | { id?: string; chatId: string };
 
 // Legacy types (keeping for compatibility)
 export interface Conversation {

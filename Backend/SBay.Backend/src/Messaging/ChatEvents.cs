@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using SBay.Backend.Services;
+using SBay.Domain.Database;
+using SBay.Domain.Entities;
+using System.Text.Json;
 
 namespace SBay.Backend.Messaging;
 
@@ -7,13 +11,25 @@ public class ChatEvents:IChatEvents
 {
     private readonly IHubContext<ChatHub> _hub;
     private readonly IPushNotificationService _push;
-    public ChatEvents(IHubContext<ChatHub> hub, IPushNotificationService push)
+    private readonly INotificationRepository _notifications;
+    private readonly IUnitOfWork _uow;
+    private readonly ILogger<ChatEvents> _logger;
+
+    public ChatEvents(
+        IHubContext<ChatHub> hub,
+        IPushNotificationService push,
+        INotificationRepository notifications,
+        IUnitOfWork uow,
+        ILogger<ChatEvents> logger)
     {
         _hub = hub;
         _push = push;
+        _notifications = notifications;
+        _uow = uow;
+        _logger = logger;
     }
 
-    public Task MessageNewAsync(Message m, CancellationToken ct)
+    public async Task MessageNewAsync(Message m, CancellationToken ct)
     {
         var payload = new
         {
@@ -29,8 +45,6 @@ public class ChatEvents:IChatEvents
             m.IsRead
         };
 
-        _ = SafePushAsync(m, ct);
-
         var tasks = new List<Task>
         {
             _hub.Clients.Group($"chat:{m.ChatId}").SendAsync("message:new", payload, ct),
@@ -38,22 +52,41 @@ public class ChatEvents:IChatEvents
             _hub.Clients.Group($"user:{m.SenderId}").SendAsync("message:new", payload, ct),
         };
 
-        return Task.WhenAll(tasks);
+        await Task.WhenAll(tasks);
+        await NotifyReceiverAsync(m, ct);
     }
 
-    private async Task SafePushAsync(Message m, CancellationToken ct)
+    private async Task NotifyReceiverAsync(Message m, CancellationToken ct)
     {
+        var body = m.Content.Length > 120 ? $"{m.Content[..120]}..." : m.Content;
+        var href = $"/chats/thread/{m.ChatId}";
+        var data = new { type = "chat", chatId = m.ChatId, listingId = m.ListingId, senderId = m.SenderId, href };
+
         try
         {
+            await _notifications.AddAsync(new UserNotification
+            {
+                Id = Guid.NewGuid(),
+                UserId = m.ReceiverId,
+                Type = "chat",
+                Title = "New message",
+                Body = body,
+                Href = href,
+                DataJson = JsonSerializer.Serialize(data),
+                CreatedAt = DateTimeOffset.UtcNow
+            }, ct);
+            await _uow.SaveChangesAsync(ct);
+            await _hub.Clients.Group($"user:{m.ReceiverId}").SendAsync("notification:new", data, ct);
             await _push.SendAsync(
                 m.ReceiverId,
                 "New message",
-                m.Content.Length > 120 ? $"{m.Content[..120]}..." : m.Content,
-                new { type = "chat", chatId = m.ChatId, senderId = m.SenderId },
+                body,
+                data,
                 ct);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to create or send chat notification for message {MessageId}", m.Id);
         }
     }
 

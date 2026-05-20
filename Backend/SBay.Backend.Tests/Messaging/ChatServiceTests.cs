@@ -118,12 +118,31 @@ public sealed class ChatServiceTests
         return m.Object;
     }
 
+    private static IUserRepository Users(params (Guid Id, string Status)[] users)
+    {
+        var m = new Mock<IUserRepository>();
+        foreach (var user in users)
+        {
+            m.Setup(x => x.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new User
+                {
+                    Id = user.Id,
+                    ExternalId = user.Id.ToString(),
+                    Email = $"{user.Id}@example.test",
+                    Status = user.Status
+                });
+        }
+
+        return m.Object;
+    }
+
     private static ChatService CreateService(
         EfDbContext db,
         Guid owner,
         SBay.Backend.Utils.IClock? clock = null,
         IListingRepository? listings = null,
-        INotificationRepository? notifications = null)
+        INotificationRepository? notifications = null,
+        IUserRepository? users = null)
     {
         return new ChatService(
             new EfChatRepository(db),
@@ -135,7 +154,8 @@ public sealed class ChatServiceTests
             new EfUnitOfWork(db),
             Blocks(),
             listings ?? Listings(),
-            notifications ?? Notifications());
+            notifications ?? Notifications(),
+            users);
     }
 
     [Fact]
@@ -297,5 +317,61 @@ public sealed class ChatServiceTests
         Assert.Equal("sold", listing.Status);
         Assert.Equal(now.AddDays(15), listing.SoldUntil);
         Assert.Contains("accepted", accepted.DataJson);
+    }
+
+    [Fact]
+    public async Task GetInboxAsync_FillsPage_AfterFilteringInactiveParticipants()
+    {
+        using var db = NewDb();
+        var me = Guid.NewGuid();
+        var inactive = Guid.NewGuid();
+        var active1 = Guid.NewGuid();
+        var active2 = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        db.Set<Chat>().AddRange(
+            new Chat { Id = Guid.NewGuid(), BuyerId = me, SellerId = inactive, LastMessageAt = now.AddMinutes(3), CreatedAt = now.AddMinutes(3) },
+            new Chat { Id = Guid.NewGuid(), BuyerId = me, SellerId = active1, LastMessageAt = now.AddMinutes(2), CreatedAt = now.AddMinutes(2) },
+            new Chat { Id = Guid.NewGuid(), BuyerId = me, SellerId = active2, LastMessageAt = now.AddMinutes(1), CreatedAt = now.AddMinutes(1) });
+        await db.SaveChangesAsync();
+
+        var svc = CreateService(db, me, users: Users(
+            (me, "active"),
+            (inactive, "deactivated"),
+            (active1, "active"),
+            (active2, "active")));
+
+        var inbox = await svc.GetInboxAsync(me, 2, 0, default);
+
+        Assert.Equal(2, inbox.Count);
+        Assert.Equal(new[] { active1, active2 }, inbox.Select(c => c.SellerId).ToArray());
+    }
+
+    [Fact]
+    public async Task GetInboxSummaryAsync_FillsPage_AfterFilteringInactiveParticipants()
+    {
+        using var db = NewDb();
+        var me = Guid.NewGuid();
+        var inactive = Guid.NewGuid();
+        var active1 = Guid.NewGuid();
+        var active2 = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        db.Set<Chat>().AddRange(
+            new Chat { Id = Guid.NewGuid(), BuyerId = me, SellerId = inactive, LastMessageAt = now.AddMinutes(3), CreatedAt = now.AddMinutes(3) },
+            new Chat { Id = Guid.NewGuid(), BuyerId = me, SellerId = active1, LastMessageAt = now.AddMinutes(2), CreatedAt = now.AddMinutes(2) },
+            new Chat { Id = Guid.NewGuid(), BuyerId = me, SellerId = active2, LastMessageAt = now.AddMinutes(1), CreatedAt = now.AddMinutes(1) });
+        await db.SaveChangesAsync();
+
+        var svc = CreateService(db, me, users: Users(
+            (me, "active"),
+            (inactive, "deactivated"),
+            (active1, "active"),
+            (active2, "active")));
+
+        var summaries = await svc.GetInboxSummaryAsync(me, 2, 0, default);
+
+        Assert.Equal(2, summaries.Count);
+        Assert.Equal(new[] { active1, active2 }, summaries.Select(c => c.SellerId).ToArray());
     }
 }

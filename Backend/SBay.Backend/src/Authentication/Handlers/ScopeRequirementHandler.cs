@@ -35,11 +35,11 @@ public sealed class ScopeRequirementHandler : AuthorizationHandler<ScopeRequirem
             return;
 
         var httpContext = _httpContextAccessor.HttpContext ?? context.Resource as HttpContext;
-        var scopes = GetScopesFromCache(httpContext) ?? Scopes.ParseClaims(context.User.Claims);
-
-        if (scopes.Count == 0)
+        var scopes = GetScopesFromCache(httpContext);
+        if (scopes == null)
         {
-            scopes = await ResolveScopesFromUserAsync(context.User, httpContext);
+            scopes = await ResolveScopesFromUserAsync(context.User, httpContext)
+                ?? Scopes.ParseClaims(context.User.Claims);
             CacheScopes(httpContext, scopes);
         }
 
@@ -64,26 +64,19 @@ public sealed class ScopeRequirementHandler : AuthorizationHandler<ScopeRequirem
         httpContext.Items[CachedScopesKey] = scopes;
     }
 
-    private async Task<HashSet<string>> ResolveScopesFromUserAsync(ClaimsPrincipal principal, HttpContext? httpContext)
+    private async Task<HashSet<string>?> ResolveScopesFromUserAsync(ClaimsPrincipal principal, HttpContext? httpContext)
     {
-        var role = principal.FindFirst("role")?.Value;
-        var isSellerClaim = principal.FindFirst("is_seller")?.Value;
-        var isSeller = string.Equals(isSellerClaim, "true", StringComparison.OrdinalIgnoreCase);
-
-        if (!string.IsNullOrWhiteSpace(role))
-        {
-            return new HashSet<string>(Scopes.ForRole(role, isSeller), StringComparer.OrdinalIgnoreCase);
-        }
-
         var ct = httpContext?.RequestAborted ?? CancellationToken.None;
         try
         {
             var userId = await _resolver.GetUserIdAsync(principal, ct);
             if (!userId.HasValue || userId.Value == Guid.Empty)
-                return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                return null;
 
             var user = await _users.GetByIdAsync(userId.Value, ct);
             if (user == null)
+                return null;
+            if (!user.IsActive)
                 return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             return new HashSet<string>(Scopes.ForUser(user), StringComparer.OrdinalIgnoreCase);
@@ -91,7 +84,7 @@ public sealed class ScopeRequirementHandler : AuthorizationHandler<ScopeRequirem
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to resolve scopes for authorization.");
-            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            return null;
         }
     }
 }

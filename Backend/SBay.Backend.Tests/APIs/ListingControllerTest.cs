@@ -1,9 +1,11 @@
 ﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using SBay.Backend.APIs.Records;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 using SBay.Domain.ValueObjects;
@@ -34,6 +36,19 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
         await db.Database.EnsureDeletedAsync();
         await db.Database.EnsureCreatedAsync();
+        foreach (var sellerId in listings.Select(l => l.SellerId).Distinct())
+        {
+            db.Users.Add(new User
+            {
+                Id = sellerId,
+                Email = $"seller.{sellerId:N}@example.com",
+                PasswordHash = "$",
+                Role = "seller",
+                Status = "active",
+                IsSeller = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
         db.Listings.AddRange(listings);
         await db.SaveChangesAsync();
     }
@@ -148,8 +163,10 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
     {
         _client.DefaultRequestHeaders.Remove("X-Test-Role");
         _client.DefaultRequestHeaders.Remove("X-Test-IsSeller");
-        _client.DefaultRequestHeaders.Add("X-Test-Role", "user");
+        _client.DefaultRequestHeaders.Remove("X-Test-UserId");
+        _client.DefaultRequestHeaders.Add("X-Test-Role", "support");
         _client.DefaultRequestHeaders.Add("X-Test-IsSeller", "false");
+        _client.DefaultRequestHeaders.Add("X-Test-UserId", Guid.NewGuid().ToString());
 
         var request = new
         {
@@ -426,5 +443,40 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         });
         var publicResponse = await publicClient.GetAsync($"/api/listings/{created.Id}");
         publicResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task PutListing_Should_Update_Status_With_Typed_Request()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+        var listing = new Listing(TestAuthHandler.SellerId, "Typed status", "desc", new Money(100m, "EUR"), stock: 1);
+        await SeedListingsAsync(listing);
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        var update = new UpdateListingRequest
+        {
+            Status = ListingStatus.Hidden
+        };
+
+        var response = await _client.PutAsJsonAsync($"/api/listings/{listing.Id}", update);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await response.Content.ReadFromJsonAsync<ListingResponse>();
+        updated!.Status.Should().Be("hidden");
+    }
+
+    [Fact]
+    public async Task PutListing_Should_Reject_Invalid_Status_During_Binding()
+    {
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+        var listing = new Listing(TestAuthHandler.SellerId, "Invalid status", "desc", new Money(100m, "EUR"), stock: 1);
+        await SeedListingsAsync(listing);
+        await TestUsers.EnsureDefaultSellerAsync(_factory.Services);
+
+        using var content = new StringContent("""{"status":"archived"}""", Encoding.UTF8, "application/json");
+
+        var response = await _client.PutAsync($"/api/listings/{listing.Id}", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }
