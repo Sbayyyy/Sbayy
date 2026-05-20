@@ -1,7 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace SBay.Domain.Entities
 {
     public class NotificationPreference
     {
+        [Key]
         public Guid UserId { get; set; }
         public bool EmailNewBids { get; set; } = true;
         public bool EmailOutbidAlerts { get; set; } = true;
