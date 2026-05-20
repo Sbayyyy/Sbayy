@@ -16,6 +16,8 @@ internal sealed class UserDocument
     [FirestoreProperty] public string Role { get; set; } = "user";
     [FirestoreProperty] public string? Status { get; set; }
     [FirestoreProperty] public DateTimeOffset? DeactivatedAt { get; set; }
+    [FirestoreProperty] public DateTimeOffset? AccountDeletionRequestedAt { get; set; }
+    [FirestoreProperty] public string? AccountDeletionReason { get; set; }
     [FirestoreProperty] public bool EmailVerified { get; set; }
     [FirestoreProperty] public string? EmailVerificationTokenHash { get; set; }
     [FirestoreProperty] public DateTimeOffset? EmailVerificationExpiresAt { get; set; }
@@ -50,6 +52,8 @@ internal sealed class UserDocument
         Role = user.Role,
         Status = user.Status,
         DeactivatedAt = user.DeactivatedAt,
+        AccountDeletionRequestedAt = user.AccountDeletionRequestedAt,
+        AccountDeletionReason = user.AccountDeletionReason,
         EmailVerified = user.EmailVerified,
         EmailVerificationTokenHash = user.EmailVerificationTokenHash,
         EmailVerificationExpiresAt = user.EmailVerificationExpiresAt,
@@ -85,6 +89,8 @@ internal sealed class UserDocument
             Role = Role ?? "user",
             Status = Status ?? (IsActive == false ? "inactive" : "active"),
             DeactivatedAt = DeactivatedAt,
+            AccountDeletionRequestedAt = AccountDeletionRequestedAt,
+            AccountDeletionReason = AccountDeletionReason,
             EmailVerified = EmailVerified,
             EmailVerificationTokenHash = EmailVerificationTokenHash,
             EmailVerificationExpiresAt = EmailVerificationExpiresAt,

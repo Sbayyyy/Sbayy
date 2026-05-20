@@ -178,6 +178,46 @@ public class UserController : ControllerBase
         return DeactivateCurrentUserAsync(ct);
     }
 
+    [HttpPost("me/deletion-request")]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
+    public async Task<ActionResult<AccountDeletionRequestResponse>> RequestAccountDeletion(
+        [FromBody] AccountDeletionRequest? req,
+        CancellationToken ct)
+    {
+        var uid = await _userResolver.GetUserIdAsync(User, ct);
+        if (!uid.HasValue || uid.Value == Guid.Empty) return Unauthorized();
+
+        var user = await _users.GetByIdAsync(uid.Value, ct);
+        if (user is null) return NotFound();
+
+        var now = DateTimeOffset.UtcNow;
+        var reason = string.IsNullOrWhiteSpace(req?.Reason) ? null : req.Reason.Trim();
+        if (reason is { Length: > 500 })
+            return BadRequest(ApiProblemDetails.Validation("Reason must be 500 characters or fewer.", nameof(req.Reason)));
+
+        user.AccountDeletionRequestedAt ??= now;
+        user.AccountDeletionReason = reason;
+
+        if (user.IsActive)
+        {
+            user.Deactivate(now);
+            await _refreshTokens.RevokeAllForUserAsync(user.Id, now, ct);
+        }
+
+        await _users.UpdateAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        var requestedAt = user.AccountDeletionRequestedAt ?? now;
+        var deletionClockStartedAt = user.DeactivatedAt ?? requestedAt;
+        var graceDays = Math.Clamp(_config.GetValue<int?>("AccountDeletion:GraceDays") ?? 90, 1, 365);
+        return Ok(new AccountDeletionRequestResponse(
+            "requested",
+            requestedAt,
+            deletionClockStartedAt.AddDays(graceDays),
+            reason));
+    }
+
     private async Task<IActionResult> DeactivateCurrentUserAsync(CancellationToken ct)
     {
         var uid = await _userResolver.GetUserIdAsync(User, ct);
@@ -196,3 +236,11 @@ public class UserController : ControllerBase
         return NoContent();
     }
 }
+
+public sealed record AccountDeletionRequest(string? Reason);
+
+public sealed record AccountDeletionRequestResponse(
+    string Status,
+    DateTimeOffset RequestedAt,
+    DateTimeOffset ScheduledDeletionAt,
+    string? Reason);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { User, Lock, Shield, Eye, EyeOff, ChevronRight } from 'lucide-react';
 
@@ -13,7 +14,7 @@ import {
   updateNotificationPreferences
 } from '@/lib/api/notifications';
 import type { NotificationPreferences } from '@/lib/api/notifications';
-import { getCurrentUser, updateProfile, UpdateProfileRequest } from '@/lib/api/users';
+import { getCurrentUser, requestAccountDeletion, updateProfile, UpdateProfileRequest } from '@/lib/api/users';
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { useRequireAuth } from '@/lib/useRequireAuth';
@@ -56,7 +57,8 @@ const Toggle = ({
 
 export default function AccountSettingsPage() {
   useRequireAuth();
-  const { user, setUser } = useAuthStore();
+  const router = useRouter();
+  const { user, setUser, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('personal');
   const [showPassword, setShowPassword] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -64,6 +66,7 @@ export default function AccountSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [deleteSaving, setDeleteSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<{ firstName?: string; lastName?: string; phone?: string; username?: string }>({});
   const [passwordErrors, setPasswordErrors] = useState<{ current?: string; next?: string; confirm?: string }>({});
   const [profileForm, setProfileForm] = useState({
@@ -278,6 +281,26 @@ export default function AccountSettingsPage() {
       toast.error('Unable to update password');
     } finally {
       setPasswordSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Request account deletion? Your account will be deactivated now and permanently deleted after the retention period.'
+    );
+    if (!confirmed) return;
+
+    setDeleteSaving(true);
+    try {
+      const result = await requestAccountDeletion('Requested from account settings');
+      logout();
+      toast.success(`Deletion requested. Scheduled deletion: ${new Date(result.scheduledDeletionAt).toLocaleDateString()}`);
+      void router.push('/');
+    } catch (error) {
+      console.error('Error requesting account deletion:', error);
+      toast.error('Unable to request account deletion');
+    } finally {
+      setDeleteSaving(false);
     }
   };
 
@@ -983,7 +1006,7 @@ export default function AccountSettingsPage() {
                   </div>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 rounded-xl p-6 opacity-60">
+                <div className="bg-red-50 border border-red-200 rounded-xl p-6">
                   <h2 className="text-lg font-semibold text-red-900 mb-6">Danger Zone</h2>
                   <div className="space-y-4">
                     <div className="flex items-start justify-between">
@@ -1000,8 +1023,12 @@ export default function AccountSettingsPage() {
                         <p className="font-medium text-red-900">Delete account</p>
                         <p className="text-sm text-red-700">Permanently delete your account and all data. This cannot be undone.</p>
                       </div>
-                      <button className="px-3 py-1 text-sm border border-red-600 text-red-600 rounded cursor-not-allowed" disabled>
-                        Delete
+                      <button
+                        onClick={handleDeleteAccount}
+                        className="px-3 py-1 text-sm border border-red-600 text-red-600 rounded hover:bg-red-100 disabled:opacity-60"
+                        disabled={deleteSaving}
+                      >
+                        {deleteSaving ? 'Requesting...' : 'Request deletion'}
                       </button>
                     </div>
                   </div>

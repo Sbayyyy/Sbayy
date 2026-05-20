@@ -72,6 +72,8 @@ namespace SBay.Domain.Database
                     .HasDefaultValue("active");
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
                 e.Property(x => x.DeactivatedAt).HasColumnName("deactivated_at");
+                e.Property(x => x.AccountDeletionRequestedAt).HasColumnName("account_deletion_requested_at");
+                e.Property(x => x.AccountDeletionReason).HasColumnName("account_deletion_reason").HasMaxLength(500);
                 e.Property(x => x.EmailVerified)
                     .HasColumnName("email_verified")
                     .HasDefaultValue(false);
