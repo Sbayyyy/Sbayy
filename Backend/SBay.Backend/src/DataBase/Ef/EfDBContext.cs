@@ -70,6 +70,16 @@ namespace SBay.Domain.Database
                     .HasDefaultValue("active");
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
                 e.Property(x => x.DeactivatedAt).HasColumnName("deactivated_at");
+                e.Property(x => x.EmailVerified)
+                    .HasColumnName("email_verified")
+                    .HasDefaultValue(false);
+                e.Property(x => x.EmailVerificationTokenHash)
+                    .HasColumnName("email_verification_token_hash")
+                    .HasMaxLength(128);
+                e.Property(x => x.EmailVerificationExpiresAt)
+                    .HasColumnName("email_verification_expires_at");
+                e.Property(x => x.EmailVerifiedAt)
+                    .HasColumnName("email_verified_at");
                 e.Property(x => x.LastSeen).HasColumnName("last_seen");
                 e.Property(x => x.IsSeller).HasColumnName("is_seller").HasDefaultValue(true);
                 e.Property(x => x.TotalRevenue)
@@ -107,6 +117,7 @@ namespace SBay.Domain.Database
                     .IsRequired(false);
                 e.HasIndex(x => x.Email).IsUnique();
                 e.HasIndex(x => x.ExternalId).IsUnique().HasFilter("external_id IS NOT NULL");
+                e.HasIndex(x => x.EmailVerificationTokenHash).IsUnique().HasFilter("email_verification_token_hash IS NOT NULL");
                 e.HasIndex(x => new { x.Status, x.DeactivatedAt });
                 e.Ignore(x => x.IsActive);
                 e.Ignore(x => x.Region);

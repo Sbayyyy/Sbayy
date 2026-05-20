@@ -40,6 +40,12 @@ public static class Scopes
         var scopes = new HashSet<string>(ForRole(user.Role, user.IsSeller), StringComparer.OrdinalIgnoreCase);
         if (user.ListingBanned || (user.ListingBanUntil.HasValue && user.ListingBanUntil > DateTimeOffset.UtcNow))
             scopes.Remove(ListingsWrite);
+        if (!user.EmailVerified)
+        {
+            scopes.Remove(ListingsWrite);
+            scopes.Remove(MessagesWrite);
+            scopes.Remove(AdminAll);
+        }
         return scopes;
     }
 

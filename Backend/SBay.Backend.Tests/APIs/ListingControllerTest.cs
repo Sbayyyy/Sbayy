@@ -46,6 +46,8 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
                 Role = "seller",
                 Status = "active",
                 IsSeller = true,
+                EmailVerified = true,
+                EmailVerifiedAt = DateTimeOffset.UtcNow,
                 CreatedAt = DateTime.UtcNow
             });
         }

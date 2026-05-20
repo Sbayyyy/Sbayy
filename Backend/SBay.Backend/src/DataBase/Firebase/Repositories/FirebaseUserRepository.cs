@@ -115,6 +115,22 @@ public class FirebaseUserRepository : IUserRepository
         return Convert(doc);
     }
 
+    public async Task<User?> GetByEmailVerificationTokenHashAsync(string tokenHash, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash)) return null;
+        var snapshot = await EnsureCompleted(
+            _db.Collection("users")
+               .WhereEqualTo("EmailVerificationTokenHash", tokenHash)
+               .Limit(1)
+               .GetSnapshotAsync(ct));
+
+        var doc = snapshot.Documents.FirstOrDefault();
+        if (doc == null || !doc.Exists)
+            return null;
+
+        return Convert(doc);
+    }
+
     public async Task<bool> EmailExistsAsync(string email, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(email)) return false;

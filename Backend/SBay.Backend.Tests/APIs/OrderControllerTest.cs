@@ -32,6 +32,8 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
             Role = "seller",
             Status = "active",
             IsSeller = true,
+            EmailVerified = true,
+            EmailVerifiedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTime.UtcNow
         });
     }
@@ -100,7 +102,7 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
         // Create listing L2 directly in DB for a different seller
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
-        var seller2 = new SBay.Domain.Entities.User { Id = Guid.NewGuid(), Email = $"seller2.{Guid.NewGuid():N}@example.com", PasswordHash = "$", Role = "seller", CreatedAt = DateTime.UtcNow };
+        var seller2 = new SBay.Domain.Entities.User { Id = Guid.NewGuid(), Email = $"seller2.{Guid.NewGuid():N}@example.com", PasswordHash = "$", Role = "seller", Status = "active", IsSeller = true, EmailVerified = true, EmailVerifiedAt = DateTimeOffset.UtcNow, CreatedAt = DateTime.UtcNow };
         db.Add(seller2);
         var l2 = new SBay.Domain.Entities.Listing(seller2.Id, "Item B", "B", new SBay.Domain.ValueObjects.Money(7.00m, "EUR"));
         db.Add(l2);
@@ -129,7 +131,7 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
         // Create two listings for the same seller with different currencies directly in DB
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
-        var seller = new SBay.Domain.Entities.User { Id = Guid.NewGuid(), Email = $"sellerx.{Guid.NewGuid():N}@example.com", PasswordHash = "$", Role = "seller", CreatedAt = DateTime.UtcNow };
+        var seller = new SBay.Domain.Entities.User { Id = Guid.NewGuid(), Email = $"sellerx.{Guid.NewGuid():N}@example.com", PasswordHash = "$", Role = "seller", Status = "active", IsSeller = true, EmailVerified = true, EmailVerifiedAt = DateTimeOffset.UtcNow, CreatedAt = DateTime.UtcNow };
         db.Add(seller);
         var l1 = new SBay.Domain.Entities.Listing(seller.Id, "A", "A", new SBay.Domain.ValueObjects.Money(5.00m, "EUR"));
         var l2 = new SBay.Domain.Entities.Listing(seller.Id, "B", "B", new SBay.Domain.ValueObjects.Money(6.00m, "USD"));
@@ -338,7 +340,11 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
             Id = TestAuthHandler.SellerId,
             Email = $"seller.{Guid.NewGuid():N}@example.com",
             PasswordHash = "$",
-            Role = "seller"
+            Role = "seller",
+            Status = "active",
+            IsSeller = true,
+            EmailVerified = true,
+            EmailVerifiedAt = DateTimeOffset.UtcNow
         };
         seller.PendingOrders = 1;
         seller.TotalOrders = 0;
@@ -394,6 +400,10 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
             Email = $"seller.cancel.{Guid.NewGuid():N}@example.com",
             PasswordHash = "$",
             Role = "seller",
+            Status = "active",
+            IsSeller = true,
+            EmailVerified = true,
+            EmailVerifiedAt = DateTimeOffset.UtcNow,
             PendingOrders = 1
         };
         var listing = new SBay.Domain.Entities.Listing(

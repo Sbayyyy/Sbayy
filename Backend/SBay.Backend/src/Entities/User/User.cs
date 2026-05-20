@@ -15,7 +15,7 @@ namespace SBay.Domain.Entities
         [Required, MaxLength(128)]
         public string ExternalId { get; set; } = null!;
 
-        [Required, MaxLength(120), EmailAddress]
+        [Required, MaxLength(320), EmailAddress]
         public string Email { get; set; } = null!;
 
         [MaxLength(60)]
@@ -35,6 +35,11 @@ namespace SBay.Domain.Entities
         public string Role { get; set; } = "user";
         [MaxLength(32)]
         public string Status { get; set; } = "active";
+        public bool EmailVerified { get; set; }
+        [MaxLength(128)]
+        public string? EmailVerificationTokenHash { get; set; }
+        public DateTimeOffset? EmailVerificationExpiresAt { get; set; }
+        public DateTimeOffset? EmailVerifiedAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTimeOffset? DeactivatedAt { get; set; }
 

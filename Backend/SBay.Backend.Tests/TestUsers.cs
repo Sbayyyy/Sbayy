@@ -18,6 +18,8 @@ public static class TestUsers
             PasswordHash = "$",
             Role = "seller",
             IsSeller = true,
+            EmailVerified = true,
+            EmailVerifiedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();

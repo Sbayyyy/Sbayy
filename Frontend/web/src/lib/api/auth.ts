@@ -28,6 +28,12 @@ export const register = async (data: UserRegistration) => {
   return response.data;
 };
 
+export const verifyEmail = async (token: string): Promise<void> => {
+  await api.post('/auth/verify-email', {
+    token
+  });
+};
+
 /**
  * Logout
  */

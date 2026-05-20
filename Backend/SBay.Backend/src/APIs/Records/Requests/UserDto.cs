@@ -9,6 +9,7 @@ public record UserDto(
     string? Avatar,
     string Role,
     bool IsSeller,
+    bool Verified,
     DateTime CreatedAt,
     DateTimeOffset? LastTime,
     decimal TotalRevenue,

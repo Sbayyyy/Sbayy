@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 public class AuthControllerTests : IClassFixture<TestWebAppFactory>
@@ -9,7 +10,7 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
     public AuthControllerTests(TestWebAppFactory factory) => _factory = factory;
 
     [Fact]
-    public async Task Register_Returns201_And_Token_And_UserDto()
+    public async Task Register_Returns201_And_SendsVerificationEmail()
     {
         var client = _factory.CreateClient();
         var req = new RegisterRequest($"{Guid.NewGuid():N}@example.com", "Password1!", "Alice");
@@ -17,11 +18,37 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         var res = await client.PostAsJsonAsync("/api/auth/register", req);
         res.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var body = await res.Content.ReadFromJsonAsync<AuthResponse>();
-        body.Should().NotBeNull();
-        body!.User.Email.Should().Be(req.Email.ToLowerInvariant());
-        body.Token.Should().NotBeNullOrWhiteSpace();
-        body.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        var emailSender = _factory.Services.GetRequiredService<TestEmailSender>();
+        emailSender.Sent.Should().ContainSingle(m => m.To == req.Email.ToLowerInvariant());
+    }
+
+    [Theory]
+    [InlineData("not-an-email")]
+    [InlineData("user@localhost")]
+    [InlineData("user@example")]
+    [InlineData("user@bad_domain.com")]
+    [InlineData("user@@example.com")]
+    public async Task Register_RejectsInvalidEmail(string email)
+    {
+        var client = _factory.CreateClient();
+
+        var res = await client.PostAsJsonAsync("/api/auth/register",
+            new RegisterRequest(email, "Password1!", "Alice"));
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Register_NormalizesEmail()
+    {
+        var client = _factory.CreateClient();
+        var req = new RegisterRequest($"  USER.{Guid.NewGuid():N}@Example.COM  ", "Password1!", "Alice");
+
+        var res = await client.PostAsJsonAsync("/api/auth/register", req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Created);
+        var emailSender = _factory.Services.GetRequiredService<TestEmailSender>();
+        emailSender.Sent.Should().Contain(m => m.To == req.Email.Trim().ToLowerInvariant());
     }
 
     [Fact]
@@ -35,6 +62,10 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
             new RegisterRequest(email, pwd, "Bob"));
         reg.EnsureSuccessStatusCode();
 
+        var token = _factory.Services.GetRequiredService<TestEmailSender>().GetLatestVerificationToken(email);
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token });
+        verify.EnsureSuccessStatusCode();
+
         var login = await client.PostAsJsonAsync("/api/auth/login",
             new LoginRequest(email, pwd));
         login.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -47,6 +78,47 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
+    public async Task Login_BeforeEmailVerification_SucceedsWithUnverifiedUser()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+        var pwd = "Password1!";
+
+        var reg = await client.PostAsJsonAsync("/api/auth/register",
+            new RegisterRequest(email, pwd, "Bob"));
+        reg.EnsureSuccessStatusCode();
+
+        var login = await client.PostAsJsonAsync("/api/auth/login",
+            new LoginRequest(email, pwd));
+
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        auth!.User.Verified.Should().BeFalse();
+        auth.Token.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task VerifyEmail_MarksUserVerified_AndAllowsLogin()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+
+        var reg = await client.PostAsJsonAsync("/api/auth/register",
+            new RegisterRequest(email, "Password1!", "Verify"));
+        reg.EnsureSuccessStatusCode();
+        var token = _factory.Services.GetRequiredService<TestEmailSender>().GetLatestVerificationToken(email);
+
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token });
+
+        verify.StatusCode.Should().Be(HttpStatusCode.OK);
+        var login = await client.PostAsJsonAsync("/api/auth/login",
+            new LoginRequest(email, "Password1!"));
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        auth!.User.Verified.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Refresh_RotatesRefreshToken_AndOldTokenStopsWorking()
     {
         var client = _factory.CreateClient();
@@ -55,7 +127,12 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
 
         var login = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, pwd, "Refresh"));
         login.EnsureSuccessStatusCode();
-        var initial = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        var token = _factory.Services.GetRequiredService<TestEmailSender>().GetLatestVerificationToken(email);
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token });
+        verify.EnsureSuccessStatusCode();
+        var loginAuth = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, pwd));
+        loginAuth.EnsureSuccessStatusCode();
+        var initial = await loginAuth.Content.ReadFromJsonAsync<AuthResponse>();
         initial!.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
         var refresh = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = initial.RefreshToken });

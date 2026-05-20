@@ -15,6 +15,7 @@ public static class UserMapper
             u.AvatarUrl,
             u.Role,
             u.IsSeller,
+            u.EmailVerified,
             u.CreatedAt,
             u.LastSeen,
             u.TotalRevenue,
