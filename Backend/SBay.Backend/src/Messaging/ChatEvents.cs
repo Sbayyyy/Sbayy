@@ -12,6 +12,9 @@ public class ChatEvents:IChatEvents
     private readonly IHubContext<ChatHub> _hub;
     private readonly IPushNotificationService _push;
     private readonly INotificationRepository _notifications;
+    private readonly INotificationPreferenceRepository _preferences;
+    private readonly IEmailSender _emailSender;
+    private readonly IUserRepository _users;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<ChatEvents> _logger;
 
@@ -19,12 +22,18 @@ public class ChatEvents:IChatEvents
         IHubContext<ChatHub> hub,
         IPushNotificationService push,
         INotificationRepository notifications,
+        INotificationPreferenceRepository preferences,
+        IEmailSender emailSender,
+        IUserRepository users,
         IUnitOfWork uow,
         ILogger<ChatEvents> logger)
     {
         _hub = hub;
         _push = push;
         _notifications = notifications;
+        _preferences = preferences;
+        _emailSender = emailSender;
+        _users = users;
         _uow = uow;
         _logger = logger;
     }
@@ -80,12 +89,31 @@ public class ChatEvents:IChatEvents
             }, ct);
             await _uow.SaveChangesAsync(ct);
             await _hub.Clients.Group($"user:{m.ReceiverId}").SendAsync("notification:new", data, ct);
-            await _push.SendAsync(
-                m.ReceiverId,
-                "New message",
-                body,
-                data,
-                ct);
+
+            var preferences = await _preferences.GetOrDefaultAsync(m.ReceiverId, ct);
+            if (preferences.PushMessages)
+            {
+                await _push.SendAsync(
+                    m.ReceiverId,
+                    "New message",
+                    body,
+                    data,
+                    ct);
+            }
+
+            if (preferences.EmailMessages)
+            {
+                var receiver = await _users.GetByIdAsync(m.ReceiverId, ct);
+                if (!string.IsNullOrWhiteSpace(receiver?.Email))
+                {
+                    await _emailSender.SendEmailAsync(
+                        receiver.Email,
+                        "New message on SBay",
+                        $"<p>You have a new message.</p><p>{System.Net.WebUtility.HtmlEncode(body)}</p>",
+                        $"You have a new message.\n\n{body}",
+                        ct);
+                }
+            }
         }
         catch (Exception ex)
         {

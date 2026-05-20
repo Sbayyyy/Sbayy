@@ -311,9 +311,8 @@ public sealed class ChatServiceTests
         var accepted = await svc.AcceptOfferAsync(chat.Id, offer.Id, seller, default);
 
         Assert.Equal("offer", offer.Type);
-        Assert.Single(notifications);
-        Assert.Equal(seller, notifications[0].UserId);
-        Assert.Equal("offer_received", notifications[0].Type);
+        Assert.Single(notifications.Where(n => n.Type == "offer_received" && n.UserId == seller));
+        Assert.Single(notifications.Where(n => n.Type == "offer_accepted" && n.UserId == buyer));
         Assert.Equal("sold", listing.Status);
         Assert.Equal(now.AddDays(15), listing.SoldUntil);
         Assert.Contains("accepted", accepted.DataJson);

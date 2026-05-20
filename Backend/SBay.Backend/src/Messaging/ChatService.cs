@@ -1,5 +1,6 @@
 using SBay.Backend.APIs.Records;
 using SBay.Backend.Exceptions;
+using SBay.Backend.Services;
 using SBay.Backend.Utils;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -25,6 +26,9 @@ public sealed class ChatService : IChatService
     private readonly IListingRepository _listings;
     private readonly INotificationRepository _notifications;
     private readonly IUserRepository? _users;
+    private readonly INotificationPreferenceRepository? _preferences;
+    private readonly IPushNotificationService? _push;
+    private readonly IEmailSender? _emailSender;
 
     public ChatService(
         IChatRepository chats,
@@ -37,7 +41,10 @@ public sealed class ChatService : IChatService
         IUserBlockRepository blocks,
         IListingRepository listings,
         INotificationRepository notifications,
-        IUserRepository? users = null)
+        IUserRepository? users = null,
+        INotificationPreferenceRepository? preferences = null,
+        IPushNotificationService? push = null,
+        IEmailSender? emailSender = null)
     {
         _chats = chats;
         _messages = messages;
@@ -50,6 +57,9 @@ public sealed class ChatService : IChatService
         _listings = listings;
         _notifications = notifications;
         _users = users;
+        _preferences = preferences;
+        _push = push;
+        _emailSender = emailSender;
     }
 
     public async Task<Chat> OpenOrGetAsync(Guid me, Guid otherUserId, Guid? listingId, CancellationToken ct = default)
@@ -162,17 +172,29 @@ public sealed class ChatService : IChatService
             ExpiresAt: null);
         var message = await AddOfferMessageAsync(chat, senderId, receiverId, payload, ct);
 
+        var body = $"{payload.Amount:0.##} {payload.Currency} offer for {listing.Title}";
+        var href = $"/messages/{chat.Id}";
+        var data = new { type = "offer_received", chatId = chat.Id, messageId = message.Id, listingId = chat.ListingId, amount = payload.Amount, currency = payload.Currency, href };
+
         await _notifications.AddAsync(new UserNotification
         {
             UserId = receiverId,
             Type = "offer_received",
             Title = "New offer received",
-            Body = $"{payload.Amount:0.##} {payload.Currency} offer for {listing.Title}",
-            Href = $"/messages/{chat.Id}",
-            DataJson = JsonSerializer.Serialize(new { chatId = chat.Id, messageId = message.Id, listingId = chat.ListingId, amount = payload.Amount, currency = payload.Currency }),
+            Body = body,
+            Href = href,
+            DataJson = JsonSerializer.Serialize(data),
             CreatedAt = DateTimeOffset.UtcNow
         }, ct);
         await _uow.SaveChangesAsync(ct);
+        await SendPreferenceNotificationAsync(
+            receiverId,
+            "New offer received",
+            body,
+            data,
+            p => p.PushNewBids,
+            p => p.EmailNewBids,
+            ct);
         return message;
     }
 
@@ -192,9 +214,28 @@ public sealed class ChatService : IChatService
         listing.MarkSoldUntil(_clock.UtcNow.AddDays(15));
         await _listings.UpdateAsync(listing, ct);
 
+        var acceptedData = new { type = "offer_accepted", chatId = chat.Id, messageId = offerMessage.Id, listingId = listing.Id, href = $"/messages/{chat.Id}" };
         await AddSystemMessageAsync(chat, responderId, offerMessage.SenderId, $"Offer accepted: {payload.Amount:0.##} {payload.Currency}", ct);
+        await _notifications.AddAsync(new UserNotification
+        {
+            UserId = offerMessage.SenderId,
+            Type = "offer_accepted",
+            Title = "Offer accepted",
+            Body = $"Your offer for {listing.Title} was accepted.",
+            Href = $"/messages/{chat.Id}",
+            DataJson = JsonSerializer.Serialize(acceptedData),
+            CreatedAt = DateTimeOffset.UtcNow
+        }, ct);
         await _uow.SaveChangesAsync(ct);
         await _events.MessageUpdatedAsync(offerMessage, ct);
+        await SendPreferenceNotificationAsync(
+            offerMessage.SenderId,
+            "Offer accepted",
+            $"Your offer for {listing.Title} was accepted.",
+            acceptedData,
+            p => p.PushWonAuctions,
+            p => p.EmailWonAuctions,
+            ct);
         return offerMessage;
     }
 
@@ -234,8 +275,28 @@ public sealed class ChatService : IChatService
             ParentOfferId: payload.OfferId,
             ExpiresAt: null);
         var counter = await AddOfferMessageAsync(chat, responderId, offerMessage.SenderId, counterPayload, ct);
+        var counterBody = $"Counter offer: {counterPayload.Amount:0.##} {counterPayload.Currency} for {listing.Title}";
+        var counterData = new { type = "counter_offer", chatId = chat.Id, messageId = counter.Id, listingId = listing.Id, href = $"/messages/{chat.Id}" };
+        await _notifications.AddAsync(new UserNotification
+        {
+            UserId = offerMessage.SenderId,
+            Type = "counter_offer",
+            Title = "Counter offer received",
+            Body = counterBody,
+            Href = $"/messages/{chat.Id}",
+            DataJson = JsonSerializer.Serialize(counterData),
+            CreatedAt = DateTimeOffset.UtcNow
+        }, ct);
         await _uow.SaveChangesAsync(ct);
         await _events.MessageUpdatedAsync(offerMessage, ct);
+        await SendPreferenceNotificationAsync(
+            offerMessage.SenderId,
+            "Counter offer received",
+            counterBody,
+            counterData,
+            p => p.PushOutbidAlerts,
+            p => p.EmailOutbidAlerts,
+            ct);
         return counter;
     }
 
@@ -359,6 +420,38 @@ public sealed class ChatService : IChatService
         await _messages.AddAsync(message, ct);
         await _chats.UpdateLastMessageTimestampAsync(chat.Id, message.CreatedAt, ct);
         await _events.MessageNewAsync(message, ct);
+    }
+
+    private async Task SendPreferenceNotificationAsync(
+        Guid receiverId,
+        string title,
+        string body,
+        object data,
+        Func<NotificationPreference, bool> allowPush,
+        Func<NotificationPreference, bool> allowEmail,
+        CancellationToken ct)
+    {
+        if (_preferences is null) return;
+
+        var preferences = await _preferences.GetOrDefaultAsync(receiverId, ct);
+        if (allowPush(preferences) && _push is not null)
+        {
+            await _push.SendAsync(receiverId, title, body, data, ct);
+        }
+
+        if (allowEmail(preferences) && _emailSender is not null && _users is not null)
+        {
+            var receiver = await _users.GetByIdAsync(receiverId, ct);
+            if (!string.IsNullOrWhiteSpace(receiver?.Email))
+            {
+                await _emailSender.SendEmailAsync(
+                    receiver.Email,
+                    $"{title} on SBay",
+                    $"<p>{System.Net.WebUtility.HtmlEncode(title)}</p><p>{System.Net.WebUtility.HtmlEncode(body)}</p>",
+                    $"{title}\n\n{body}",
+                    ct);
+            }
+        }
     }
 
     private async Task<(Chat Chat, Message Message, OfferPayload Payload)> GetPendingOfferAsync(Guid chatId, Guid messageId, Guid responderId, CancellationToken ct)

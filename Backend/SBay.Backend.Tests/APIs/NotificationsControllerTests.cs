@@ -126,6 +126,33 @@ public class NotificationsControllerTests : IClassFixture<TestWebAppFactory>
         verifyDb.UserNotifications.Count(x => x.UserId != TestAuthHandler.SellerId && !x.IsRead).Should().Be(1);
     }
 
+    [Fact]
+    public async Task Preferences_ReturnDefaults_AndCanBeUpdated()
+    {
+        var readClient = AuthenticatedClient("users.read");
+        var defaults = await readClient.GetFromJsonAsync<PreferencesResponse>("/api/notifications/preferences");
+        defaults.Should().NotBeNull();
+        defaults!.EmailNewBids.Should().BeTrue();
+        defaults.EmailPromotions.Should().BeFalse();
+        defaults.PushMessages.Should().BeFalse();
+
+        var writeClient = AuthenticatedClient("users.write");
+        var update = defaults with
+        {
+            EmailNewBids = false,
+            EmailMessages = false,
+            PushMessages = true
+        };
+        var res = await writeClient.PutAsJsonAsync("/api/notifications/preferences", update);
+
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        var saved = await res.Content.ReadFromJsonAsync<PreferencesResponse>();
+        saved.Should().NotBeNull();
+        saved!.EmailNewBids.Should().BeFalse();
+        saved.EmailMessages.Should().BeFalse();
+        saved.PushMessages.Should().BeTrue();
+    }
+
     private static UserNotification Notification(string title, bool read, bool archived, Guid? userId = null)
     {
         return new UserNotification
@@ -151,4 +178,15 @@ public class NotificationsControllerTests : IClassFixture<TestWebAppFactory>
 
     private sealed record UnreadCountResponse(int Total);
     private sealed record MarkedReadResponse(int Count);
+    private sealed record PreferencesResponse(
+        bool EmailNewBids,
+        bool EmailOutbidAlerts,
+        bool EmailWonAuctions,
+        bool EmailMessages,
+        bool EmailPriceDrops,
+        bool EmailPromotions,
+        bool PushNewBids,
+        bool PushOutbidAlerts,
+        bool PushWonAuctions,
+        bool PushMessages);
 }

@@ -18,12 +18,18 @@ public class NotificationsController : ControllerBase
 {
     private readonly IPushTokenRepository _pushTokens;
     private readonly INotificationRepository _notifications;
+    private readonly INotificationPreferenceRepository _preferences;
     private readonly IUnitOfWork _uow;
 
-    public NotificationsController(IPushTokenRepository pushTokens, INotificationRepository notifications, IUnitOfWork uow)
+    public NotificationsController(
+        IPushTokenRepository pushTokens,
+        INotificationRepository notifications,
+        INotificationPreferenceRepository preferences,
+        IUnitOfWork uow)
     {
         _pushTokens = pushTokens;
         _notifications = notifications;
+        _preferences = preferences;
         _uow = uow;
     }
 
@@ -65,6 +71,33 @@ public class NotificationsController : ControllerBase
         var count = await _notifications.MarkAllReadAsync(me.Value, DateTimeOffset.UtcNow, ct);
         await _uow.SaveChangesAsync(ct);
         return Ok(new NotificationMarkedReadResponse(count));
+    }
+
+    [HttpGet("preferences")]
+    [Authorize(Policy = ScopePolicies.UsersRead)]
+    public async Task<ActionResult<NotificationPreferencesDto>> GetPreferences(CancellationToken ct)
+    {
+        var me = GetCurrentUserId();
+        if (!me.HasValue) return Unauthorized();
+
+        var preferences = await _preferences.GetOrDefaultAsync(me.Value, ct);
+        return Ok(NotificationPreferencesDto.From(preferences));
+    }
+
+    [HttpPut("preferences")]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
+    public async Task<ActionResult<NotificationPreferencesDto>> UpdatePreferences(
+        [FromBody] NotificationPreferencesDto req,
+        CancellationToken ct)
+    {
+        var me = GetCurrentUserId();
+        if (!me.HasValue) return Unauthorized();
+
+        var preferences = req.ToEntity(me.Value, DateTimeOffset.UtcNow);
+        await _preferences.UpsertAsync(preferences, ct);
+        await _uow.SaveChangesAsync(ct);
+        return Ok(NotificationPreferencesDto.From(preferences));
     }
 
     [HttpPost("push-token")]
@@ -113,6 +146,47 @@ public class NotificationsController : ControllerBase
 public sealed record NotificationsResponse(IReadOnlyList<NotificationDto> Notifications);
 public sealed record NotificationUnreadCountResponse(int Total);
 public sealed record NotificationMarkedReadResponse(int Count);
+
+public sealed record NotificationPreferencesDto(
+    bool EmailNewBids,
+    bool EmailOutbidAlerts,
+    bool EmailWonAuctions,
+    bool EmailMessages,
+    bool EmailPriceDrops,
+    bool EmailPromotions,
+    bool PushNewBids,
+    bool PushOutbidAlerts,
+    bool PushWonAuctions,
+    bool PushMessages)
+{
+    public static NotificationPreferencesDto From(NotificationPreference preferences) => new(
+        preferences.EmailNewBids,
+        preferences.EmailOutbidAlerts,
+        preferences.EmailWonAuctions,
+        preferences.EmailMessages,
+        preferences.EmailPriceDrops,
+        preferences.EmailPromotions,
+        preferences.PushNewBids,
+        preferences.PushOutbidAlerts,
+        preferences.PushWonAuctions,
+        preferences.PushMessages);
+
+    public NotificationPreference ToEntity(Guid userId, DateTimeOffset now) => new()
+    {
+        UserId = userId,
+        EmailNewBids = EmailNewBids,
+        EmailOutbidAlerts = EmailOutbidAlerts,
+        EmailWonAuctions = EmailWonAuctions,
+        EmailMessages = EmailMessages,
+        EmailPriceDrops = EmailPriceDrops,
+        EmailPromotions = EmailPromotions,
+        PushNewBids = PushNewBids,
+        PushOutbidAlerts = PushOutbidAlerts,
+        PushWonAuctions = PushWonAuctions,
+        PushMessages = PushMessages,
+        UpdatedAt = now
+    };
+}
 
 public sealed record NotificationDto(
     Guid Id,

@@ -130,6 +130,21 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS ix_notifications_user_unread ON notifications(user_id, is_read, is_archived, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  email_new_bids BOOLEAN NOT NULL DEFAULT TRUE,
+  email_outbid_alerts BOOLEAN NOT NULL DEFAULT TRUE,
+  email_won_auctions BOOLEAN NOT NULL DEFAULT TRUE,
+  email_messages BOOLEAN NOT NULL DEFAULT TRUE,
+  email_price_drops BOOLEAN NOT NULL DEFAULT TRUE,
+  email_promotions BOOLEAN NOT NULL DEFAULT FALSE,
+  push_new_bids BOOLEAN NOT NULL DEFAULT TRUE,
+  push_outbid_alerts BOOLEAN NOT NULL DEFAULT TRUE,
+  push_won_auctions BOOLEAN NOT NULL DEFAULT TRUE,
+  push_messages BOOLEAN NOT NULL DEFAULT FALSE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
