@@ -140,14 +140,16 @@ public sealed class ChatService : IChatService
 
     public async Task<Message> SendOfferAsync(Guid chatId, Guid senderId, decimal amount, string? currency, CancellationToken ct = default)
     {
-        if (amount < 0) throw new InvalidOperationException("Offer cannot be negative");
+        if (amount <= 0) throw new InvalidOperationException("Offer must be greater than zero");
         var chat = await GetParticipantChatAsync(chatId, senderId, ct);
         if (!chat.ListingId.HasValue) throw new InvalidOperationException("Offers require a listing chat");
+        var receiverId = senderId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
+        await EnsureParticipantsCanUseOffersAsync(senderId, receiverId, ct);
+
         var listing = await _listings.GetByIdForManagementAsync(chat.ListingId.Value, ct)
                       ?? throw new InvalidOperationException("Listing not found");
-        if (listing.Status != "active") throw new InvalidOperationException("Listing is not active");
+        EnsureListingCanReceiveOffers(listing);
 
-        var receiverId = senderId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
         if (senderId == chat.SellerId) throw new InvalidOperationException("Seller should send a counter offer");
 
         var payload = new OfferPayload(
@@ -177,13 +179,16 @@ public sealed class ChatService : IChatService
     public async Task<Message> AcceptOfferAsync(Guid chatId, Guid messageId, Guid responderId, CancellationToken ct = default)
     {
         var (chat, offerMessage, payload) = await GetPendingOfferAsync(chatId, messageId, responderId, ct);
+        await EnsureParticipantsCanUseOffersAsync(responderId, offerMessage.SenderId, ct);
+        var listing = await _listings.GetByIdForManagementAsync(payload.ListingId, ct)
+                      ?? throw new InvalidOperationException("Listing not found");
+        EnsureListingCanReceiveOffers(listing);
+
         payload = payload with { Status = "accepted" };
         offerMessage.DataJson = JsonSerializer.Serialize(payload);
         offerMessage.Content = FormatOfferContent(payload);
         await _messages.UpdateAsync(offerMessage, ct);
 
-        var listing = await _listings.GetByIdForManagementAsync(payload.ListingId, ct)
-                      ?? throw new InvalidOperationException("Listing not found");
         listing.MarkSoldUntil(_clock.UtcNow.AddDays(15));
         await _listings.UpdateAsync(listing, ct);
 
@@ -196,6 +201,7 @@ public sealed class ChatService : IChatService
     public async Task<Message> RejectOfferAsync(Guid chatId, Guid messageId, Guid responderId, CancellationToken ct = default)
     {
         var (_, offerMessage, payload) = await GetPendingOfferAsync(chatId, messageId, responderId, ct);
+        await EnsureParticipantsCanUseOffersAsync(responderId, offerMessage.SenderId, ct);
         payload = payload with { Status = "rejected" };
         offerMessage.DataJson = JsonSerializer.Serialize(payload);
         offerMessage.Content = FormatOfferContent(payload);
@@ -207,8 +213,13 @@ public sealed class ChatService : IChatService
 
     public async Task<Message> CounterOfferAsync(Guid chatId, Guid messageId, Guid responderId, decimal amount, string? currency, CancellationToken ct = default)
     {
-        if (amount < 0) throw new InvalidOperationException("Offer cannot be negative");
+        if (amount <= 0) throw new InvalidOperationException("Offer must be greater than zero");
         var (chat, offerMessage, payload) = await GetPendingOfferAsync(chatId, messageId, responderId, ct);
+        await EnsureParticipantsCanUseOffersAsync(responderId, offerMessage.SenderId, ct);
+        var listing = await _listings.GetByIdForManagementAsync(payload.ListingId, ct)
+                      ?? throw new InvalidOperationException("Listing not found");
+        EnsureListingCanReceiveOffers(listing);
+
         payload = payload with { Status = "countered" };
         offerMessage.DataJson = JsonSerializer.Serialize(payload);
         offerMessage.Content = FormatOfferContent(payload);
@@ -218,7 +229,7 @@ public sealed class ChatService : IChatService
             OfferId: Guid.NewGuid(),
             ListingId: payload.ListingId,
             Amount: amount,
-            Currency: NormalizeCurrency(currency, payload.Currency),
+            Currency: NormalizeCurrency(currency, listing.Price.Currency),
             Status: "pending",
             ParentOfferId: payload.OfferId,
             ExpiresAt: null);
@@ -310,6 +321,20 @@ public sealed class ChatService : IChatService
         var chat = await _chats.GetByIdAsync(chatId, ct) ?? throw new InvalidOperationException("Chat not found");
         if (userId != chat.BuyerId && userId != chat.SellerId) throw new InvalidOperationException("Forbidden");
         return chat;
+    }
+
+    private async Task EnsureParticipantsCanUseOffersAsync(Guid userId, Guid otherUserId, CancellationToken ct)
+    {
+        if (await IsBlockedAsync(userId, otherUserId, ct))
+            throw new ForbiddenException("Blocked");
+        if (await HasInactiveParticipantAsync(userId, otherUserId, ct))
+            throw new ForbiddenException("Inactive account");
+    }
+
+    private static void EnsureListingCanReceiveOffers(Listing listing)
+    {
+        if (listing.Status != "active" || listing.StockQuantity <= 0)
+            throw new InvalidOperationException("Listing is not active");
     }
 
     private async Task<Message> AddOfferMessageAsync(Chat chat, Guid senderId, Guid receiverId, OfferPayload payload, CancellationToken ct)

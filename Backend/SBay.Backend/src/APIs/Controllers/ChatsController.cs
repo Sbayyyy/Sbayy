@@ -82,8 +82,8 @@ public class ChatsController : ControllerBase
     [EnableRateLimiting("chat")]
     public async Task<ActionResult<MessageDto>> SendOffer(Guid chatId, [FromBody] CreateOfferRequest req, CancellationToken ct)
     {
-        if (req == null || req.Amount < 0)
-            return BadRequest(ApiProblemDetails.Validation("Offer amount cannot be negative.", nameof(req.Amount)));
+        if (req == null || req.Amount <= 0)
+            return BadRequest(ApiProblemDetails.Validation("Offer amount must be greater than zero.", nameof(req.Amount)));
         var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var message = await _svc.SendOfferAsync(chatId, me, req.Amount, req.Currency, ct);
         return Ok(ToMessageDto(message));
@@ -114,8 +114,8 @@ public class ChatsController : ControllerBase
     [EnableRateLimiting("chat")]
     public async Task<ActionResult<MessageDto>> CounterOffer(Guid chatId, Guid messageId, [FromBody] CounterOfferRequest req, CancellationToken ct)
     {
-        if (req == null || req.Amount < 0)
-            return BadRequest(ApiProblemDetails.Validation("Offer amount cannot be negative.", nameof(req.Amount)));
+        if (req == null || req.Amount <= 0)
+            return BadRequest(ApiProblemDetails.Validation("Offer amount must be greater than zero.", nameof(req.Amount)));
         var me = Guid.Parse(User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var message = await _svc.CounterOfferAsync(chatId, messageId, me, req.Amount, req.Currency, ct);
         return Ok(ToMessageDto(message));

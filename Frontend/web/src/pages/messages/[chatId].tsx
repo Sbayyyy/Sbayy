@@ -408,7 +408,7 @@ export default function ChatPage() {
   const handleSendOffer = async () => {
     if (!chatIdValue || !offerAmount.trim()) return;
     const amount = Number(offerAmount);
-    if (!Number.isFinite(amount) || amount < 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       toast.warning(t('chat.offerInvalid', 'Enter a valid offer amount.'));
       return;
     }
@@ -433,6 +433,7 @@ export default function ChatPage() {
       let updated: Message;
       if (action === 'accept') {
         updated = await acceptOffer(chatIdValue, message.id);
+        setListing((prev) => prev ? { ...prev, status: 'sold' } : prev);
         toast.success(t('chat.offerAccepted', 'Offer accepted. Listing marked as sold for 15 days.'));
       } else if (action === 'reject') {
         updated = await rejectOffer(chatIdValue, message.id);
@@ -441,7 +442,7 @@ export default function ChatPage() {
         const rawAmount = window.prompt(t('chat.counterPrompt', 'Counter offer amount'), listing?.priceAmount ? String(listing.priceAmount) : '');
         if (!rawAmount) return;
         const amount = Number(rawAmount);
-        if (!Number.isFinite(amount) || amount < 0) {
+        if (!Number.isFinite(amount) || amount <= 0) {
           toast.warning(t('chat.offerInvalid', 'Enter a valid offer amount.'));
           return;
         }
@@ -530,7 +531,7 @@ export default function ChatPage() {
     return listingTitle ?? t('messages.generalChat');
   };
 
-  const canMakeOffer = Boolean(chat?.listingId && user?.id === chat?.buyerId && listing?.status === 'active');
+  const canMakeOffer = Boolean(chat?.listingId && user?.id === chat?.buyerId && listing?.status === 'active' && listing.stock > 0);
 
   if (loading) {
     return (

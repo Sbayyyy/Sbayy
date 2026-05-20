@@ -320,6 +320,44 @@ public sealed class ChatServiceTests
     }
 
     [Fact]
+    public async Task SendOfferAsync_ShouldReject_ZeroAmount()
+    {
+        using var db = NewDb();
+        var seller = Guid.NewGuid();
+        var buyer = Guid.NewGuid();
+        var listing = new Listing(seller, "Phone", "Clean", new Money(120m, "SYP"));
+        var listingRepo = new Mock<IListingRepository>();
+        listingRepo.Setup(x => x.GetByIdForManagementAsync(listing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(listing);
+        var svc = CreateService(db, seller, listings: listingRepo.Object);
+        var chat = await svc.OpenOrGetAsync(buyer, seller, listing.Id, default);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.SendOfferAsync(chat.Id, buyer, 0m, "SYP", default));
+    }
+
+    [Fact]
+    public async Task AcceptOfferAsync_ShouldReject_WhenListingIsNoLongerActive()
+    {
+        using var db = NewDb();
+        var seller = Guid.NewGuid();
+        var buyer = Guid.NewGuid();
+        var listing = new Listing(seller, "Phone", "Clean", new Money(120m, "SYP"));
+        var listingRepo = new Mock<IListingRepository>();
+        listingRepo.Setup(x => x.GetByIdForManagementAsync(listing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(listing);
+        var svc = CreateService(db, seller, listings: listingRepo.Object);
+        var chat = await svc.OpenOrGetAsync(buyer, seller, listing.Id, default);
+        var offer = await svc.SendOfferAsync(chat.Id, buyer, 100m, "SYP", default);
+
+        listing.SetStatus("hidden");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.AcceptOfferAsync(chat.Id, offer.Id, seller, default));
+        Assert.Equal("hidden", listing.Status);
+    }
+
+    [Fact]
     public async Task GetInboxAsync_FillsPage_AfterFilteringInactiveParticipants()
     {
         using var db = NewDb();
