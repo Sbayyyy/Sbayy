@@ -150,8 +150,10 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
     {
         _client.DefaultRequestHeaders.Remove("X-Test-Role");
         _client.DefaultRequestHeaders.Remove("X-Test-IsSeller");
+        _client.DefaultRequestHeaders.Remove("X-Test-UserId");
         _client.DefaultRequestHeaders.Add("X-Test-Role", "support");
         _client.DefaultRequestHeaders.Add("X-Test-IsSeller", "false");
+        _client.DefaultRequestHeaders.Add("X-Test-UserId", Guid.NewGuid().ToString());
 
         var request = new
         {

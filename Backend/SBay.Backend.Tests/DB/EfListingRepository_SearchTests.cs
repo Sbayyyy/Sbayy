@@ -191,5 +191,76 @@ RESTART IDENTITY CASCADE;");
             var ids1 = p1.Select(x => x.Id).ToHashSet();
             p2.Should().OnlyContain(x => !ids1.Contains(x.Id));
         }
+
+        [Fact]
+        public async Task Search_Should_Not_Return_Listings_When_Seller_Is_Missing()
+        {
+            await using var db = _fx.CreateContext();
+
+            await db.Database.ExecuteSqlRawAsync(@"
+TRUNCATE TABLE
+    order_items,
+    orders,
+    cart_items,
+    carts,
+    listing_images,
+    listings
+RESTART IDENTITY CASCADE;");
+
+            var listing = new Listing(
+                sellerId: Guid.NewGuid(),
+                title: "Orphan listing",
+                desc: "seller does not exist",
+                price: new Money(100m, "EUR"),
+                stock: 1);
+            db.Add(listing);
+            await db.SaveChangesAsync();
+
+            var repo = new EfListingRepository(db);
+
+            var results = await repo.SearchAsync(new ListingQuery { Page = 1, PageSize = 24 }, CancellationToken.None);
+            var byId = await repo.GetByIdAsync(listing.Id, CancellationToken.None);
+            var byIds = await repo.GetByIdsAsync(new[] { listing.Id }, CancellationToken.None);
+
+            results.Should().NotContain(l => l.Id == listing.Id);
+            byId.Should().BeNull();
+            byIds.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Search_Should_Not_Return_Listings_When_Seller_Is_Inactive()
+        {
+            await using var db = _fx.CreateContext();
+
+            await db.Database.ExecuteSqlRawAsync(@"
+TRUNCATE TABLE
+    order_items,
+    orders,
+    cart_items,
+    carts,
+    listing_images,
+    listings
+RESTART IDENTITY CASCADE;");
+
+            var sellerId = await EnsureSellerAsync(db, "inactive.seller.repos@example.com");
+            await db.Database.ExecuteSqlRawAsync("UPDATE users SET status = 'deactivated' WHERE id = {0}", sellerId);
+
+            var listing = new Listing(
+                sellerId: sellerId,
+                title: "Inactive seller listing",
+                desc: "seller is inactive",
+                price: new Money(100m, "EUR"),
+                stock: 1);
+            db.Add(listing);
+            await db.SaveChangesAsync();
+
+            var repo = new EfListingRepository(db);
+
+            var results = await repo.SearchAsync(new ListingQuery { Page = 1, PageSize = 24 }, CancellationToken.None);
+            var bySeller = await repo.GetBySellerAsync(sellerId, CancellationToken.None);
+
+            results.Should().NotContain(l => l.Id == listing.Id);
+            bySeller.Should().BeEmpty();
+        }
     }
 }
