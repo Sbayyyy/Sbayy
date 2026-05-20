@@ -222,7 +222,7 @@ public sealed class AdminUsersController : ControllerBase
     private static string NormalizeEmail(string email)
     {
         if (!EmailValidator.TryNormalize(email, out var normalized))
-            throw new InvalidInputException("Email is invalid.");
+            throw new BadRequestException("Email is invalid.");
         return normalized;
     }
 
