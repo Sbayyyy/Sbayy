@@ -20,6 +20,7 @@ using ListingBoostPurchase = SBay.Domain.Entities.ListingBoostPurchase;
 using PlatformFee = SBay.Domain.Entities.PlatformFee;
 using SponsoredAd = SBay.Domain.Entities.SponsoredAd;
 using UserNotification = SBay.Domain.Entities.UserNotification;
+using NotificationPreference = SBay.Domain.Entities.NotificationPreference;
 using RefreshToken = SBay.Domain.Entities.RefreshToken;
 
 namespace SBay.Domain.Database
@@ -40,6 +41,7 @@ namespace SBay.Domain.Database
         public DbSet<ReviewHelpful> ReviewHelpfuls => Set<ReviewHelpful>();
         public DbSet<PushToken> PushTokens => Set<PushToken>();
         public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+        public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<Report> Reports => Set<Report>();
         public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
@@ -188,6 +190,27 @@ namespace SBay.Domain.Database
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").ValueGeneratedOnAdd();
                 e.Property(x => x.ReadAt).HasColumnName("read_at");
                 e.HasIndex(x => new { x.UserId, x.IsRead, x.IsArchived, x.CreatedAt });
+            });
+            modelBuilder.Entity<NotificationPreference>(e =>
+            {
+                e.ToTable("notification_preferences");
+                e.HasKey(x => x.UserId);
+                e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+                e.Property(x => x.EmailNewBids).HasColumnName("email_new_bids").HasDefaultValue(true);
+                e.Property(x => x.EmailOutbidAlerts).HasColumnName("email_outbid_alerts").HasDefaultValue(true);
+                e.Property(x => x.EmailWonAuctions).HasColumnName("email_won_auctions").HasDefaultValue(true);
+                e.Property(x => x.EmailMessages).HasColumnName("email_messages").HasDefaultValue(true);
+                e.Property(x => x.EmailPriceDrops).HasColumnName("email_price_drops").HasDefaultValue(true);
+                e.Property(x => x.EmailPromotions).HasColumnName("email_promotions").HasDefaultValue(false);
+                e.Property(x => x.PushNewBids).HasColumnName("push_new_bids").HasDefaultValue(true);
+                e.Property(x => x.PushOutbidAlerts).HasColumnName("push_outbid_alerts").HasDefaultValue(true);
+                e.Property(x => x.PushWonAuctions).HasColumnName("push_won_auctions").HasDefaultValue(true);
+                e.Property(x => x.PushMessages).HasColumnName("push_messages").HasDefaultValue(false);
+                e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+                e.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
             modelBuilder.Entity<RefreshToken>(e =>
             {

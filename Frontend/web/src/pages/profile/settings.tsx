@@ -7,6 +7,12 @@ import { User, Lock, Shield, Eye, EyeOff, ChevronRight } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { api } from '@/lib/api';
 import { changePassword } from '@/lib/api/auth';
+import {
+  defaultNotificationPreferences,
+  getNotificationPreferences,
+  updateNotificationPreferences
+} from '@/lib/api/notifications';
+import type { NotificationPreferences } from '@/lib/api/notifications';
 import { getCurrentUser, updateProfile, UpdateProfileRequest } from '@/lib/api/users';
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
@@ -75,22 +81,10 @@ export default function AccountSettingsPage() {
     confirm: ''
   });
 
-  const [emailNotifications, setEmailNotifications] = useState({
-    newBids: true,
-    outbid: true,
-    wonAuction: true,
-    messages: true,
-    promotions: false,
-    priceDrops: true,
-  });
-
-  const [pushNotifications, setPushNotifications] = useState({
-    newBids: true,
-    outbid: true,
-    wonAuction: true,
-    messages: false,
-  });
-  const notificationsComingSoon = true;
+  const [notificationPreferences, setNotificationPreferences] =
+    useState<NotificationPreferences>(defaultNotificationPreferences);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState<'email' | 'push' | null>(null);
   const privacyComingSoon = true;
 
   const handleSave = (section: string) => {
@@ -137,6 +131,43 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+
+  const loadNotificationPreferences = useCallback(async () => {
+    setNotificationLoading(true);
+    try {
+      const preferences = await getNotificationPreferences();
+      setNotificationPreferences(preferences);
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+      toast.error('Unable to load notification preferences');
+    } finally {
+      setNotificationLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'notifications') {
+      void loadNotificationPreferences();
+    }
+  }, [activeTab, loadNotificationPreferences]);
+
+  const updateNotificationField = (field: keyof NotificationPreferences) => (value: boolean) => {
+    setNotificationPreferences((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleNotificationSave = async (section: 'email' | 'push') => {
+    setNotificationSaving(section);
+    try {
+      const saved = await updateNotificationPreferences(notificationPreferences);
+      setNotificationPreferences(saved);
+      toast.success(`${section === 'email' ? 'Email' : 'Push'} notification preferences saved`);
+    } catch (error) {
+      console.error('Error saving notification preferences:', error);
+      toast.error('Unable to save notification preferences');
+    } finally {
+      setNotificationSaving(null);
+    }
+  };
 
   const updateField = (field: 'firstName' | 'lastName' | 'phone' | 'bio' | 'username') => (value: string) => {
     setProfileForm((prev) => ({ ...prev, [field]: value }));
@@ -582,41 +613,40 @@ export default function AccountSettingsPage() {
 
             {activeTab === 'notifications' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
-                  <span>Notifications settings are coming soon.</span>
-                  <span className="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Coming soon</span>
-                </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-6">Email Notifications</h2>
+                  {notificationLoading ? (
+                    <div className="py-8 text-center text-sm text-gray-500">Loading notification preferences...</div>
+                  ) : (
                   <div className="space-y-4">
                     {[
                       {
-                        key: 'newBids',
+                        key: 'emailNewBids',
                         title: 'New bids on my items',
                         description: 'Get notified when someone bids on your listings'
                       },
                       {
-                        key: 'outbid',
+                        key: 'emailOutbidAlerts',
                         title: 'Outbid alerts',
                         description: "When you've been outbid on an item"
                       },
                       {
-                        key: 'wonAuction',
+                        key: 'emailWonAuctions',
                         title: 'Won auctions',
                         description: 'When you win an auction'
                       },
                       {
-                        key: 'messages',
+                        key: 'emailMessages',
                         title: 'Messages',
                         description: 'When you receive a new message from buyers or sellers'
                       },
                       {
-                        key: 'priceDrops',
+                        key: 'emailPriceDrops',
                         title: 'Price drops on watched items',
                         description: 'When items in your watchlist drop in price'
                       },
                       {
-                        key: 'promotions',
+                        key: 'emailPromotions',
                         title: 'Promotional emails',
                         description: 'Deals, recommendations, and marketing emails'
                       }
@@ -627,47 +657,49 @@ export default function AccountSettingsPage() {
                           <p className="text-sm text-gray-600">{item.description}</p>
                         </div>
                         <Toggle
-                          checked={emailNotifications[item.key as keyof typeof emailNotifications]}
-                          onChange={(checked) =>
-                            setEmailNotifications({ ...emailNotifications, [item.key]: checked })
-                          }
-                          disabled={notificationsComingSoon}
+                          checked={notificationPreferences[item.key as keyof NotificationPreferences]}
+                          onChange={updateNotificationField(item.key as keyof NotificationPreferences)}
+                          disabled={notificationSaving !== null}
                         />
                       </div>
                     ))}
                   </div>
+                  )}
                   <div className="flex justify-end gap-3 mt-6">
                     <button
-                      onClick={() => handleSave('Email notification')}
+                      onClick={() => handleNotificationSave('email')}
                       className="px-4 py-2 rounded-md text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60"
-                      disabled={notificationsComingSoon}
+                      disabled={notificationLoading || notificationSaving !== null}
                     >
-                      Save Preferences
+                      {notificationSaving === 'email' ? 'Saving...' : 'Save Preferences'}
                     </button>
                   </div>
                 </div>
 
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-6">Push Notifications</h2>
+                  {notificationLoading ? (
+                    <div className="py-8 text-center text-sm text-gray-500">Loading notification preferences...</div>
+                  ) : (
                   <div className="space-y-4">
                     {[
                       {
-                        key: 'newBids',
+                        key: 'pushNewBids',
                         title: 'New bids',
                         description: 'Mobile push notifications for new bids'
                       },
                       {
-                        key: 'outbid',
+                        key: 'pushOutbidAlerts',
                         title: 'Outbid alerts',
                         description: 'Instant alerts when outbid'
                       },
                       {
-                        key: 'wonAuction',
+                        key: 'pushWonAuctions',
                         title: 'Won auctions',
                         description: 'Celebrate your wins instantly'
                       },
                       {
-                        key: 'messages',
+                        key: 'pushMessages',
                         title: 'Messages',
                         description: 'New message notifications'
                       }
@@ -678,22 +710,21 @@ export default function AccountSettingsPage() {
                           <p className="text-sm text-gray-600">{item.description}</p>
                         </div>
                         <Toggle
-                          checked={pushNotifications[item.key as keyof typeof pushNotifications]}
-                          onChange={(checked) =>
-                            setPushNotifications({ ...pushNotifications, [item.key]: checked })
-                          }
-                          disabled={notificationsComingSoon}
+                          checked={notificationPreferences[item.key as keyof NotificationPreferences]}
+                          onChange={updateNotificationField(item.key as keyof NotificationPreferences)}
+                          disabled={notificationSaving !== null}
                         />
                       </div>
                     ))}
                   </div>
+                  )}
                   <div className="flex justify-end gap-3 mt-6">
                     <button
-                      onClick={() => handleSave('Push notification')}
+                      onClick={() => handleNotificationSave('push')}
                       className="px-4 py-2 rounded-md text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60"
-                      disabled={notificationsComingSoon}
+                      disabled={notificationLoading || notificationSaving !== null}
                     >
-                      Save Preferences
+                      {notificationSaving === 'push' ? 'Saving...' : 'Save Preferences'}
                     </button>
                   </div>
                 </div>

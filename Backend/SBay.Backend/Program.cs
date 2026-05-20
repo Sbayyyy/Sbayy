@@ -76,6 +76,7 @@ if (useEf)
     builder.Services.AddScoped<IAddressRepository, EfAddressRepository>();  // NEW
     builder.Services.AddScoped<IPushTokenRepository, EfPushTokenRepository>();
     builder.Services.AddScoped<INotificationRepository, EfNotificationRepository>();
+    builder.Services.AddScoped<INotificationPreferenceRepository, EfNotificationPreferenceRepository>();
     builder.Services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
     builder.Services.AddScoped<IReportRepository, EfReportRepository>();
     builder.Services.AddScoped<IUserBlockRepository, EfUserBlockRepository>();
@@ -131,6 +132,7 @@ else
     builder.Services.AddScoped<IDataProvider, FirebaseDataProvider>();
     builder.Services.AddScoped<IPushTokenRepository, FirebasePushTokenRepository>();
     builder.Services.AddScoped<INotificationRepository, FirebaseNotificationRepository>();
+    builder.Services.AddScoped<INotificationPreferenceRepository, FirebaseNotificationPreferenceRepository>();
     builder.Services.AddScoped<IUserBlockRepository, FirebaseUserBlockRepository>();
     builder.Services.AddScoped<IUnitOfWork, FirestoreUnitOfWork>();
     builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();
