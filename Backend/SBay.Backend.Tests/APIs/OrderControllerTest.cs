@@ -19,6 +19,23 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
         _factory = factory;
     }
 
+    private static async Task AddActiveSellerAsync(SBay.Domain.Database.EfDbContext db, Guid sellerId)
+    {
+        if (await db.Users.FindAsync(sellerId) != null)
+            return;
+
+        db.Users.Add(new SBay.Domain.Entities.User
+        {
+            Id = sellerId,
+            Email = $"seller.{sellerId:N}@example.com",
+            PasswordHash = "$",
+            Role = "seller",
+            Status = "active",
+            IsSeller = true,
+            CreatedAt = DateTime.UtcNow
+        });
+    }
+
     [Fact(Skip = "Default test auth scheme (TestAuth) prevents buyer!=seller success path in this environment.")]
     public async Task CreateOrder_DerivesSeller_And_Prices_ComputesTotals()
     {
@@ -170,8 +187,10 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var sellerId = Guid.NewGuid();
+        await AddActiveSellerAsync(db, sellerId);
         var listing = new SBay.Domain.Entities.Listing(
-            Guid.NewGuid(),
+            sellerId,
             "Hidden Item",
             "Hidden",
             new SBay.Domain.ValueObjects.Money(10m, "EUR"),
@@ -203,8 +222,10 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var sellerId = Guid.NewGuid();
+        await AddActiveSellerAsync(db, sellerId);
         var listing = new SBay.Domain.Entities.Listing(
-            Guid.NewGuid(),
+            sellerId,
             "Empty Item",
             "Empty",
             new SBay.Domain.ValueObjects.Money(10m, "EUR"),
@@ -235,8 +256,10 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var sellerId = Guid.NewGuid();
+        await AddActiveSellerAsync(db, sellerId);
         var listing = new SBay.Domain.Entities.Listing(
-            Guid.NewGuid(),
+            sellerId,
             "Limited Item",
             "Limited",
             new SBay.Domain.ValueObjects.Money(10m, "EUR"),
@@ -267,8 +290,10 @@ public class OrdersControllerTests : IClassFixture<TestWebAppFactory>
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SBay.Domain.Database.EfDbContext>();
+        var sellerId = Guid.NewGuid();
+        await AddActiveSellerAsync(db, sellerId);
         var listing = new SBay.Domain.Entities.Listing(
-            Guid.NewGuid(),
+            sellerId,
             "Real Price Item",
             "Real Price",
             new SBay.Domain.ValueObjects.Money(12.50m, "EUR"),

@@ -36,6 +36,19 @@ public class ListingsControllerTests : IClassFixture<TestWebAppFactory>
         var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
         await db.Database.EnsureDeletedAsync();
         await db.Database.EnsureCreatedAsync();
+        foreach (var sellerId in listings.Select(l => l.SellerId).Distinct())
+        {
+            db.Users.Add(new User
+            {
+                Id = sellerId,
+                Email = $"seller.{sellerId:N}@example.com",
+                PasswordHash = "$",
+                Role = "seller",
+                Status = "active",
+                IsSeller = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
         db.Listings.AddRange(listings);
         await db.SaveChangesAsync();
     }
