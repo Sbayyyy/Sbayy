@@ -126,6 +126,8 @@ public sealed class AdminUsersControllerTests
             Role = role,
             Status = status,
             IsSeller = role is "seller" or "admin",
+            EmailVerified = true,
+            EmailVerifiedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
