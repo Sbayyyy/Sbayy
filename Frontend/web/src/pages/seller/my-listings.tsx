@@ -90,7 +90,7 @@ export default function MyListingsPage() {
   };
 
   const handleMarkSold = async (listing: Product) => {
-    if (statusUpdatingId) return;
+    if (Boolean(statusUpdatingId)) return;
     try {
       setStatusUpdatingId(listing.id);
       const updated = await updateListing(listing.id, { status: 'sold' });
@@ -115,6 +115,7 @@ export default function MyListingsPage() {
   const visibleListings = listings.filter(listing => getListingStatus(listing) !== 'deleted');
   const activeListings = visibleListings.filter(listing => getListingStatus(listing) === 'active');
   const soldListings = visibleListings.filter(listing => getListingStatus(listing) === 'sold');
+  const isStatusUpdating = Boolean(statusUpdatingId);
 
   const filteredListings = listings.filter(listing => {
     const status = getListingStatus(listing);
@@ -296,7 +297,7 @@ export default function MyListingsPage() {
                       </button>
                       <button
                         onClick={() => void handleMarkSold(listing)}
-                        disabled={getListingStatus(listing) !== 'active' || statusUpdatingId === listing.id}
+                        disabled={getListingStatus(listing) !== 'active' || isStatusUpdating}
                         className="btn btn-outline border-slate-200 px-3 text-slate-700 hover:bg-slate-50"
                       >
                         {statusUpdatingId === listing.id ? (

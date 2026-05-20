@@ -39,8 +39,15 @@ public sealed class AccountDeletionService
         foreach (var user in users)
         {
             ct.ThrowIfCancellationRequested();
-            if (await DeleteAccountAsync(user, ct))
-                deleted++;
+            try
+            {
+                if (await DeleteAccountAsync(user, ct))
+                    deleted++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete deactivated account userId={UserId}", user.Id);
+            }
         }
 
         return deleted;

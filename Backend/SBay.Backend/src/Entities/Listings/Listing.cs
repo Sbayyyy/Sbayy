@@ -130,10 +130,19 @@ public class Listing :
 
     public void SetStatus(string status)
     {
+        if (string.IsNullOrWhiteSpace(status))
+            throw new ArgumentException(nameof(status));
+
         var normalized = status.Trim().ToLowerInvariant();
         if (normalized is not ("active" or "sold" or "hidden" or "deleted"))
             throw new ArgumentException(nameof(status));
         Status = normalized;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetStatus(ListingStatus status)
+    {
+        Status = status.ToStorageValue();
         UpdatedAt = DateTime.UtcNow;
     }
 }

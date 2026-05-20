@@ -133,3 +133,6 @@ Backend/SBay.FirestoreTools/obj/Release/net9.0/refint/SBay.FirestoreTools.dll
 Backend/SBay.FirestoreTools/obj/Debug/net9.0/SBay.FirestoreTools.AssemblyInfo.cs
 Backend/SBay.FirestoreTools/obj/Debug/net9.0/SBay.FirestoreTools.AssemblyInfoInputs.cache
 Backend/SBay.FirestoreTools/obj/Debug/net9.0/SBay.FirestoreTools.GeneratedMSBuildEditorConfig.editorconfig
+.devcontainer/devcontainer-lock.json
+.devcontainer/devcontainer.json
+dotnet/runfile-discovery/sbay-f712c8e38d0c17a09ad27af1b337ee03d92ed8f2559fbce248c723d36a37e132/cache.staging.json

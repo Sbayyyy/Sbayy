@@ -85,9 +85,6 @@ export default function ListingDetail() {
     openChat({ otherUserId, listingId: listing.id })
       .then((response) => {
         const chatId = response.chatId ?? response.id;
-        if (!chatId) {
-          throw new Error('Missing chat id');
-        }
         router.push(`/messages/${chatId}`);
       })
       .catch((err) => {

@@ -1,3 +1,7 @@
+using System.Text.Json.Serialization;
+using SBay.Backend.APIs.Json;
+using SBay.Domain.Entities;
+
 namespace SBay.Backend.APIs.Records;
 
 public sealed record UpdateListingRequest
@@ -12,5 +16,6 @@ public sealed record UpdateListingRequest
     public List<string>? ImageUrls { get; init; }
     public int? Stock { get; init; }
     public string? Condition { get; init; }
-    public string? Status { get; init; }
+    [JsonConverter(typeof(ListingStatusJsonConverter))]
+    public ListingStatus? Status { get; init; }
 }

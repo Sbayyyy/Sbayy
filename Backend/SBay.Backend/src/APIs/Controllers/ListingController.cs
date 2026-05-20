@@ -225,9 +225,6 @@ public sealed class ListingsController : ControllerBase
             return BadRequest("Price cannot be negative.");
         if (body.Stock.HasValue && body.Stock.Value < 0)
             return BadRequest("Stock cannot be negative.");
-        if (!string.IsNullOrWhiteSpace(body.Status)
-            && body.Status.Trim().ToLowerInvariant() is not ("active" or "sold" or "hidden"))
-            return BadRequest("Invalid listing status.");
         if (body.SpecificLocation?.Trim().Length > 200)
             return BadRequest("Specific location must be 200 characters or less.");
         if (body.ImageUrls != null)
@@ -267,9 +264,9 @@ public sealed class ListingsController : ControllerBase
             body.Region,
             body.SpecificLocation);
 
-        if (!string.IsNullOrWhiteSpace(body.Status))
+        if (body.Status.HasValue)
         {
-            listing.SetStatus(body.Status);
+            listing.SetStatus(body.Status.Value);
         }
 
         await _repo.UpdateAsync(listing, ct);

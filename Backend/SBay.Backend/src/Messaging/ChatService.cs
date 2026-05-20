@@ -220,7 +220,7 @@ public sealed class ChatService : IChatService
     {
         var normalizedTake = take < 1 ? 20 : Math.Min(take, 100);
         var normalizedSkip = Math.Max(0, skip);
-        var chats = await FilterActiveParticipantChatsAsync(await _chats.GetInboxAsync(me, normalizedTake, normalizedSkip, ct), ct);
+        var chats = await GetActiveParticipantInboxAsync(me, normalizedTake, normalizedSkip, ct);
         var summaries = new List<ChatSummaryDto>(chats.Count);
         var chatIds = chats.Select(c => c.Id).ToArray();
         var latestByChat = await _messages.GetLatestByChatAsync(chatIds, ct);
@@ -260,7 +260,34 @@ public sealed class ChatService : IChatService
     {
         var normalizedTake = take < 1 ? 20 : Math.Min(take, 100);
         var normalizedSkip = Math.Max(0, skip);
-        return await FilterActiveParticipantChatsAsync(await _chats.GetInboxAsync(me, normalizedTake, normalizedSkip, ct), ct);
+        return await GetActiveParticipantInboxAsync(me, normalizedTake, normalizedSkip, ct);
+    }
+
+    private async Task<IReadOnlyList<Chat>> GetActiveParticipantInboxAsync(Guid me, int take, int skip, CancellationToken ct)
+    {
+        if (_users is null)
+            return await _chats.GetInboxAsync(me, take, skip, ct);
+
+        var needed = (long)skip + take;
+        var batchSize = Math.Min(100, Math.Max(take, 20));
+        var repoSkip = 0;
+        var filtered = new List<Chat>();
+
+        while (filtered.Count < needed)
+        {
+            var batch = await _chats.GetInboxAsync(me, batchSize, repoSkip, ct);
+            if (batch.Count == 0)
+                break;
+
+            filtered.AddRange(await FilterActiveParticipantChatsAsync(batch, ct));
+
+            if (batch.Count < batchSize)
+                break;
+
+            repoSkip += batch.Count;
+        }
+
+        return filtered.Skip(skip).Take(take).ToList();
     }
 
     private async Task<IReadOnlyList<Chat>> FilterActiveParticipantChatsAsync(IReadOnlyList<Chat> chats, CancellationToken ct)
