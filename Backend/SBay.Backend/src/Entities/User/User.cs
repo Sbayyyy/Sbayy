@@ -42,6 +42,9 @@ namespace SBay.Domain.Entities
         public DateTimeOffset? EmailVerifiedAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTimeOffset? DeactivatedAt { get; set; }
+        public DateTimeOffset? AccountDeletionRequestedAt { get; set; }
+        [MaxLength(500)]
+        public string? AccountDeletionReason { get; set; }
 
         public string? AvatarUrl { get; set; }
         public DateTimeOffset? LastSeen { get; set; }

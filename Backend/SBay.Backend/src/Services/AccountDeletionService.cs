@@ -185,6 +185,9 @@ WHERE cart_id IN (SELECT id FROM carts WHERE user_id = {userId})
             $"DELETE FROM notifications WHERE user_id = {userId}",
             ct);
         await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM notification_preferences WHERE user_id = {userId}",
+            ct);
+        await _db.Database.ExecuteSqlInterpolatedAsync(
             $"DELETE FROM push_tokens WHERE user_id = {userId}",
             ct);
         await _db.Database.ExecuteSqlInterpolatedAsync(

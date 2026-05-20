@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL DEFAULT 'user',
   status VARCHAR(32) NOT NULL DEFAULT 'active',
   deactivated_at TIMESTAMPTZ,
+  account_deletion_requested_at TIMESTAMPTZ,
+  account_deletion_reason VARCHAR(500),
   email_verified BOOLEAN NOT NULL DEFAULT FALSE,
   email_verification_token_hash VARCHAR(128),
   email_verification_expires_at TIMESTAMPTZ,
@@ -68,6 +70,8 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_reset_at TIME
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS external_id TEXT;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT 'active';
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS account_deletion_requested_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS account_deletion_reason VARCHAR(500);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verification_token_hash VARCHAR(128);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMPTZ;

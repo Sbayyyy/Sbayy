@@ -1,7 +1,13 @@
+import { useState } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { requestAccountDeletion } from '@/lib/api/users';
+import { useAuthStore } from '@/lib/store';
+import { toast } from '@/lib/toast';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 
 const DATA_ITEMS = [
   'account',
@@ -12,7 +18,35 @@ const DATA_ITEMS = [
 ] as const;
 
 export default function DeleteAccountPage() {
+  useRequireAuth();
   const { t } = useTranslation('common');
+  const router = useRouter();
+  const { logout } = useAuthStore();
+  const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleRequestDeletion = async () => {
+    const confirmed = window.confirm(t('deleteAccount.confirm', 'Request account deletion? Your account will be deactivated immediately.'));
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await requestAccountDeletion(reason);
+      logout();
+      toast.success(
+        t('deleteAccount.success', {
+          defaultValue: 'Deletion requested. Scheduled deletion: {{date}}',
+          date: new Date(result.scheduledDeletionAt).toLocaleDateString()
+        })
+      );
+      void router.push('/');
+    } catch (error) {
+      console.error('Error requesting account deletion:', error);
+      toast.error(t('deleteAccount.error', 'Unable to request account deletion'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Layout>
@@ -55,6 +89,31 @@ export default function DeleteAccountPage() {
           <p className="mt-4">{t('deleteAccount.retention')}</p>
 
           <p className="mt-6">{t('deleteAccount.processingTime')}</p>
+
+          <div className="mt-8 border-t border-slate-200 pt-6">
+            <label htmlFor="deletionReason" className="block text-sm font-medium text-slate-700">
+              {t('deleteAccount.reasonLabel', 'Reason for deletion (optional)')}
+            </label>
+            <textarea
+              id="deletionReason"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              maxLength={500}
+              className="mt-2 min-h-24 w-full rounded-md border border-slate-300 p-3 text-sm"
+              placeholder={t('deleteAccount.reasonPlaceholder', 'Tell us why you are deleting your account')}
+            />
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleRequestDeletion}
+                disabled={isSubmitting}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {isSubmitting
+                  ? t('deleteAccount.requesting', 'Requesting...')
+                  : t('deleteAccount.requestButton', 'Request account deletion')}
+              </button>
+            </div>
+          </div>
         </section>
       </main>
     </Layout>

@@ -220,4 +220,29 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
             new LoginRequest(auth.User.Email, password));
         login.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task AccountDeletionRequest_DeactivatesAccount_AndReturnsSchedule()
+    {
+        var password = "Password1!";
+        var (client, auth) = await AuthTestClient.CreateAuthedAsync(_factory, "delete-request", password);
+
+        var response = await client.PostAsJsonAsync("/api/users/me/deletion-request", new { reason = "privacy" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<AccountDeletionRequestDto>();
+        body.Should().NotBeNull();
+        body!.Status.Should().Be("requested");
+        body.ScheduledDeletionAt.Should().BeAfter(body.RequestedAt);
+
+        var login = await _factory.CreateClient().PostAsJsonAsync("/api/auth/login",
+            new LoginRequest(auth.User.Email, password));
+        login.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    private sealed record AccountDeletionRequestDto(
+        string Status,
+        DateTimeOffset RequestedAt,
+        DateTimeOffset ScheduledDeletionAt,
+        string? Reason);
 }

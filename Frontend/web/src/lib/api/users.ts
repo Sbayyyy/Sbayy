@@ -37,6 +37,20 @@ export async function updateProfile(data: UpdateProfileRequest): Promise<User> {
   return toUser(response.data);
 }
 
+export interface AccountDeletionRequestResponse {
+  status: string;
+  requestedAt: string;
+  scheduledDeletionAt: string;
+  reason?: string | null;
+}
+
+export async function requestAccountDeletion(reason?: string): Promise<AccountDeletionRequestResponse> {
+  const response = await api.post<AccountDeletionRequestResponse>('/users/me/deletion-request', {
+    reason: reason?.trim() || undefined,
+  });
+  return response.data;
+}
+
 export interface SellerProfile {
   id: string;
   name: string;
