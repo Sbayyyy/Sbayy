@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 public static class AuthTestClient
 {
@@ -19,8 +20,13 @@ public static class AuthTestClient
             throw new Exception($"Register failed: {(int)reg.StatusCode} {reg.ReasonPhrase}\n{body}");
         }
 
-        var auth = await reg.Content.ReadFromJsonAsync<AuthResponse>()
-                   ?? throw new InvalidOperationException("Register returned no body");
+        var emailSender = factory.Services.GetRequiredService<TestEmailSender>();
+        var token = emailSender.GetLatestVerificationToken(uniqueEmail);
+        var verify = await client.GetAsync($"/api/auth/verify-email?token={Uri.EscapeDataString(token)}");
+        verify.EnsureSuccessStatusCode();
+
+        var auth = await verify.Content.ReadFromJsonAsync<AuthResponse>()
+                   ?? throw new InvalidOperationException("Verify email returned no body");
 
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(TestAuthHandler.SchemeName, "ok");

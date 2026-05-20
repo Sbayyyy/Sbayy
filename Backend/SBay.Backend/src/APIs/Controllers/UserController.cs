@@ -59,6 +59,7 @@ public class UserController : ControllerBase
             user.AvatarUrl,
             user.Role,
             user.IsSeller,
+            user.EmailVerified,
             user.CreatedAt,
             user.LastSeen,
             user.TotalRevenue,

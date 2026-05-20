@@ -34,6 +34,10 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL DEFAULT 'user',
   status VARCHAR(32) NOT NULL DEFAULT 'active',
   deactivated_at TIMESTAMPTZ,
+  email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  email_verification_token_hash VARCHAR(128),
+  email_verification_expires_at TIMESTAMPTZ,
+  email_verified_at TIMESTAMPTZ,
   is_seller BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_seen TIMESTAMPTZ,
@@ -64,11 +68,16 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_reset_at TIME
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS external_id TEXT;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT 'active';
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verification_token_hash VARCHAR(128);
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
 UPDATE users SET role = lower(trim(role)) WHERE role IS NOT NULL AND lower(trim(role)) <> role;
 UPDATE users SET role = 'user' WHERE role IS NULL OR role NOT IN ('user','seller','support','admin');
 UPDATE users SET status = lower(trim(status)) WHERE status IS NOT NULL AND lower(trim(status)) <> status;
 UPDATE users SET status = 'active' WHERE status IS NULL OR status NOT IN ('active','deactivated','blocked');
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_external_id ON users(external_id) WHERE external_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_users_email_verification_token_hash ON users(email_verification_token_hash) WHERE email_verification_token_hash IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_users_status_deactivated_at ON users(status, deactivated_at);
 CREATE INDEX IF NOT EXISTS ix_users_role_status ON users(role, status);
 DO $$

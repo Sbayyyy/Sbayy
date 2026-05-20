@@ -28,6 +28,16 @@ export const register = async (data: UserRegistration) => {
   return response.data;
 };
 
+export const verifyEmail = async (token: string) => {
+  const response = await api.get<AuthResponse>('/auth/verify-email', {
+    params: { token }
+  });
+  return {
+    ...response.data,
+    user: toUser(response.data.user)
+  };
+};
+
 /**
  * Logout
  */

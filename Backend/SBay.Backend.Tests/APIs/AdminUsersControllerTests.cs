@@ -62,6 +62,31 @@ public sealed class AdminUsersControllerTests
         body.Status.Should().Be("active");
     }
 
+    [Theory]
+    [InlineData("not-an-email")]
+    [InlineData("user@localhost")]
+    [InlineData("user@example")]
+    [InlineData("user@bad_domain.com")]
+    public async Task Create_RejectsInvalidEmail(string email)
+    {
+        using var factory = new TestWebAppFactory();
+        var adminId = Guid.NewGuid();
+        await SeedUserAsync(factory, adminId, "admin", "active");
+        var client = CreateAuthedClient(factory, adminId, "admin");
+
+        var res = await client.PostAsJsonAsync("/api/admin/users", new
+        {
+            email,
+            password = "StrongAdmin123!",
+            displayName = "Moderator",
+            role = "support",
+            status = "active",
+            isSeller = false
+        });
+
+        res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     [Fact]
     public async Task Update_PreventsDemotingLastActiveAdmin()
     {

@@ -54,6 +54,15 @@ services:
       Redis__Host: redis
       Redis__Port: 6379
       App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-https://api.syrian-bay.com}
+      Frontend__BaseUrl: ${FRONTEND_URL:-https://syrian-bay.com}
+      EmailVerification__TokenHours: ${EMAIL_VERIFICATION_TOKEN_HOURS:-24}
+      Email__From: ${EMAIL_FROM:-support@syrian-bay.com}
+      Email__FromName: ${EMAIL_FROM_NAME:-SBay}
+      Email__Smtp__Host: ${EMAIL_SMTP_HOST:-}
+      Email__Smtp__Port: ${EMAIL_SMTP_PORT:-587}
+      Email__Smtp__EnableSsl: ${EMAIL_SMTP_ENABLE_SSL:-true}
+      Email__Smtp__Username: ${EMAIL_SMTP_USERNAME:-}
+      Email__Smtp__Password: ${EMAIL_SMTP_PASSWORD:-}
       Storage__Provider: local
       Storage__Local__Path: ${STORAGE_LOCAL_PATH:-/app/uploads}
       Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-https://api.syrian-bay.com}

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SBay.Backend.Exceptions;
+using SBay.Backend.Utils;
 using SBay.Domain.Entities;
 using SBay.Domain.Database;
 
@@ -113,6 +114,8 @@ public sealed class AdminUsersController : ControllerBase
         {
             Id = Guid.NewGuid(),
             Email = email,
+            EmailVerified = true,
+            EmailVerifiedAt = DateTimeOffset.UtcNow,
             DisplayName = string.IsNullOrWhiteSpace(req.DisplayName) ? null : req.DisplayName.Trim(),
             Role = role,
             Status = status,
@@ -218,8 +221,7 @@ public sealed class AdminUsersController : ControllerBase
 
     private static string NormalizeEmail(string email)
     {
-        var normalized = email?.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(normalized) || normalized.Length > 254 || !normalized.Contains('@'))
+        if (!EmailValidator.TryNormalize(email, out var normalized))
             throw new InvalidInputException("Email is invalid.");
         return normalized;
     }

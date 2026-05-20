@@ -1,6 +1,5 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Collections.Concurrent;
-using System.Net.Mail;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,8 +8,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using SBay.Backend.Utils;
+using SBay.Backend.Services;
 using SBay.Domain.Authentication;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -39,8 +41,9 @@ public class AuthController : ControllerBase
     private readonly IPasswordHasher<User> _hasher;
     private readonly JwtOptions _jwt;
     private readonly IConfiguration _config;
+    private readonly IEmailSender _emailSender;
 
-    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config)
+    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender)
     {
         _users = users;
         _refreshTokens = refreshTokens;
@@ -48,6 +51,7 @@ public class AuthController : ControllerBase
         _hasher = hasher;
         _jwt = jwt.Value;
         _config = config;
+        _emailSender = emailSender;
     }
 
     
@@ -58,12 +62,11 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(req?.Email) || string.IsNullOrWhiteSpace(req?.Password))
             return BadRequest("Email and password are required.");
-        if (!IsValidEmail(req.Email))
+        if (!EmailValidator.TryNormalize(req.Email, out var email))
             return BadRequest("Email is invalid.");
         if (!IsStrongPassword(req.Password))
             return BadRequest("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
 
-        var email = req.Email.Trim().ToLowerInvariant();
         var exists = await _users.EmailExistsAsync(email, ct);
         if (exists) return Conflict("Registration could not be completed.");
 
@@ -71,6 +74,7 @@ public class AuthController : ControllerBase
         {
             Id = Guid.NewGuid(),
             Email = email,
+            EmailVerified = false,
             DisplayName = (req.DisplayName ?? req.Name)?.Trim(),
             Phone = req.Phone?.Trim(),
             City = req.City?.Trim(),
@@ -88,17 +92,16 @@ public class AuthController : ControllerBase
             user.ListingLimitResetAt = DateTimeOffset.UtcNow.AddHours(periodHours);
         }
         user.PasswordHash = _hasher.HashPassword(user, req.Password);
+        var verificationToken = CreateVerificationToken(user);
 
         await _users.AddAsync(user, ct);
         await _uow.SaveChangesAsync(ct);
+        await SendVerificationEmailAsync(user, verificationToken, ct);
 
-        var dto = user.ToDto();
-        var token = GenerateJwt(user);
-        var refresh = await IssueRefreshTokenAsync(user.Id, ct);
-        return CreatedAtAction(nameof(GetMe), new { }, new AuthResponse(dto, token)
+        return CreatedAtAction(nameof(GetMe), new { }, new
         {
-            RefreshToken = refresh.Token,
-            RefreshTokenExpiresAt = refresh.ExpiresAt
+            user = user.ToDto(),
+            emailVerificationRequired = true
         });
     }
 
@@ -113,7 +116,7 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pwd))
             return BadRequest("Email and password are required.");
-        if (!IsValidEmail(email) || pwd.Length > 128)
+        if (!EmailValidator.IsValid(email) || pwd.Length > 128)
             return Unauthorized("Invalid email or password.");
         var attemptKey = $"{email}:{HttpContext.Connection.RemoteIpAddress}";
         if (IsLoginRateLimited(attemptKey))
@@ -136,6 +139,8 @@ public class AuthController : ControllerBase
 
         if (!user.IsActive)
             return StatusCode(StatusCodes.Status403Forbidden, "This account is inactive.");
+        if (!user.EmailVerified)
+            return StatusCode(StatusCodes.Status403Forbidden, "Please verify your email before signing in.");
 
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
@@ -149,6 +154,38 @@ public class AuthController : ControllerBase
         var refresh = await IssueRefreshTokenAsync(user.Id, ct);
         LoginAttempts.TryRemove(attemptKey, out _);
         return Ok(new AuthResponse(dto, token)
+        {
+            RefreshToken = refresh.Token,
+            RefreshTokenExpiresAt = refresh.ExpiresAt
+        });
+    }
+
+    [HttpGet("verify-email")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerifyEmail([FromQuery] string token, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return BadRequest("Verification token is required.");
+
+        var tokenHash = HashToken(token);
+        var user = await _users.GetByEmailVerificationTokenHashAsync(tokenHash, ct);
+        if (user is null ||
+            user.EmailVerificationExpiresAt is null ||
+            user.EmailVerificationExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            return BadRequest("Verification link is invalid or expired.");
+        }
+
+        user.EmailVerified = true;
+        user.EmailVerifiedAt ??= DateTimeOffset.UtcNow;
+        user.EmailVerificationTokenHash = null;
+        user.EmailVerificationExpiresAt = null;
+        await _users.UpdateAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        var refresh = await IssueRefreshTokenAsync(user.Id, ct);
+        return Ok(new AuthResponse(user.ToDto(), GenerateJwt(user))
         {
             RefreshToken = refresh.Token,
             RefreshTokenExpiresAt = refresh.ExpiresAt
@@ -306,6 +343,34 @@ public class AuthController : ControllerBase
         return (raw, entity);
     }
 
+    private string CreateVerificationToken(User user)
+    {
+        var raw = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+        user.EmailVerificationTokenHash = HashToken(raw);
+        user.EmailVerificationExpiresAt = DateTimeOffset.UtcNow.AddHours(
+            Math.Clamp(_config.GetValue<int?>("EmailVerification:TokenHours") ?? 24, 1, 168));
+        user.EmailVerifiedAt = null;
+        return raw;
+    }
+
+    private async Task SendVerificationEmailAsync(User user, string token, CancellationToken ct)
+    {
+        var baseUrl = (_config["Frontend:BaseUrl"]
+            ?? _config["Cors:AllowedOrigins:0"]
+            ?? _config["FRONTEND_URL"]
+            ?? "http://localhost:3000").TrimEnd('/');
+        var verifyUrl = $"{baseUrl}/auth/verify-email?token={Uri.EscapeDataString(token)}";
+        var subject = "Verify your SBay email";
+        var text = $"Welcome to SBay. Verify your email and sign in here: {verifyUrl}";
+        var html = $"""
+            <p>Welcome to SBay.</p>
+            <p><a href="{verifyUrl}">Verify your email and sign in</a></p>
+            <p>If the button does not work, copy and paste this link:</p>
+            <p>{verifyUrl}</p>
+            """;
+        await _emailSender.SendEmailAsync(user.Email, subject, html, text, ct);
+    }
+
     private static string? NormalizeHeaderValue(string? value, int maxLength)
     {
         var trimmed = value?.Trim();
@@ -315,26 +380,14 @@ public class AuthController : ControllerBase
 
     private static string HashRefreshToken(string token)
     {
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+        return HashToken(token);
     }
+
+    private static string HashToken(string token)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     private static bool IsStrongPassword(string password)
         => password.Length <= 128 && Regex.IsMatch(password, @"(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}");
-
-    private static bool IsValidEmail(string email)
-    {
-        var trimmed = email.Trim();
-        if (trimmed.Length is < 3 or > 254) return false;
-        try
-        {
-            var parsed = new MailAddress(trimmed);
-            return string.Equals(parsed.Address, trimmed, StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
-    }
 
     private static bool IsLoginRateLimited(string key)
     {
