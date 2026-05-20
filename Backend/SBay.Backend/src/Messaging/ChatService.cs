@@ -20,6 +20,7 @@ public sealed class ChatService : IChatService
     private readonly IChatEvents _events;
     private readonly IUnitOfWork _uow;
     private readonly IUserBlockRepository _blocks;
+    private readonly IUserRepository? _users;
 
     public ChatService(
         IChatRepository chats,
@@ -29,7 +30,8 @@ public sealed class ChatService : IChatService
         IUserOwnership ownership,
         IChatEvents events,
         IUnitOfWork uow,
-        IUserBlockRepository blocks)
+        IUserBlockRepository blocks,
+        IUserRepository? users = null)
     {
         _chats = chats;
         _messages = messages;
@@ -39,6 +41,7 @@ public sealed class ChatService : IChatService
         _events = events;
         _uow = uow;
         _blocks = blocks;
+        _users = users;
     }
 
     public async Task<Chat> OpenOrGetAsync(Guid me, Guid otherUserId, Guid? listingId, CancellationToken ct = default)
@@ -65,6 +68,8 @@ public sealed class ChatService : IChatService
 
         if (await IsBlockedAsync(buyerId, sellerId, ct))
             throw new ForbiddenException("Blocked");
+        if (await HasInactiveParticipantAsync(buyerId, sellerId, ct))
+            throw new ForbiddenException("Inactive account");
 
         var chat = await _chats.FindByParticipantsAsync(buyerId, sellerId, listingId, ct);
         if (chat is not null)
@@ -113,6 +118,8 @@ public sealed class ChatService : IChatService
         var receiverId = senderId == chat.BuyerId ? chat.SellerId : chat.BuyerId;
         if (await IsBlockedAsync(senderId, receiverId, ct))
             throw new ForbiddenException("Blocked");
+        if (await HasInactiveParticipantAsync(senderId, receiverId, ct))
+            throw new ForbiddenException("Inactive account");
         var clean = _sanitizer.Sanitize(trimmed);
 
         var msg = new Message(chat.Id, clean, senderId, receiverId, chat.ListingId) { CreatedAt = now };
@@ -198,11 +205,22 @@ public sealed class ChatService : IChatService
                || await _blocks.IsBlockedAsync(otherUserId, userId, ct);
     }
 
+    private async Task<bool> HasInactiveParticipantAsync(Guid userId, Guid otherUserId, CancellationToken ct)
+    {
+        if (_users is null) return false;
+
+        var user = await _users.GetByIdAsync(userId, ct);
+        if (user is null || !user.IsActive) return true;
+
+        var other = await _users.GetByIdAsync(otherUserId, ct);
+        return other is null || !other.IsActive;
+    }
+
     public async Task<IReadOnlyList<ChatSummaryDto>> GetInboxSummaryAsync(Guid me, int take = 20, int skip = 0, CancellationToken ct = default)
     {
         var normalizedTake = take < 1 ? 20 : Math.Min(take, 100);
         var normalizedSkip = Math.Max(0, skip);
-        var chats = await _chats.GetInboxAsync(me, normalizedTake, normalizedSkip, ct);
+        var chats = await GetActiveParticipantInboxAsync(me, normalizedTake, normalizedSkip, ct);
         var summaries = new List<ChatSummaryDto>(chats.Count);
         var chatIds = chats.Select(c => c.Id).ToArray();
         var latestByChat = await _messages.GetLatestByChatAsync(chatIds, ct);
@@ -242,6 +260,48 @@ public sealed class ChatService : IChatService
     {
         var normalizedTake = take < 1 ? 20 : Math.Min(take, 100);
         var normalizedSkip = Math.Max(0, skip);
-        return await _chats.GetInboxAsync(me, normalizedTake, normalizedSkip, ct);
+        return await GetActiveParticipantInboxAsync(me, normalizedTake, normalizedSkip, ct);
+    }
+
+    private async Task<IReadOnlyList<Chat>> GetActiveParticipantInboxAsync(Guid me, int take, int skip, CancellationToken ct)
+    {
+        if (_users is null)
+            return await _chats.GetInboxAsync(me, take, skip, ct);
+
+        var needed = (long)skip + take;
+        var batchSize = Math.Min(100, Math.Max(take, 20));
+        var repoSkip = 0;
+        var filtered = new List<Chat>();
+
+        while (filtered.Count < needed)
+        {
+            var batch = await _chats.GetInboxAsync(me, batchSize, repoSkip, ct);
+            if (batch.Count == 0)
+                break;
+
+            filtered.AddRange(await FilterActiveParticipantChatsAsync(batch, ct));
+
+            if (batch.Count < batchSize)
+                break;
+
+            repoSkip += batch.Count;
+        }
+
+        return filtered.Skip(skip).Take(take).ToList();
+    }
+
+    private async Task<IReadOnlyList<Chat>> FilterActiveParticipantChatsAsync(IReadOnlyList<Chat> chats, CancellationToken ct)
+    {
+        if (_users is null || chats.Count == 0)
+            return chats;
+
+        var filtered = new List<Chat>(chats.Count);
+        foreach (var chat in chats)
+        {
+            if (!await HasInactiveParticipantAsync(chat.BuyerId, chat.SellerId, ct))
+                filtered.Add(chat);
+        }
+
+        return filtered;
     }
 }

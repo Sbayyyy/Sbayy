@@ -105,6 +105,7 @@ public sealed class ListingsController : ControllerBase
 
         var sellerUser = await _users.GetByIdAsync(sellerId, ct);
         if (sellerUser == null) return Forbid();
+        if (!sellerUser.IsActive) return Forbid();
         if (!User.IsInRole("admin"))
         {
             if (sellerUser.ListingBanned) return Forbid();
@@ -262,6 +263,11 @@ public sealed class ListingsController : ControllerBase
             body.CategoryPath,
             body.Region,
             body.SpecificLocation);
+
+        if (body.Status.HasValue)
+        {
+            listing.SetStatus(body.Status.Value);
+        }
 
         await _repo.UpdateAsync(listing, ct);
         if (body.ImageUrls != null)

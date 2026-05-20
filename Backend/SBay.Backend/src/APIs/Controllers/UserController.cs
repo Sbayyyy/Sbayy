@@ -17,6 +17,7 @@ public class UserController : ControllerBase
 {
     private readonly IUserRepository _users;
     private readonly IListingRepository _listings;
+    private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUserResolver _userResolver;
     private readonly IConfiguration _config;
@@ -24,12 +25,14 @@ public class UserController : ControllerBase
     public UserController(
         IUserRepository users,
         IListingRepository listings,
+        IRefreshTokenRepository refreshTokens,
         IUnitOfWork uow,
         ICurrentUserResolver userResolver,
         IConfiguration config)
     {
         _users = users;
         _listings = listings;
+        _refreshTokens = refreshTokens;
         _uow = uow;
         _userResolver = userResolver;
         _config = config;
@@ -78,7 +81,7 @@ public class UserController : ControllerBase
     public async Task<ActionResult<SellerProfileDto>> GetById(Guid id, CancellationToken ct)
     {
         var user = await _users.GetByIdAsync(id, ct);
-        if (user is null) return NotFound();
+        if (user is null || !user.IsActive) return NotFound();
 
         var dto = new SellerProfileDto(
             user.Id,
@@ -156,5 +159,39 @@ public class UserController : ControllerBase
         }
 
         return Ok(user.ToDto());
+    }
+
+    [HttpPost("me/deactivate")]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
+    public Task<IActionResult> DeactivateMe(CancellationToken ct)
+    {
+        return DeactivateCurrentUserAsync(ct);
+    }
+
+    [HttpDelete("me")]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
+    public Task<IActionResult> DeleteMe(CancellationToken ct)
+    {
+        return DeactivateCurrentUserAsync(ct);
+    }
+
+    private async Task<IActionResult> DeactivateCurrentUserAsync(CancellationToken ct)
+    {
+        var uid = await _userResolver.GetUserIdAsync(User, ct);
+        if (!uid.HasValue || uid.Value == Guid.Empty) return Unauthorized();
+
+        var user = await _users.GetByIdAsync(uid.Value, ct);
+        if (user is null) return NotFound();
+        if (!user.IsActive) return NoContent();
+
+        var now = DateTimeOffset.UtcNow;
+        user.Deactivate(now);
+        await _refreshTokens.RevokeAllForUserAsync(user.Id, now, ct);
+        await _users.UpdateAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        return NoContent();
     }
 }

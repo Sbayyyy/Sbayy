@@ -33,7 +33,10 @@ namespace SBay.Domain.Entities
         public string? Phone { get; set; }
         public bool IsSeller { get; set; } = true;
         public string Role { get; set; } = "user";
+        [MaxLength(32)]
+        public string Status { get; set; } = "active";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTimeOffset? DeactivatedAt { get; set; }
 
         public string? AvatarUrl { get; set; }
         public DateTimeOffset? LastSeen { get; set; }
@@ -55,6 +58,14 @@ namespace SBay.Domain.Entities
         public ICollection<Listing> Listings { get; private set; } = new List<Listing>();
 
         public ShoppingCart Cart { get; private set; } = new();
+
+        public bool IsActive => string.Equals(Status, "active", StringComparison.OrdinalIgnoreCase);
+
+        public void Deactivate(DateTimeOffset now)
+        {
+            Status = "deactivated";
+            DeactivatedAt = now;
+        }
 
         [JsonIgnore]
         public static readonly JsonSerializerOptions DefaultJsonOptions = new()

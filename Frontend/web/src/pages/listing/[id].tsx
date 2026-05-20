@@ -83,12 +83,9 @@ export default function ListingDetail() {
     }
     setContactLoading(true);
     openChat({ otherUserId, listingId: listing.id })
-      .then(({ id }) => {
-        if (!id) {
-          toast.error(t('listing.actions.openChatError', 'Unable to open chat.'));
-          return;
-        }
-        router.push(`/messages/${id}`);
+      .then((response) => {
+        const chatId = response.chatId ?? response.id;
+        router.push(`/messages/${chatId}`);
       })
       .catch((err) => {
         console.error('Error opening chat:', err);

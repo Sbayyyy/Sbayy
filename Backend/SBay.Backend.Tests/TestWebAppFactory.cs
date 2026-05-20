@@ -32,7 +32,14 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                    ["Jwt:Issuer"] = "SBay",
                    ["Jwt:Audience"] = "SBayClients",
                    ["Jwt:Secret"] = "test_jwt_secret_32_bytes_minimum_value",
-                   ["Jwt:ExpMinutes"] = "60"
+                   ["Jwt:ExpMinutes"] = "60",
+                   ["RateLimits:Auth:PermitLimit"] = "1000",
+                   ["RateLimits:Registration:PermitLimit"] = "1000",
+                   ["RateLimits:Uploads:PermitLimit"] = "1000",
+                   ["RateLimits:Reports:PermitLimit"] = "1000",
+                   ["RateLimits:Chat:PermitLimit"] = "1000",
+                   ["RateLimits:Shipping:PermitLimit"] = "1000",
+                   ["RateLimits:Write:PermitLimit"] = "1000"
                });
         });
 

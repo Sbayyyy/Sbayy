@@ -89,7 +89,9 @@ public static class ConnectAuthenticators
                  .AddRequirements(new SameUserRequirement()));
 
             options.AddPolicy("SellerOnly", p => p.RequireRole("seller", "admin"));
-            options.AddPolicy("AdminOnly", p => p.RequireRole("admin"));
+            options.AddPolicy("AdminOnly", p =>
+                p.RequireAuthenticatedUser()
+                 .AddRequirements(new CurrentAdminRequirement()));
 
             foreach (var scope in Scopes.All)
             {
@@ -113,6 +115,7 @@ public static class ConnectAuthenticators
         builder.Services.AddScoped<IAuthorizationHandler, CartOwnerHandler>();
         builder.Services.AddScoped<IAuthorizationHandler, OrderPartyHandler>();
         builder.Services.AddScoped<IAuthorizationHandler, ScopeRequirementHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, CurrentAdminRequirementHandler>();
 
 
         builder.Services.PostConfigureAll<JwtBearerOptions>(o =>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { getMyListings, deleteListing } from '@/lib/api/listings';
+import { getMyListings, deleteListing, updateListing } from '@/lib/api/listings';
 import { Product } from '@sbay/shared';
 import { Loader2, AlertCircle, Plus, Edit, Trash2, Eye, Package, Zap } from 'lucide-react';
 import { formatPrice } from '@/lib/cartStore';
@@ -26,6 +26,7 @@ export default function MyListingsPage() {
   const [boostListingId, setBoostListingId] = useState<string | null>(null);
   const [selectedBoostOption, setSelectedBoostOption] = useState('');
   const [boosting, setBoosting] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -88,6 +89,21 @@ export default function MyListingsPage() {
     }
   };
 
+  const handleMarkSold = async (listing: Product) => {
+    if (Boolean(statusUpdatingId)) return;
+    try {
+      setStatusUpdatingId(listing.id);
+      const updated = await updateListing(listing.id, { status: 'sold' });
+      setListings(prev => prev.map(item => item.id === listing.id ? updated : item));
+      toast.success(t('myListings.markSoldSuccess', { defaultValue: 'Listing marked as sold.' }));
+    } catch (err) {
+      console.error('Mark sold failed:', err);
+      toast.error(t('myListings.markSoldError', { defaultValue: 'Unable to mark listing as sold.' }));
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
   const getListingStatus = (listing: Product) => {
     const status = listing.status?.toLowerCase();
     if (status === 'deleted') return 'deleted';
@@ -99,6 +115,7 @@ export default function MyListingsPage() {
   const visibleListings = listings.filter(listing => getListingStatus(listing) !== 'deleted');
   const activeListings = visibleListings.filter(listing => getListingStatus(listing) === 'active');
   const soldListings = visibleListings.filter(listing => getListingStatus(listing) === 'sold');
+  const isStatusUpdating = Boolean(statusUpdatingId);
 
   const filteredListings = listings.filter(listing => {
     const status = getListingStatus(listing);
@@ -277,6 +294,17 @@ export default function MyListingsPage() {
                       >
                         <Zap size={16} />
                         Boost
+                      </button>
+                      <button
+                        onClick={() => void handleMarkSold(listing)}
+                        disabled={getListingStatus(listing) !== 'active' || isStatusUpdating}
+                        className="btn btn-outline border-slate-200 px-3 text-slate-700 hover:bg-slate-50"
+                      >
+                        {statusUpdatingId === listing.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          t('myListings.markSold', { defaultValue: 'Mark sold' })
+                        )}
                       </button>
                       <button
                         onClick={() => setDeleteId(listing.id)}

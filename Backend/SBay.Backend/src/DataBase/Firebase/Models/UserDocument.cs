@@ -14,6 +14,8 @@ internal sealed class UserDocument
     [FirestoreProperty] public string? City { get; set; }
     [FirestoreProperty] public string PasswordHash { get; set; } = string.Empty;
     [FirestoreProperty] public string Role { get; set; } = "user";
+    [FirestoreProperty] public string? Status { get; set; }
+    [FirestoreProperty] public DateTimeOffset? DeactivatedAt { get; set; }
     [FirestoreProperty] public bool IsSeller { get; set; }
     [FirestoreProperty] public bool? IsAdmin { get; set; }
     [FirestoreProperty] public bool? IsActive { get; set; }
@@ -42,6 +44,8 @@ internal sealed class UserDocument
         City = user.City,
         PasswordHash = user.PasswordHash,
         Role = user.Role,
+        Status = user.Status,
+        DeactivatedAt = user.DeactivatedAt,
         IsSeller = user.IsSeller,
         CreatedAt = user.CreatedAt,
         LastSeen = user.LastSeen,
@@ -71,6 +75,8 @@ internal sealed class UserDocument
             City = City,
             PasswordHash = PasswordHash,
             Role = Role ?? "user",
+            Status = Status ?? (IsActive == false ? "inactive" : "active"),
+            DeactivatedAt = DeactivatedAt,
             IsSeller = IsSeller,
             CreatedAt = CreatedAt,
             LastSeen = LastSeen,
