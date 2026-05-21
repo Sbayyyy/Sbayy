@@ -232,7 +232,7 @@ SELECT
   now() - (p.row_no * interval '2 hours'),
   p.image_1,
   CASE p.condition
-  WHEN 'New' THEN 'NEW'
+  WHEN 'New' THEN 'New'
   WHEN 'LikeNew' THEN 'LikeNew'
   WHEN 'Good' THEN 'Used'
   WHEN 'Fair' THEN 'Damaged'
