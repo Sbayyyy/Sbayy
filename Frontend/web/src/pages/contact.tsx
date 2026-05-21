@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { Mail } from 'lucide-react';
 import { config } from '@/lib/config';
+import { sendContactMessage } from '@/lib/api/contact';
 
 export default function ContactPage() {
   const { t } = useTranslation('common');
@@ -17,18 +18,32 @@ export default function ContactPage() {
   const [success, setSuccess] = useState(false);
   const supportEmail = config.supportEmail;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState(false);
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
-    // Simulated submission - no backend call
-    setTimeout(() => {
+    setSuccess(false);
+    setError(false);
+
+    try {
+      await sendContactMessage({
+        name,
+        email,
+        subject,
+        message,
+        pageUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      });
       setSending(false);
       setSuccess(true);
       setName('');
       setEmail('');
       setSubject('');
       setMessage('');
-    }, 600);
+    } catch {
+      setSending(false);
+      setError(true);
+    }
   };
 
   return (
@@ -75,6 +90,12 @@ export default function ContactPage() {
               {success && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
                   {t('contact.form.success')}
+                </div>
+              )}
+
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                  {t('contact.form.error', 'Unable to send your message right now. Please try again.')}
                 </div>
               )}
 

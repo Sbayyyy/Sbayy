@@ -58,6 +58,7 @@ services:
       EmailVerification__TokenHours: ${EMAIL_VERIFICATION_TOKEN_HOURS:-24}
       Email__From: ${EMAIL_FROM}
       Email__FromName: ${EMAIL_FROM_NAME}
+      Support__Email: ${SUPPORT_EMAIL:-support@syrian-bay.com}
       Email__Smtp__Host: ${EMAIL_SMTP_HOST}
       Email__Smtp__Port: ${EMAIL_SMTP_PORT}
       Email__Smtp__EnableSsl: ${EMAIL_SMTP_ENABLE_SSL}

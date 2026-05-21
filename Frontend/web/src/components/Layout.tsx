@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Header from './Header';
 import Footer from './Footer';
 import VerifyEmailPrompt from './VerifyEmailPrompt';
+import BugReportButton from './BugReportButton';
 import { useTranslation } from 'next-i18next';
 import { config } from '@/lib/config';
 
@@ -42,6 +43,7 @@ export default function Layout({
         <main className="flex-1 min-h-0">
           {children}
         </main>
+        {!hideHeader && <BugReportButton />}
         {!hideFooter && <Footer />}
       </div>
     </>
