@@ -27,6 +27,9 @@ public sealed class LocalImageStorageProvider : IImageStorageProvider
             ? Path.Combine(webRoot, "uploads")
             : configuredPath;
         Directory.CreateDirectory(uploadsRoot);
+        SetUnixPermissions(uploadsRoot, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                                        UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                                        UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
 
         var localPath = Path.Combine(uploadsRoot, fileName);
         var fullUploadsRoot = Path.GetFullPath(uploadsRoot);
@@ -38,6 +41,9 @@ public sealed class LocalImageStorageProvider : IImageStorageProvider
         {
             await stream.CopyToAsync(fileStream, ct);
         }
+        SetUnixPermissions(localPath, UnixFileMode.UserRead | UnixFileMode.UserWrite |
+                                      UnixFileMode.GroupRead |
+                                      UnixFileMode.OtherRead);
 
         var baseUrl = _config["Storage:Local:PublicBaseUrl"]
                       ?? _config["App:PublicBaseUrl"];
@@ -51,5 +57,20 @@ public sealed class LocalImageStorageProvider : IImageStorageProvider
             publicBase = $"{publicBase}/uploads";
 
         return $"{publicBase}/{fileName}";
+    }
+
+    private static void SetUnixPermissions(string path, UnixFileMode mode)
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        try
+        {
+            File.SetUnixFileMode(path, mode);
+        }
+        catch
+        {
+            // Best effort only; upload serving is still protected by type validation and response headers.
+        }
     }
 }

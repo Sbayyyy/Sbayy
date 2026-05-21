@@ -8,4 +8,6 @@ export * from './upload';
 export * from './search';
 export * from './orders';
 export * from './reports';
+export * from './bugReports';
+export * from './contact';
 export * from './notifications';

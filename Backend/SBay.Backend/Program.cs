@@ -5,6 +5,7 @@ using Google.Cloud.Firestore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using SBay.Backend.DataBase.Ef;
 using SBay.Backend.DataBase.Firebase;
@@ -383,10 +384,26 @@ var uploadsPath = app.Configuration["Storage:Local:Path"];
 if (string.IsNullOrWhiteSpace(uploadsPath))
     uploadsPath = Path.Combine(webRoot, "uploads");
 Directory.CreateDirectory(uploadsPath);
+var uploadContentTypes = new FileExtensionContentTypeProvider();
+uploadContentTypes.Mappings.Clear();
+uploadContentTypes.Mappings[".jpg"] = "image/jpeg";
+uploadContentTypes.Mappings[".jpeg"] = "image/jpeg";
+uploadContentTypes.Mappings[".png"] = "image/png";
+uploadContentTypes.Mappings[".webp"] = "image/webp";
+uploadContentTypes.Mappings[".gif"] = "image/gif";
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
-    RequestPath = "/uploads"
+    RequestPath = "/uploads",
+    ContentTypeProvider = uploadContentTypes,
+    OnPrepareResponse = ctx =>
+    {
+        var headers = ctx.Context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["Content-Security-Policy"] = "default-src 'none'; img-src 'self' data:; sandbox";
+        headers["Cross-Origin-Resource-Policy"] = "cross-origin";
+        headers["Cache-Control"] = "public, max-age=2592000, immutable";
+    }
 });
 
 app.UseRouting();
