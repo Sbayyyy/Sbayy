@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ReportDialog from '@/components/ReportDialog';
 import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
-import { getMessages, sendMessage, markAsRead, getChats, updateMessage, deleteMessage, sendOffer, acceptOffer, rejectOffer, counterOffer } from '@/lib/api/messages';
+import { getMessages, sendMessage, markAsRead, getChats, updateMessage, deleteMessage, deleteChat, sendOffer, acceptOffer, rejectOffer, counterOffer } from '@/lib/api/messages';
 import { requestEmailVerification } from '@/lib/api/auth';
 import { getListingById } from '@/lib/api/listings';
 import { getSellerProfile } from '@/lib/api/users';
@@ -23,7 +23,8 @@ import {
   Check,
   CheckCheck,
   MoreVertical,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import Head from 'next/head';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -382,6 +383,21 @@ export default function ChatPage() {
     }
   };
 
+  const handleDeleteCurrentChat = async () => {
+    if (!chatIdValue) return;
+    const confirmed = window.confirm(t('messages.deleteConfirm', 'Delete this chat from your inbox?'));
+    if (!confirmed) return;
+
+    try {
+      await deleteChat(chatIdValue);
+      toast.success(t('messages.deleteSuccess', 'Chat deleted.'));
+      router.push('/messages');
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+      toast.error(t('messages.deleteError', 'Unable to delete chat.'));
+    }
+  };
+
   const handleReport = (message: Message) => {
     setMenu(null);
     setReportTarget(message.id);
@@ -642,6 +658,15 @@ export default function ChatPage() {
                 </div>
               </div>
 
+              <button
+                type="button"
+                onClick={() => void handleDeleteCurrentChat()}
+                className="icon-button text-slate-500 hover:bg-red-50 hover:text-red-600"
+                aria-label={t('messages.deleteChat', 'Delete chat')}
+                title={t('messages.deleteChat', 'Delete chat')}
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>

@@ -164,6 +164,15 @@ export const deleteMessage = async (messageId: string): Promise<void> => {
   }
 };
 
+export const deleteChat = async (chatId: string): Promise<void> => {
+  try {
+    await api.delete(`/chats/${chatId}`);
+  } catch (error) {
+    console.error(`Failed to delete chat ${chatId}:`, error);
+    throw error;
+  }
+};
+
 /**
  * Get unread count (calculated from chats)
  */
@@ -192,6 +201,7 @@ export const messagesApi = {
   counterOffer,
   updateMessage,
   deleteMessage,
+  deleteChat,
   getUnreadCount,
   getChatSummaries
 };
