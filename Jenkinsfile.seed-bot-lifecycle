@@ -1,0 +1,164 @@
+pipeline {
+    agent any
+
+    triggers {
+        cron('H H * * 0')
+    }
+
+    parameters {
+        booleanParam(name: 'RUN_SEED', defaultValue: false, description: 'Run the first-time seed script. Keep false after launch.')
+        booleanParam(name: 'SEED_DRY_RUN', defaultValue: true, description: 'Preview seed changes without committing.')
+        booleanParam(name: 'ALLOW_NON_EMPTY_SEED', defaultValue: false, description: 'Allow seeding when real users/listings already exist. Use only for staging/demo.')
+        string(name: 'BOT_EMAIL_DOMAIN', defaultValue: 'seed.sbay.local', description: 'Email domain used for bot seller accounts.')
+
+        booleanParam(name: 'RUN_RETIRE', defaultValue: true, description: 'Run the seed-bot retirement script.')
+        booleanParam(name: 'RETIRE_DRY_RUN', defaultValue: true, description: 'Preview retirement changes without committing.')
+        string(name: 'RETIRE_START_DATE', defaultValue: '', description: 'Required for retirement. Format: YYYY-MM-DD.')
+        string(name: 'RETIRE_DAYS', defaultValue: '90', description: 'How long the retirement window lasts.')
+        choice(name: 'RETIRE_MODE', choices: ['deleted', 'hidden'], description: 'How retired seed listings are marked.')
+        booleanParam(name: 'CONFIRM_RETIRE_SEED_BOTS', defaultValue: false, description: 'Required when RETIRE_DRY_RUN is false.')
+    }
+
+    environment {
+        COMPOSE_FILE = 'docker-compose.prod.yml'
+        DB_SERVICE = 'postgres'
+        DB_USER = 'sbay'
+        DB_NAME = 'sbay'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                deleteDir()
+                checkout scm
+                sh 'git rev-parse --short HEAD'
+            }
+        }
+
+        stage('Resolve Environment') {
+            steps {
+                sh '''
+                    set -eu
+
+                    if [ -n "${PROD_ENV_FILE:-}" ] && [ -f "$PROD_ENV_FILE" ]; then
+                        echo "$PROD_ENV_FILE" > .jenkins-env-file
+                    elif [ -f /var/jenkins_home/workspace/sbay-deploy/.env.production ]; then
+                        echo "/var/jenkins_home/workspace/sbay-deploy/.env.production" > .jenkins-env-file
+                    elif [ -f /var/jenkins_home/workspace/sbay-deploy/.env.prod ]; then
+                        echo "/var/jenkins_home/workspace/sbay-deploy/.env.prod" > .jenkins-env-file
+                    elif [ -f /var/sbay/.env.production ]; then
+                        echo "/var/sbay/.env.production" > .jenkins-env-file
+                    elif [ -f /var/sbay/.env.prod ]; then
+                        echo "/var/sbay/.env.prod" > .jenkins-env-file
+                    elif [ -f .env.production ]; then
+                        echo ".env.production" > .jenkins-env-file
+                    elif [ -f .env.prod ]; then
+                        echo ".env.prod" > .jenkins-env-file
+                    else
+                        echo "Missing production env file."
+                        exit 1
+                    fi
+
+                    echo "Using env file: $(cat .jenkins-env-file)"
+                '''
+            }
+        }
+
+        stage('Start Database') {
+            steps {
+                sh '''
+                    set -eu
+
+                    if docker compose version >/dev/null 2>&1; then
+                        echo "docker compose" > .jenkins-compose-cmd
+                    elif command -v docker-compose >/dev/null 2>&1; then
+                        echo "docker-compose" > .jenkins-compose-cmd
+                    else
+                        echo "Docker Compose is not available."
+                        exit 1
+                    fi
+
+                    COMPOSE_CMD="$(cat .jenkins-compose-cmd)"
+                    ENV_FILE="$(cat .jenkins-env-file)"
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d "$DB_SERVICE"
+
+                    echo "Waiting for database readiness..."
+                    for i in $(seq 1 30); do
+                        if $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
+                            pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; then
+                            exit 0
+                        fi
+                        sleep 2
+                    done
+
+                    echo "Database did not become ready."
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps "$DB_SERVICE" || true
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs --tail=120 "$DB_SERVICE" || true
+                    exit 1
+                '''
+            }
+        }
+
+        stage('Seed First-Time Bot Data') {
+            when {
+                expression { return params.RUN_SEED }
+            }
+            steps {
+                sh '''
+                    set -eu
+                    COMPOSE_CMD="$(cat .jenkins-compose-cmd)"
+                    ENV_FILE="$(cat .jenkins-env-file)"
+
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T \
+                        -e PGHOST=localhost \
+                        -e PGUSER="$DB_USER" \
+                        -e PGDATABASE="$DB_NAME" \
+                        -e DRY_RUN="$SEED_DRY_RUN" \
+                        -e ALLOW_NON_EMPTY_SEED="$ALLOW_NON_EMPTY_SEED" \
+                        -e BOT_EMAIL_DOMAIN="$BOT_EMAIL_DOMAIN" \
+                        "$DB_SERVICE" bash -s < scripts/seed_platform_first_time.sh | tee seed-platform-first-time.log
+                '''
+            }
+        }
+
+        stage('Retire Seed Bots') {
+            when {
+                expression { return params.RUN_RETIRE }
+            }
+            steps {
+                sh '''
+                    set -eu
+                    if [ -z "$RETIRE_START_DATE" ]; then
+                        echo "RETIRE_START_DATE is required when RUN_RETIRE=true."
+                        exit 1
+                    fi
+
+                    CONFIRM_VALUE=""
+                    if [ "$CONFIRM_RETIRE_SEED_BOTS" = "true" ]; then
+                        CONFIRM_VALUE="retire-seed-bots"
+                    fi
+
+                    COMPOSE_CMD="$(cat .jenkins-compose-cmd)"
+                    ENV_FILE="$(cat .jenkins-env-file)"
+
+                    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T \
+                        -e PGHOST=localhost \
+                        -e PGUSER="$DB_USER" \
+                        -e PGDATABASE="$DB_NAME" \
+                        -e DRY_RUN="$RETIRE_DRY_RUN" \
+                        -e RETIRE_START_DATE="$RETIRE_START_DATE" \
+                        -e RETIRE_DAYS="$RETIRE_DAYS" \
+                        -e RETIRE_MODE="$RETIRE_MODE" \
+                        -e RETIRE_SEED_BOTS_CONFIRM="$CONFIRM_VALUE" \
+                        "$DB_SERVICE" bash -s < scripts/retire_seed_bots.sh | tee retire-seed-bots.log
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'seed-platform-first-time.log,retire-seed-bots.log', allowEmptyArchive: true
+        }
+    }
+}
