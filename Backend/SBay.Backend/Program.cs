@@ -313,7 +313,7 @@ builder.Services.AddCors(o =>
 
         var origins = configuredOrigins.Length > 0
             ? configuredOrigins
-            : new[] { "http://localhost:3000", "https://localhost:3000" };
+            : new[] { "http://localhost:3000", "https://localhost:3000", "http://localhost:4000", "https://localhost:4000" };
         p.AllowAnyHeader()
             .AllowAnyMethod()
             .WithOrigins(origins);
