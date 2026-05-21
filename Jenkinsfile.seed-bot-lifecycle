@@ -38,7 +38,7 @@ pipeline {
         stage('Resolve Environment') {
             steps {
                 sh '''
-                    set -eu
+                    set -euo pipefail
 
                     if [ -n "${PROD_ENV_FILE:-}" ] && [ -f "$PROD_ENV_FILE" ]; then
                         echo "$PROD_ENV_FILE" > .jenkins-env-file
@@ -67,7 +67,7 @@ pipeline {
         stage('Start Database') {
             steps {
                 sh '''
-                    set -eu
+                    set -euo pipefail
 
                     if docker compose version >/dev/null 2>&1; then
                         echo "docker compose" > .jenkins-compose-cmd
@@ -105,12 +105,11 @@ pipeline {
             }
             steps {
                 sh '''
-                    set -eu
+                    set -euo pipefail
                     COMPOSE_CMD="$(cat .jenkins-compose-cmd)"
                     ENV_FILE="$(cat .jenkins-env-file)"
 
                     $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T \
-                        -e PGHOST=localhost \
                         -e PGUSER="$DB_USER" \
                         -e PGDATABASE="$DB_NAME" \
                         -e DRY_RUN="$SEED_DRY_RUN" \
@@ -127,7 +126,7 @@ pipeline {
             }
             steps {
                 sh '''
-                    set -eu
+                    set -euo pipefail
                     if [ -z "$RETIRE_START_DATE" ]; then
                         echo "RETIRE_START_DATE is required when RUN_RETIRE=true."
                         exit 1
@@ -142,7 +141,6 @@ pipeline {
                     ENV_FILE="$(cat .jenkins-env-file)"
 
                     $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T \
-                        -e PGHOST=localhost \
                         -e PGUSER="$DB_USER" \
                         -e PGDATABASE="$DB_NAME" \
                         -e DRY_RUN="$RETIRE_DRY_RUN" \
