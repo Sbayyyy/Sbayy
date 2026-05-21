@@ -233,11 +233,11 @@ SELECT
   p.image_1,
   CASE p.condition
   WHEN 'New' THEN 'new'
-  WHEN 'LikeNew' THEN 'like_new'
+  WHEN 'LikeNew' THEN 'used'
   WHEN 'Good' THEN 'used'
   WHEN 'Fair' THEN 'used'
   WHEN 'Used' THEN 'used'
-  WHEN 'Refurbished' THEN 'refurbished'
+  WHEN 'Refurbished' THEN 'used'
   ELSE 'used'
 END
 FROM prepared p
