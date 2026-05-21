@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { User, Menu, X, Heart, Package, MessageCircle, ChevronDown, LogOut, Settings, Store, UserCircle } from 'lucide-react';
+import { User, Menu, X, Heart, Package, MessageCircle, ChevronDown, LogOut, Settings, Store, UserCircle, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 // import { useCartStore } from '@/lib/cartStore';
 import { useTranslation } from 'next-i18next';
@@ -21,6 +21,7 @@ export default function Header() {
   const redirectParam = encodeURIComponent(router.asPath);
   const loginHref = `/auth/login?redirect=${redirectParam}`;
   const registerHref = `/auth/register?redirect=${redirectParam}`;
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = () => {
     logout();
@@ -190,6 +191,12 @@ export default function Header() {
                         <Settings size={18} className="text-slate-400" />
                         <span>{t('profile.accountSettings')}</span>
                       </Link>
+                      {isAdmin && (
+                        <Link href="/manager/dashboard" className={dropdownMenuItemClass} onClick={() => setUserMenuOpen(false)}>
+                          <ShieldCheck size={18} className="text-slate-400" />
+                          <span>Manager dashboard</span>
+                        </Link>
+                      )}
                       <DropdownMenuDivider />
                       <button onClick={handleLogout} className={dropdownMenuDangerItemClass}>
                         <LogOut size={18} />
@@ -242,6 +249,11 @@ export default function Header() {
                 <Link href="/dashboard" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50" onClick={() => setMobileMenuOpen(false)}>
                   {t('nav.dashboard')}
                 </Link>
+                {isAdmin && (
+                  <Link href="/manager/dashboard" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50" onClick={() => setMobileMenuOpen(false)}>
+                    Manager dashboard
+                  </Link>
+                )}
                 <button onClick={handleLogout} className="block w-full rounded-xl px-3 py-2 text-right text-red-600 hover:bg-red-50">
                   {t('nav.logout')}
                 </button>
