@@ -16,7 +16,8 @@ pipeline {
         DELETED_LISTING_RETENTION_DAYS = '90'
         SOLD_LISTING_RETENTION_DAYS = '180'
         UNUSED_IMAGE_RETENTION_DAYS = '7'
-        DELETE_UPLOAD_FILES = 'true'
+        DELETE_UPLOAD_FILES = 'false'
+        CLEANUP_UNUSED_UPLOADS_CONFIRM = ''
     }
 
     stages {
@@ -61,7 +62,7 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-                    chmod +x scripts/weekly_db_backup_cleanup.sh
+                    chmod +x scripts/weekly_db_backup_cleanup.sh scripts/cleanup_unused_uploads.sh
 
                     ENV_FILE="$(cat .jenkins-env-file)" \
                     PROJECT_DIR="$WORKSPACE" \
@@ -76,6 +77,7 @@ pipeline {
                     SOLD_LISTING_RETENTION_DAYS="$SOLD_LISTING_RETENTION_DAYS" \
                     UNUSED_IMAGE_RETENTION_DAYS="$UNUSED_IMAGE_RETENTION_DAYS" \
                     DELETE_UPLOAD_FILES="$DELETE_UPLOAD_FILES" \
+                    CLEANUP_UNUSED_UPLOADS_CONFIRM="$CLEANUP_UNUSED_UPLOADS_CONFIRM" \
                     scripts/weekly_db_backup_cleanup.sh | tee weekly-db-backup-cleanup.log
                 '''
             }

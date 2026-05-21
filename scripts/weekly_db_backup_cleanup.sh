@@ -15,7 +15,8 @@ DELETED_LISTING_RETENTION_DAYS="${DELETED_LISTING_RETENTION_DAYS:-90}"
 SOLD_LISTING_RETENTION_DAYS="${SOLD_LISTING_RETENTION_DAYS:-180}"
 UNUSED_IMAGE_RETENTION_DAYS="${UNUSED_IMAGE_RETENTION_DAYS:-7}"
 UPLOADS_PATH="${UPLOADS_PATH:-${UPLOADS_HOST_PATH:-/var/sbay/uploads}}"
-DELETE_UPLOAD_FILES="${DELETE_UPLOAD_FILES:-true}"
+DELETE_UPLOAD_FILES="${DELETE_UPLOAD_FILES:-false}"
+CLEANUP_UNUSED_UPLOADS_CONFIRM="${CLEANUP_UNUSED_UPLOADS_CONFIRM:-}"
 DB_SERVICE="${DB_SERVICE:-postgres}"
 DB_USER="${DB_USER:-sbay}"
 DB_NAME="${DB_NAME:-sbay}"
@@ -331,45 +332,30 @@ COMMIT;
 SQL
 
 if [ "$DELETE_UPLOAD_FILES" = "true" ]; then
-  if [ -d "$UPLOADS_PATH" ]; then
-    echo "Cleaning unreferenced upload files..."
-    REFERENCED_UPLOADS_FILE="$(mktemp)"
-    trap 'rm -f "$REFERENCED_UPLOADS_FILE"' EXIT
-
-    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
-      psql -v ON_ERROR_STOP=1 -At -U "$DB_USER" -d "$DB_NAME" <<'SQL' > "$REFERENCED_UPLOADS_FILE"
-WITH refs(path) AS (
-  SELECT avatar_url FROM users WHERE avatar_url IS NOT NULL
-  UNION ALL
-  SELECT thumbnail_url FROM listings WHERE thumbnail_url IS NOT NULL
-  UNION ALL
-  SELECT url FROM listing_images WHERE url IS NOT NULL
-  UNION ALL
-  SELECT image_url FROM sponsored_ads WHERE image_url IS NOT NULL
-)
-SELECT DISTINCT regexp_replace(split_part(path, '/uploads/', 2), '[?#].*$', '')
-FROM refs
-WHERE position('/uploads/' in path) > 0
-  AND regexp_replace(split_part(path, '/uploads/', 2), '[?#].*$', '') <> '';
-SQL
-
-    deleted_upload_files=0
-    while IFS= read -r file; do
-      relative_path="${file#"$UPLOADS_PATH"/}"
-      if ! grep -Fxq -- "$relative_path" "$REFERENCED_UPLOADS_FILE"; then
-        rm -f -- "$file"
-        deleted_upload_files=$((deleted_upload_files + 1))
-        echo "Deleted unreferenced upload: $relative_path"
-      fi
-    done < <(find "$UPLOADS_PATH" -type f -mtime +"$UNUSED_IMAGE_RETENTION_DAYS" -print)
-
-    find "$UPLOADS_PATH" -type d -empty -delete
-    echo "Deleted unreferenced upload files: $deleted_upload_files"
-  else
-    echo "Uploads path does not exist, skipping file cleanup: $UPLOADS_PATH"
-  fi
+  echo "Cleaning unreferenced upload files with guarded cleanup script..."
+  DELETE_UNUSED_UPLOADS=true \
+    CLEANUP_UNUSED_UPLOADS_CONFIRM="$CLEANUP_UNUSED_UPLOADS_CONFIRM" \
+    PROJECT_DIR="$PROJECT_DIR" \
+    COMPOSE_FILE="$COMPOSE_FILE" \
+    ENV_FILE="$ENV_FILE" \
+    UPLOADS_PATH="$UPLOADS_PATH" \
+    UNUSED_IMAGE_RETENTION_DAYS="$UNUSED_IMAGE_RETENTION_DAYS" \
+    DB_SERVICE="$DB_SERVICE" \
+    DB_USER="$DB_USER" \
+    DB_NAME="$DB_NAME" \
+    bash scripts/cleanup_unused_uploads.sh --delete
 else
-  echo "Upload file deletion disabled, skipping file cleanup."
+  echo "Upload file deletion disabled, running dry-run unused upload scan."
+  DELETE_UNUSED_UPLOADS=false \
+    PROJECT_DIR="$PROJECT_DIR" \
+    COMPOSE_FILE="$COMPOSE_FILE" \
+    ENV_FILE="$ENV_FILE" \
+    UPLOADS_PATH="$UPLOADS_PATH" \
+    UNUSED_IMAGE_RETENTION_DAYS="$UNUSED_IMAGE_RETENTION_DAYS" \
+    DB_SERVICE="$DB_SERVICE" \
+    DB_USER="$DB_USER" \
+    DB_NAME="$DB_NAME" \
+    bash scripts/cleanup_unused_uploads.sh --dry-run
 fi
 
 echo "Running VACUUM ANALYZE..."
