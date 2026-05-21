@@ -3,9 +3,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { verifyEmail } from '@/lib/api/auth';
+import { getCurrentUser } from '@/lib/api/users';
+import { useAuthStore } from '@/lib/store';
 
 export default function VerifyEmailPage() {
   const router = useRouter();
+  const { isAuthenticated, setUser } = useAuthStore();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verifying your email...');
   const [loginHref, setLoginHref] = useState('/auth/login?verified=true');
@@ -31,8 +34,12 @@ export default function VerifyEmailPage() {
     const run = async () => {
       try {
         await verifyEmail(token);
+        if (isAuthenticated) {
+          const user = await getCurrentUser();
+          setUser(user);
+        }
         setStatus('success');
-        setMessage('Email verified successfully. You can now sign in.');
+        setMessage(isAuthenticated ? 'Email verified successfully. You can continue using SBay.' : 'Email verified successfully. You can now sign in.');
       } catch {
         setStatus('error');
         setMessage('This verification link is invalid or expired.');
@@ -40,7 +47,7 @@ export default function VerifyEmailPage() {
     };
 
     void run();
-  }, [router.isReady]);
+  }, [isAuthenticated, router.isReady, setUser]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -51,8 +58,8 @@ export default function VerifyEmailPage() {
         <h1 className="text-xl font-semibold text-slate-950">Email verification</h1>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
         {status !== 'loading' && (
-          <Link href={loginHref} className="btn btn-primary mt-6">
-            Go to login
+          <Link href={isAuthenticated ? '/' : loginHref} className="btn btn-primary mt-6">
+            {isAuthenticated ? 'Continue' : 'Go to login'}
           </Link>
         )}
       </div>

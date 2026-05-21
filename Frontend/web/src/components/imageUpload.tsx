@@ -3,6 +3,8 @@ import { useState, useCallback } from 'react';
 import { Upload, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useTranslation } from 'next-i18next';
+import { requestEmailVerification } from '@/lib/api/auth';
+import { useAuthStore } from '@/lib/store';
 
 interface ImageUploadProps {
   images: string[];
@@ -15,6 +17,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
   const [dragActive, setDragActive] = useState(false);
 
   const { t } = useTranslation('common');
+  const { user } = useAuthStore();
 
   const mergeUniqueImages = (current: string[], next: string[]) => {
     const seen = new Set<string>();
@@ -28,6 +31,17 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
   };
 
   const handleFiles = async (files: FileList) => {
+    if (user && !user.verified) {
+      try {
+        await requestEmailVerification();
+        alert('Verification email sent. Verify your email before uploading listing images.');
+      } catch (error) {
+        console.error('Error requesting verification email:', error);
+        alert('Verify your email before uploading listing images.');
+      }
+      return;
+    }
+
     const fileArray = Array.from(files);
 
     if (images.length + fileArray.length > maxImages) {
