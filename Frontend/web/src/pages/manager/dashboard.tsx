@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/Layout';
 import { getAdminDashboardSummary, type AdminDashboardSummary } from '@/lib/api/adminDashboard';
-import { useRequireAuth } from '@/lib/useRequireAuth';
+import AdminGate from '@/components/manager/AdminGate';
+import Link from 'next/link';
+import { useAuthStore } from '@/lib/store';
 
 type DashboardSection = {
   key: keyof AdminDashboardSummary;
@@ -33,10 +35,10 @@ function formatValue(value: unknown) {
 }
 
 export default function ManagerDashboardPage() {
-  const isAuthenticated = useRequireAuth();
   const [summary, setSummary] = useState<AdminDashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuthStore();
 
   const loadSummary = useCallback(async () => {
     setIsLoading(true);
@@ -51,10 +53,9 @@ export default function ManagerDashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      void loadSummary();
-    }
-  }, [isAuthenticated, loadSummary]);
+    if (user?.role !== 'admin') return;
+    void loadSummary();
+  }, [loadSummary, user?.role]);
 
   const generatedAt = useMemo(() => {
     if (!summary?.generatedAt) return null;
@@ -64,17 +65,10 @@ export default function ManagerDashboardPage() {
     }).format(new Date(summary.generatedAt));
   }, [summary]);
 
-  if (!isAuthenticated) {
-    return (
-      <Layout>
-        <div className="py-10 text-gray-600">Loading...</div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
-      <div className="py-8">
+      <AdminGate>
+        <div className="py-8">
         <div className="flex flex-col gap-4 border-b border-gray-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-wide text-blue-700">Managers</p>
@@ -82,6 +76,14 @@ export default function ManagerDashboardPage() {
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
               Live platform totals for users, listings, chats, reports, orders, notifications, and commerce.
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/manager/users" className="rounded-md border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                Manage users
+              </Link>
+              <Link href="/manager/listings" className="rounded-md border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                Manage listings
+              </Link>
+            </div>
           </div>
           <button
             type="button"
@@ -130,7 +132,8 @@ export default function ManagerDashboardPage() {
             );
           })}
         </section>
-      </div>
+        </div>
+      </AdminGate>
     </Layout>
   );
 }
