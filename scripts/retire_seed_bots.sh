@@ -58,7 +58,7 @@ if [ "$DRY_RUN" != "true" ] && [ "$RETIRE_SEED_BOTS_CONFIRM" != "retire-seed-bot
   exit 1
 fi
 
-SQL_FILE="$(mktemp "${TMPDIR:-/tmp}/sbay-retire-seed-bots.XXXXXX.sql")"
+SQL_FILE="$(mktemp -t sbay-retire-seed-bots.XXXXXX)"
 cleanup() {
   rm -f "$SQL_FILE"
 }

@@ -34,7 +34,7 @@ if [ "${DRY_RUN}" != "true" ] && [ "${DRY_RUN}" != "false" ]; then
   exit 1
 fi
 
-SQL_FILE="$(mktemp "${TMPDIR:-/tmp}/sbay-seed-platform.XXXXXX.sql")"
+SQL_FILE="$(mktemp -t sbay-seed-platform.XXXXXX)"
 cleanup() {
   rm -f "$SQL_FILE"
 }
