@@ -65,7 +65,7 @@ services:
       Email__Smtp__Password: ${EMAIL_SMTP_PASSWORD}
       Storage__Provider: local
       Storage__Local__Path: ${STORAGE_LOCAL_PATH:-/app/uploads}
-      Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-https://api.syrian-bay.com}
+      Storage__Local__PublicBaseUrl: ${STORAGE_LOCAL_PUBLIC_BASE_URL:-https://api.syrian-bay.com/uploads}
       Cors__AllowAnyOrigin: "false"
       Cors__AllowedOrigins__0: ${FRONTEND_URL:-https://syrian-bay.com}
       Cors__AllowedOrigins__1: ${FRONTEND_WWW_URL:-https://www.syrian-bay.com}
@@ -83,7 +83,7 @@ services:
     ports:
       - "127.0.0.1:${API_HOST_PORT:-5000}:8080"
     volumes:
-      - ${UPLOADS_HOST_PATH:-./uploads}:${STORAGE_LOCAL_PATH:-/app/uploads}
+      - ${UPLOADS_HOST_PATH:-/var/sbay/uploads}:${STORAGE_LOCAL_PATH:-/app/uploads}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready"]
       interval: 30s

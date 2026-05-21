@@ -46,6 +46,10 @@ public sealed class LocalImageStorageProvider : IImageStorageProvider
             return $"/uploads/{fileName}";
         }
 
-        return $"{baseUrl.TrimEnd('/')}/{fileName}";
+        var publicBase = baseUrl.TrimEnd('/');
+        if (!publicBase.EndsWith("/uploads", StringComparison.OrdinalIgnoreCase))
+            publicBase = $"{publicBase}/uploads";
+
+        return $"{publicBase}/{fileName}";
     }
 }
