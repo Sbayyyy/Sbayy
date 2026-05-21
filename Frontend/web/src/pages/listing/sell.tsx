@@ -9,6 +9,7 @@ import {
   sanitizeInput
 } from '@sbay/shared';
 import type { ProductCreate } from '@sbay/shared';
+import { requestEmailVerification } from '@/lib/api/auth';
 import { createListing } from '../../lib/api/listings';
 import { createBoostPayment, getBoostOptions, type BoostOption } from '@/lib/api/monetization';
 import { getCurrentUser } from '@/lib/api/users';
@@ -20,6 +21,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { CITIES, SELL_CATEGORIES, FILTER_CONDITIONS, getCategoryName, normalizeCityValue } from '@/lib/constants';
 import { Select } from '@/components/ui/select';
+import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
 
 interface ProductFormData {
   title: string;
@@ -39,7 +41,7 @@ const PRICE_CURRENCIES = ['SYP', 'USD', 'EUR'];
 
 export default function SellPage() {
   const router = useRouter();
-  const { isAuthenticated, setUser } = useAuthStore();
+  const { user, isAuthenticated, setUser } = useAuthStore();
   const isAuthed = useRequireAuth();
   const { t, i18n } = useTranslation('common');
 
@@ -291,6 +293,17 @@ export default function SellPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (user && !user.verified) {
+      setApiError('Verify your email before listing an item. We sent you a new verification email.');
+      try {
+        await requestEmailVerification();
+      } catch (verificationError) {
+        console.error('Error requesting verification email:', verificationError);
+        setApiError('Verify your email before listing an item. We could not send a new verification email right now.');
+      }
+      return;
+    }
+
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -356,9 +369,13 @@ export default function SellPage() {
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="bg-white rounded-lg shadow-sm p-8">
             <h1 className="text-3xl font-bold mb-8">{t('sell.heading')}</h1>
+            <VerifyEmailPrompt
+              compact
+              message="Verify your email before listing an item. You can keep browsing while unverified."
+            />
 
             {apiError && (
-              <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              <div className="mt-6 mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                 <span className="block sm:inline">{apiError}</span>
               </div>
             )}

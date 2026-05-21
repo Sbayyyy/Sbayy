@@ -4,7 +4,9 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ReportDialog from '@/components/ReportDialog';
+import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
 import { getMessages, sendMessage, markAsRead, getChats, updateMessage, deleteMessage, sendOffer, acceptOffer, rejectOffer, counterOffer } from '@/lib/api/messages';
+import { requestEmailVerification } from '@/lib/api/auth';
 import { getListingById } from '@/lib/api/listings';
 import { getSellerProfile } from '@/lib/api/users';
 import { Message, Chat, OfferMessageData, Product, defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
@@ -297,6 +299,13 @@ export default function ChatPage() {
     if (!newMessage.trim() || sending) return;
     
     try {
+      if (user && !user.verified) {
+        setSending(true);
+        await requestEmailVerification();
+        toast.success('Verification email sent. Verify your email before sending messages.');
+        return;
+      }
+
       const trimmed = newMessage.trim();
       const validation = defaultTextInputValidator.validate(trimmed);
       if (!validation.isValid) {
@@ -531,7 +540,7 @@ export default function ChatPage() {
     return listingTitle ?? t('messages.generalChat');
   };
 
-  const canMakeOffer = Boolean(chat?.listingId && user?.id === chat?.buyerId && listing?.status === 'active' && listing.stock > 0);
+  const canMakeOffer = Boolean(chat?.listingId && user?.id === chat?.buyerId && user?.verified && listing?.status === 'active' && listing.stock > 0);
 
   if (loading) {
     return (
@@ -853,6 +862,10 @@ export default function ChatPage() {
 
         <div className="border-t border-slate-200/80 bg-white/90 backdrop-blur-xl">
           <div className="max-w-4xl mx-auto px-4 py-3">
+            <VerifyEmailPrompt
+              compact
+              message="Verify your email before sending messages or offers."
+            />
             <form onSubmit={handleSend} className="flex flex-col gap-2">
               {(editingMessageId || replyTo) && (
                 <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">

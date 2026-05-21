@@ -4,6 +4,7 @@ import { Heart, Share2, MapPin } from 'lucide-react';
 import { deleteListing, getListingById } from '@/lib/api/listings';
 import { addFavorite, getFavorites, removeFavorite } from '@/lib/api/favorites';
 import { openChat } from '@/lib/api/messages';
+import { requestEmailVerification } from '@/lib/api/auth';
 import { Product } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
@@ -76,6 +77,17 @@ export default function ListingDetail() {
   const handleContactSeller = () => {
     if (!requireAuth()) return;
     if (!listing || contactLoading) return;
+    if (user && !user.verified) {
+      requestEmailVerification()
+        .then(() => {
+          toast.success('Verification email sent. Verify your email before messaging sellers.');
+        })
+        .catch((err) => {
+          console.error('Error requesting verification email:', err);
+          toast.error('Verify your email before messaging sellers.');
+        });
+      return;
+    }
     const otherUserId = listing.seller?.id || listing.sellerId;
     if (!otherUserId) {
       toast.error(t('listing.actions.openChatError', 'Unable to open chat.'));

@@ -206,6 +206,47 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
     });
 }
 
+    [HttpPost("request-email-verification")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> RequestEmailVerification(CancellationToken ct)
+    {
+        var sub = User.FindFirstValue("sub");
+        if (!Guid.TryParse(sub, out var id)) return Unauthorized();
+
+        var user = await _users.GetByIdAsync(id, ct);
+        if (user is null) return NotFound();
+        if (!user.IsActive) return Forbid();
+
+        if (user.EmailVerified)
+        {
+            return Ok(new
+            {
+                Message = "Email is already verified.",
+                EmailVerificationRequired = false
+            });
+        }
+
+        var verificationToken = CreateVerificationToken(user);
+        await _users.UpdateAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        try
+        {
+            await SendVerificationEmailAsync(user, verificationToken, ct);
+        }
+        catch
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send verification email. Please try again.");
+        }
+
+        return Ok(new
+        {
+            Message = "Verification email sent.",
+            EmailVerificationRequired = true
+        });
+    }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     [EnableRateLimiting("auth")]

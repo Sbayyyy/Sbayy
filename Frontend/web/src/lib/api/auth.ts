@@ -34,6 +34,10 @@ export const verifyEmail = async (token: string): Promise<void> => {
   });
 };
 
+export const requestEmailVerification = async (): Promise<void> => {
+  await api.post('/auth/request-email-verification');
+};
+
 /**
  * Logout
  */
