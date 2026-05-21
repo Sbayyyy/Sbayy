@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
-import { getChatSummaries } from '@/lib/api/messages';
+import { deleteChat, getChatSummaries } from '@/lib/api/messages';
 import { getListingById } from '@/lib/api/listings';
 import { getSellerProfile } from '@/lib/api/users';
 import { createChatConnection, onMessageNew, onMessagesRead, onMessageUpdated, onMessageDeleted, type RealtimeDelete } from '@/lib/realtime/chat';
@@ -17,9 +17,11 @@ import {
   Package,
   User as UserIcon,
   AlertCircle,
-  Inbox
+  Inbox,
+  Trash2
 } from 'lucide-react';
 import Head from 'next/head';
+import { toast } from '@/lib/toast';
 
 interface ChatWithParticipant {
   id: string;
@@ -334,6 +336,23 @@ export default function MessagesPage() {
     return text.substring(0, maxLength) + '...';
   };
 
+  const handleDeleteChat = async (chatId: string) => {
+    const confirmed = window.confirm(t('messages.deleteConfirm', 'Delete this chat from your inbox?'));
+    if (!confirmed) return;
+
+    const previous = chatsRef.current;
+    setChats((current) => current.filter((chat) => chat.id !== chatId));
+
+    try {
+      await deleteChat(chatId);
+      toast.success(t('messages.deleteSuccess', 'Chat deleted.'));
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+      setChats(previous);
+      toast.error(t('messages.deleteError', 'Unable to delete chat.'));
+    }
+  };
+
   const totalUnread = chats.reduce((sum, chat) => sum + chat.unreadCount, 0);
 
   return (
@@ -428,70 +447,83 @@ export default function MessagesPage() {
           ) : filteredChats.length > 0 ? (
             <div className="surface-card divide-y divide-slate-100 overflow-hidden">
               {filteredChats.map(chat => (
-                <Link
+                <div
                   key={chat.id}
-                  href={`/messages/${chat.id}`}
-                  className={`block p-4 transition-colors hover:bg-slate-50 ${
+                  className={`group relative transition-colors hover:bg-slate-50 ${
                     chat.unreadCount > 0 ? 'bg-primary-50/50' : ''
                   }`}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">
-                        {chat.listingImageUrl ? (
-                          <img
-                            src={chat.listingImageUrl}
-                            alt={chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId?.substring(0, 8) ?? '' })}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <Package className="w-6 h-6" />
+                  <Link
+                    href={`/messages/${chat.id}`}
+                    className="block p-4 pr-14"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-primary-50 text-primary-700 ring-2 ring-white shadow-sm">
+                          {chat.listingImageUrl ? (
+                            <img
+                              src={chat.listingImageUrl}
+                              alt={chat.listingTitle ?? t('messages.productFallback', { id: chat.listingId?.substring(0, 8) ?? '' })}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <Package className="w-6 h-6" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className={`font-semibold text-slate-950 ${
+                            chat.unreadCount > 0 ? 'font-bold' : ''
+                          }`}>
+                            {chat.listingTitle ?? t('messages.generalChat')}
+                          </h3>
+                          <span className="text-xs text-slate-500 flex-shrink-0">
+                            {formatTime(chat.lastMessageAt || chat.createdAt)}
+                          </span>
+                        </div>
+
+                        <div className="mb-1 flex items-center gap-2 text-sm text-slate-600">
+                          <UserIcon className="w-4 h-4" />
+                          <span className="truncate">
+                            {chat.participant?.name ?? t('messages.unknownUser')}
+                          </span>
+                        </div>
+
+                        {chat.lastMessage && (
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-sm truncate ${
+                              chat.unreadCount > 0
+                                ? 'text-slate-950 font-semibold'
+                                : 'text-slate-600'
+                            }`}>
+                              {chat.lastMessage.senderId === user?.id && (
+                                <span className="text-slate-500 ml-1">{t('messages.you')}</span>
+                              )}
+                              {truncateMessage(chat.lastMessage.content)}
+                            </p>
+                            {chat.unreadCount > 0 && (
+                              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
+                                {chat.unreadCount}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className={`font-semibold text-slate-950 ${
-                          chat.unreadCount > 0 ? 'font-bold' : ''
-                        }`}>
-                          {chat.listingTitle ?? t('messages.generalChat')}
-                        </h3>
-                        <span className="text-xs text-slate-500 flex-shrink-0">
-                          {formatTime(chat.lastMessageAt || chat.createdAt)}
-                        </span>
-                      </div>
-
-                      <div className="mb-1 flex items-center gap-2 text-sm text-slate-600">
-                        <UserIcon className="w-4 h-4" />
-                        <span className="truncate">
-                          {chat.participant?.name ?? t('messages.unknownUser')}
-                        </span>
-                      </div>
-
-                      {chat.lastMessage && (
-                        <div className="flex items-center justify-between gap-2">
-                          <p className={`text-sm truncate ${
-                            chat.unreadCount > 0 
-                              ? 'text-slate-950 font-semibold' 
-                              : 'text-slate-600'
-                          }`}>
-                            {chat.lastMessage.senderId === user?.id && (
-                              <span className="text-slate-500 ml-1">{t('messages.you')}</span>
-                            )}
-                            {truncateMessage(chat.lastMessage.content)}
-                          </p>
-                          {chat.unreadCount > 0 && (
-                            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
-                              {chat.unreadCount}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteChat(chat.id)}
+                    className="absolute right-3 top-4 flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:bg-red-50 focus:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
+                    aria-label={t('messages.deleteChat', 'Delete chat')}
+                    title={t('messages.deleteChat', 'Delete chat')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               ))}
             </div>
           ) : (
