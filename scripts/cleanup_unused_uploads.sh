@@ -23,6 +23,7 @@ referenced by the database. The default mode is dry-run.
 Real deletion requires both:
   --delete or DELETE_UNUSED_UPLOADS=true
   CLEANUP_UNUSED_UPLOADS_CONFIRM=delete-unused-uploads
+  FORCE_DELETE_UNREFERENCED=true if the database reports zero referenced uploads
 
 Expected environment:
   ENV_FILE=/var/sbay/.env.production
@@ -117,7 +118,18 @@ trap 'rm -f "$REFERENCED_UPLOADS_FILE" "$CANDIDATE_UPLOADS_FILE"' EXIT
 echo "Loading referenced uploads from database..."
 $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
   psql -v ON_ERROR_STOP=1 -At -U "$DB_USER" -d "$DB_NAME" <<'SQL' | sed 's/\r$//' \
-  | awk 'NF && $0 !~ /\// && $0 !~ /\.\./ && $0 ~ /^[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp|gif)$/ { print $0 }' \
+  | awk '
+      NF {
+        path = $0
+        gsub(/\\/, "/", path)
+        lower = tolower(path)
+        if (path !~ /^\// &&
+            path !~ /(^|\/)\.\.(\/|$)/ &&
+            path !~ /(^|\/)\.(\/|$)/ &&
+            lower ~ /^[a-z0-9_\/-]+\.(jpg|jpeg|png|webp|gif)$/) {
+          print path
+        }
+      }' \
   | sort -u > "$REFERENCED_UPLOADS_FILE"
 WITH refs(path) AS (
   SELECT avatar_url FROM users WHERE avatar_url IS NOT NULL
@@ -137,10 +149,21 @@ WHERE position('/uploads/' in path) > 0
 SQL
 
 echo "Scanning old image files in $UPLOADS_ROOT..."
-find "$UPLOADS_ROOT" -maxdepth 1 -type f \
+find "$UPLOADS_ROOT" -type f \
   \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.gif' \) \
-  -mtime +"$UNUSED_IMAGE_RETENTION_DAYS" -printf '%f\n' \
-  | awk '$0 !~ /\// && $0 !~ /\.\./ && $0 ~ /^[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp|gif)$/ { print $0 }' \
+  -mtime +"$UNUSED_IMAGE_RETENTION_DAYS" -printf '%P\n' \
+  | awk '
+      NF {
+        path = $0
+        gsub(/\\/, "/", path)
+        lower = tolower(path)
+        if (path !~ /^\// &&
+            path !~ /(^|\/)\.\.(\/|$)/ &&
+            path !~ /(^|\/)\.(\/|$)/ &&
+            lower ~ /^[a-z0-9_\/-]+\.(jpg|jpeg|png|webp|gif)$/) {
+          print path
+        }
+      }' \
   | sort -u > "$CANDIDATE_UPLOADS_FILE"
 
 candidate_count="$(wc -l < "$CANDIDATE_UPLOADS_FILE" | tr -d ' ')"
@@ -151,6 +174,13 @@ deleted_count=0
 echo "Referenced uploads: $referenced_count"
 echo "Old upload candidates: $candidate_count"
 echo "Mode: $([ "$delete_mode" = "true" ] && echo delete || echo dry-run)"
+
+if [ "$delete_mode" = "true" ] && [ "$referenced_count" -eq 0 ] && [ "$candidate_count" -gt 0 ] && [ "${FORCE_DELETE_UNREFERENCED:-false}" != "true" ]; then
+  echo "Refusing to delete upload files because the database query returned zero referenced uploads while old upload candidates exist."
+  echo "This may mean the database query, connection, schema, or public URL format is wrong."
+  echo "Review the dry-run output first. To override after manual verification, set FORCE_DELETE_UNREFERENCED=true."
+  exit 1
+fi
 
 while IFS= read -r file_name; do
   [ -n "$file_name" ] || continue
