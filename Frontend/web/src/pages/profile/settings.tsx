@@ -242,6 +242,8 @@ export default function AccountSettingsPage() {
       const response = await api.post<{ urls: string[] }>('/uploads/avatar', formDataUpload);
       const url = response.data.urls?.[0];
       if (!url) throw new Error('Upload failed');
+      const updatedUser = await updateProfile({ avatar: url });
+      setUser(updatedUser);
       setProfileForm((prev) => ({ ...prev, avatar: url }));
       toast.success('Avatar updated');
     } catch (error) {

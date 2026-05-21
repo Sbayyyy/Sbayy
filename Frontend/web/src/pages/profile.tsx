@@ -226,6 +226,8 @@ export default function ProfilePage() {
       const response = await api.post<{ urls: string[] }>('/uploads/avatar', formDataUpload);
       const url = response.data.urls?.[0];
       if (!url) throw new Error('Upload failed');
+      const updatedUser = await updateProfile({ avatar: url });
+      setUser(updatedUser);
       setFormData((prev) => ({ ...prev, avatar: url }));
       toast.success(t('profile.avatarUpdated'));
     } catch (error) {
