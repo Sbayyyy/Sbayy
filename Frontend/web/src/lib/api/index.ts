@@ -11,3 +11,4 @@ export * from './reports';
 export * from './bugReports';
 export * from './contact';
 export * from './notifications';
+export * from './adminDashboard';

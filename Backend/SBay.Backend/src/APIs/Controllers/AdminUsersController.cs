@@ -196,6 +196,66 @@ public sealed class AdminUsersController : ControllerBase
         return Ok(ToDto(user));
     }
 
+    [HttpPost("{id:guid}/ban")]
+    [EnableRateLimiting("write")]
+    public async Task<ActionResult<AdminUserDto>> Ban(Guid id, CancellationToken ct)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        if (user is null)
+            throw new NotFoundException("User not found.");
+
+        var me = await _resolver.GetUserIdAsync(User, ct);
+        if (me == user.Id)
+            return BadRequest("Admins cannot ban themselves.");
+
+        if (user.Role == "admin" && !await HasAnotherAdminExistsAsync(user.Id, ct))
+            return BadRequest("Cannot remove or block the last active admin.");
+
+        user.Status = "blocked";
+        await _refreshTokens.RevokeAllForUserAsync(user.Id, DateTimeOffset.UtcNow, ct);
+        await _db.SaveChangesAsync(ct);
+        return Ok(ToDto(user));
+    }
+
+    [HttpPost("{id:guid}/unban")]
+    [EnableRateLimiting("write")]
+    public async Task<ActionResult<AdminUserDto>> Unban(Guid id, CancellationToken ct)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        if (user is null)
+            throw new NotFoundException("User not found.");
+
+        user.Status = "active";
+        user.DeactivatedAt = null;
+        await _db.SaveChangesAsync(ct);
+        return Ok(ToDto(user));
+    }
+
+    [HttpDelete("{id:guid}")]
+    [EnableRateLimiting("write")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        if (user is null)
+            throw new NotFoundException("User not found.");
+
+        var me = await _resolver.GetUserIdAsync(User, ct);
+        if (me == user.Id)
+            return BadRequest("Admins cannot delete themselves.");
+
+        if (user.Role == "admin" && !await HasAnotherAdminExistsAsync(user.Id, ct))
+            return BadRequest("Cannot remove or block the last active admin.");
+
+        var now = DateTimeOffset.UtcNow;
+        user.Status = "deactivated";
+        user.DeactivatedAt = now;
+        user.AccountDeletionRequestedAt = now;
+        user.AccountDeletionReason = "Deleted by admin";
+        await _refreshTokens.RevokeAllForUserAsync(user.Id, now, ct);
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
     private async Task<bool> HasAnotherAdminExistsAsync(Guid userId, CancellationToken ct)
     {
         return await _db.Users
