@@ -1,0 +1,90 @@
+pipeline {
+    agent any
+
+    triggers {
+        cron('H H * * 0')
+    }
+
+    environment {
+        COMPOSE_FILE = 'docker-compose.prod.yml'
+        BACKUP_DIR = '/var/jenkins_home/sbay-db-backups'
+        BACKUP_RETENTION_DAYS = '28'
+        REFRESH_TOKEN_RETENTION_DAYS = '30'
+        NOTIFICATION_RETENTION_DAYS = '90'
+        EMAIL_VERIFICATION_TOKEN_RETENTION_DAYS = '7'
+        DEACTIVATED_ACCOUNT_RETENTION_DAYS = '90'
+        DELETED_LISTING_RETENTION_DAYS = '90'
+        SOLD_LISTING_RETENTION_DAYS = '180'
+        UNUSED_IMAGE_RETENTION_DAYS = '7'
+        DELETE_UPLOAD_FILES = 'true'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                deleteDir()
+                checkout scm
+                sh 'git rev-parse --short HEAD'
+            }
+        }
+
+        stage('Resolve Environment') {
+            steps {
+                sh '''
+                    set -eu
+
+                    if [ -n "${PROD_ENV_FILE:-}" ] && [ -f "$PROD_ENV_FILE" ]; then
+                        echo "$PROD_ENV_FILE" > .jenkins-env-file
+                    elif [ -f /var/jenkins_home/workspace/sbay-deploy/.env.production ]; then
+                        echo "/var/jenkins_home/workspace/sbay-deploy/.env.production" > .jenkins-env-file
+                    elif [ -f /var/jenkins_home/workspace/sbay-deploy/.env.prod ]; then
+                        echo "/var/jenkins_home/workspace/sbay-deploy/.env.prod" > .jenkins-env-file
+                    elif [ -f /var/sbay/.env.production ]; then
+                        echo "/var/sbay/.env.production" > .jenkins-env-file
+                    elif [ -f /var/sbay/.env.prod ]; then
+                        echo "/var/sbay/.env.prod" > .jenkins-env-file
+                    elif [ -f .env.production ]; then
+                        echo ".env.production" > .jenkins-env-file
+                    elif [ -f .env.prod ]; then
+                        echo ".env.prod" > .jenkins-env-file
+                    else
+                        echo "Missing production env file."
+                        exit 1
+                    fi
+
+                    echo "Using env file: $(cat .jenkins-env-file)"
+                '''
+            }
+        }
+
+        stage('Weekly DB Backup And Cleanup') {
+            steps {
+                sh '''
+                    set -eu
+                    chmod +x scripts/weekly_db_backup_cleanup.sh
+
+                    ENV_FILE="$(cat .jenkins-env-file)" \
+                    PROJECT_DIR="$WORKSPACE" \
+                    COMPOSE_FILE="$COMPOSE_FILE" \
+                    BACKUP_DIR="$BACKUP_DIR" \
+                    BACKUP_RETENTION_DAYS="$BACKUP_RETENTION_DAYS" \
+                    REFRESH_TOKEN_RETENTION_DAYS="$REFRESH_TOKEN_RETENTION_DAYS" \
+                    NOTIFICATION_RETENTION_DAYS="$NOTIFICATION_RETENTION_DAYS" \
+                    EMAIL_VERIFICATION_TOKEN_RETENTION_DAYS="$EMAIL_VERIFICATION_TOKEN_RETENTION_DAYS" \
+                    DEACTIVATED_ACCOUNT_RETENTION_DAYS="$DEACTIVATED_ACCOUNT_RETENTION_DAYS" \
+                    DELETED_LISTING_RETENTION_DAYS="$DELETED_LISTING_RETENTION_DAYS" \
+                    SOLD_LISTING_RETENTION_DAYS="$SOLD_LISTING_RETENTION_DAYS" \
+                    UNUSED_IMAGE_RETENTION_DAYS="$UNUSED_IMAGE_RETENTION_DAYS" \
+                    DELETE_UPLOAD_FILES="$DELETE_UPLOAD_FILES" \
+                    scripts/weekly_db_backup_cleanup.sh | tee weekly-db-backup-cleanup.log
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'weekly-db-backup-cleanup.log', allowEmptyArchive: true
+        }
+    }
+}
