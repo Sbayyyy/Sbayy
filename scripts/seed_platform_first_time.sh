@@ -231,7 +231,15 @@ SELECT
   now() - (p.row_no * interval '9 hours'),
   now() - (p.row_no * interval '2 hours'),
   p.image_1,
-  p.condition
+  CASE p.condition
+  WHEN 'New' THEN 'new'
+  WHEN 'LikeNew' THEN 'like_new'
+  WHEN 'Good' THEN 'used'
+  WHEN 'Fair' THEN 'used'
+  WHEN 'Used' THEN 'used'
+  WHEN 'Refurbished' THEN 'refurbished'
+  ELSE 'used'
+END
 FROM prepared p
 WHERE NOT EXISTS (
   SELECT 1
