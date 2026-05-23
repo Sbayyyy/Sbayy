@@ -48,7 +48,7 @@
       "usernamePattern": "Username can only contain letters, numbers, and underscores",
       "emailRequired": "Email is required",
       "emailInvalid": "Email is invalid",
-      "phoneInvalid": "Phone number is invalid (e.g. 0912345678)",
+      "phoneInvalid": "Phone number is invalid",
       "passwordRequired": "Password is required",
       "passwordMin": "Password must be at least 8 characters",
       "passwordMinLogin": "Password must be at least 6 characters",
