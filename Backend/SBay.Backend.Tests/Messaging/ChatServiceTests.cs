@@ -3,7 +3,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using Moq;
+using SBay.Backend;
 using SBay.Backend.Messaging;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -118,6 +120,16 @@ public sealed class ChatServiceTests
         return m.Object;
     }
 
+    private static IStringLocalizer<BackendMessages> Localizer()
+    {
+        var m = new Mock<IStringLocalizer<BackendMessages>>();
+        m.Setup(x => x[It.IsAny<string>()])
+            .Returns<string>(name => new LocalizedString(name, name));
+        m.Setup(x => x[It.IsAny<string>(), It.IsAny<object[]>()])
+            .Returns<string, object[]>((name, args) => new LocalizedString(name, string.Format(name, args)));
+        return m.Object;
+    }
+
     private static IUserRepository Users(params (Guid Id, string Status)[] users)
     {
         var m = new Mock<IUserRepository>();
@@ -155,6 +167,7 @@ public sealed class ChatServiceTests
             Blocks(),
             listings ?? Listings(),
             notifications ?? Notifications(),
+            Localizer(),
             users);
     }
 
