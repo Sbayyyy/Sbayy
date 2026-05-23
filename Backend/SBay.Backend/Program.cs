@@ -21,6 +21,7 @@ using SBay.Domain.Database;
 using SBay.Domain.Entities;
 using SBay.Domain.ValueObjects;
 using Microsoft.Extensions.Localization;
+using SBay.Backend;
 using Sentry;
 
 var builder = WebApplication.CreateBuilder(args);
