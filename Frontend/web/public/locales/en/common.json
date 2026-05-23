@@ -467,7 +467,11 @@
       "categoryPlaceholder": "Select category",
       "condition": "Product Condition *",
       "location": "Location *",
-      "locationPlaceholder": "e.g. Damascus - Mazzeh"
+      "locationPlaceholder": "e.g. Damascus - Mazzeh",
+      "region": "Region *",
+      "regionPlaceholder": "Select region",
+      "specificLocation": "Specific location (optional)",
+      "specificLocationPlaceholder": "Neighborhood, street, or landmark"
     },
     "submit": "Publish Product",
     "submitting": "Publishing...",
@@ -875,7 +879,8 @@
     "cancel": "Cancel"
   },
   "header": {
-    "brandName": "SBay"
+    "brandName": "SBay",
+    "logoAlt": "SBay Logo"
   },
   "sellerProfile": {
     "loading": "Loading seller profile...",
@@ -919,7 +924,11 @@
       "categoryPlaceholder": "Select category",
       "condition": "Condition *",
       "location": "Location *",
-      "locationPlaceholder": "e.g. Damascus - Mazzeh"
+      "locationPlaceholder": "e.g. Damascus - Mazzeh",
+      "region": "Region *",
+      "regionPlaceholder": "Select region",
+      "specificLocation": "Specific location (optional)",
+      "specificLocationPlaceholder": "Neighborhood, street, or landmark"
     },
     "categories": {
       "electronics": "Electronics",
@@ -1330,7 +1339,25 @@
       }
     }
   },
-    "validation": {
+    "verifyEmail": {
+    "sending": "Sending...",
+    "verifyNow": "Verify now",
+    "defaultMessage": "Verify your email to list items, message sellers, and use marketplace actions.",
+    "emailSent": "Verification email sent. Check your inbox.",
+    "sendError": "Unable to send verification email right now.",
+    "checkBeforeSignIn": "Check your email for a verification link before signing in.",
+    "successAfterVerify": "Email verified. You can now list items and message sellers.",
+    "beforeListing": "Verify your email before listing an item. We sent you a new verification email.",
+    "beforeListingNoEmail": "Verify your email before listing an item. We could not send a new verification email right now.",
+    "beforeListingBanner": "Verify your email before listing an item. You can keep browsing while unverified.",
+    "beforeMessaging": "Verify your email before messaging sellers.",
+    "beforeMessagingEmailSent": "Verification email sent. Verify your email before messaging sellers.",
+    "beforeMessages": "Verify your email before sending messages or offers.",
+    "beforeMessagesEmailSent": "Verification email sent. Verify your email before sending messages.",
+    "beforeUploading": "Verify your email before uploading listing images.",
+    "beforeUploadingEmailSent": "Verification email sent. Verify your email before uploading listing images."
+  },
+  "validation": {
     "required": "This field is required.",
     "profanity": "Please remove profanity.",
     "sqlInjection": "Input contains disallowed SQL-like patterns.",

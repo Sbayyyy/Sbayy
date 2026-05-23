@@ -303,7 +303,7 @@ export default function ChatPage() {
       if (user && !user.verified) {
         setSending(true);
         await requestEmailVerification();
-        toast.success('Verification email sent. Verify your email before sending messages.');
+        toast.success(t('verifyEmail.beforeMessagesEmailSent'));
         return;
       }
 
@@ -889,7 +889,7 @@ export default function ChatPage() {
           <div className="max-w-4xl mx-auto px-4 py-3">
             <VerifyEmailPrompt
               compact
-              message="Verify your email before sending messages or offers."
+              message={t('verifyEmail.beforeMessages')}
             />
             <form onSubmit={handleSend} className="flex flex-col gap-2">
               {(editingMessageId || replyTo) && (

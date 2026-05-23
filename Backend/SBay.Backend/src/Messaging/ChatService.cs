@@ -5,6 +5,7 @@ using SBay.Backend.Utils;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 using System.Text.Json;
+using Microsoft.Extensions.Localization;
 
 namespace SBay.Backend.Messaging;
 
@@ -30,6 +31,7 @@ public sealed class ChatService : IChatService
     private readonly IPushNotificationService? _push;
     private readonly IEmailSender? _emailSender;
     private readonly ILogger<ChatService>? _logger;
+    private readonly IStringLocalizer<BackendMessages> _l;
 
     public ChatService(
         IChatRepository chats,
@@ -42,6 +44,7 @@ public sealed class ChatService : IChatService
         IUserBlockRepository blocks,
         IListingRepository listings,
         INotificationRepository notifications,
+        IStringLocalizer<BackendMessages> localizer,
         IUserRepository? users = null,
         INotificationPreferenceRepository? preferences = null,
         IPushNotificationService? push = null,
@@ -58,6 +61,7 @@ public sealed class ChatService : IChatService
         _blocks = blocks;
         _listings = listings;
         _notifications = notifications;
+        _l = localizer;
         _users = users;
         _preferences = preferences;
         _push = push;
@@ -175,14 +179,15 @@ public sealed class ChatService : IChatService
             ExpiresAt: null);
         var message = await AddOfferMessageAsync(chat, senderId, receiverId, payload, ct);
 
-        var body = $"{payload.Amount:0.##} {payload.Currency} offer for {listing.Title}";
+        var amountStr = payload.Amount.ToString("0.##");
+        var body = _l["Chat_OfferReceivedBody", amountStr, payload.Currency, listing.Title].Value;
         var href = $"/messages/{chat.Id}";
         var data = new { type = "offer_received", chatId = chat.Id, messageId = message.Id, listingId = chat.ListingId, amount = payload.Amount, currency = payload.Currency, href };
 
         await TrySendOfferNotificationAsync(
             receiverId,
             "offer_received",
-            "New offer received",
+            _l["Chat_OfferReceivedTitle"].Value,
             body,
             href,
             data,
@@ -209,7 +214,7 @@ public sealed class ChatService : IChatService
         await _listings.UpdateAsync(listing, ct);
 
         var acceptedData = new { type = "offer_accepted", chatId = chat.Id, messageId = offerMessage.Id, listingId = listing.Id, href = $"/messages/{chat.Id}" };
-        var systemMessage = await AddSystemMessageAsync(chat, responderId, offerMessage.SenderId, $"Offer accepted: {payload.Amount:0.##} {payload.Currency}", ct);
+        var systemMessage = await AddSystemMessageAsync(chat, responderId, offerMessage.SenderId, _l["Chat_OfferAcceptedContent", payload.Amount.ToString("0.##"), payload.Currency].Value, ct);
         await _uow.SaveChangesAsync(ct);
         try { await _events.MessageNewAsync(systemMessage, ct); }
         catch (Exception ex) { _logger?.LogWarning(ex, "Failed to fire MessageNew event for system message {MessageId}", systemMessage.Id); }
@@ -218,8 +223,8 @@ public sealed class ChatService : IChatService
         await TrySendOfferNotificationAsync(
             offerMessage.SenderId,
             "offer_accepted",
-            "Offer accepted",
-            $"Your offer for {listing.Title} was accepted.",
+            _l["Chat_OfferAcceptedTitle"].Value,
+            _l["Chat_OfferAcceptedBody", listing.Title].Value,
             $"/messages/{chat.Id}",
             acceptedData,
             p => p.PushWonAuctions,
@@ -264,13 +269,14 @@ public sealed class ChatService : IChatService
             ParentOfferId: payload.OfferId,
             ExpiresAt: null);
         var counter = await AddOfferMessageAsync(chat, responderId, offerMessage.SenderId, counterPayload, ct);
-        var counterBody = $"Counter offer: {counterPayload.Amount:0.##} {counterPayload.Currency} for {listing.Title}";
+        var counterAmountStr = counterPayload.Amount.ToString("0.##");
+        var counterBody = _l["Chat_CounterOfferBody", counterAmountStr, counterPayload.Currency, listing.Title].Value;
         var counterData = new { type = "counter_offer", chatId = chat.Id, messageId = counter.Id, listingId = listing.Id, href = $"/messages/{chat.Id}" };
         await _events.MessageUpdatedAsync(offerMessage, ct);
         await TrySendOfferNotificationAsync(
             offerMessage.SenderId,
             "counter_offer",
-            "Counter offer received",
+            _l["Chat_CounterOfferTitle"].Value,
             counterBody,
             $"/messages/{chat.Id}",
             counterData,

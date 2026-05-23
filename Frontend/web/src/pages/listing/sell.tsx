@@ -294,12 +294,12 @@ export default function SellPage() {
     e.preventDefault();
 
     if (user && !user.verified) {
-      setApiError('Verify your email before listing an item. We sent you a new verification email.');
+      setApiError(t('verifyEmail.beforeListing'));
       try {
         await requestEmailVerification();
       } catch (verificationError) {
         console.error('Error requesting verification email:', verificationError);
-        setApiError('Verify your email before listing an item. We could not send a new verification email right now.');
+        setApiError(t('verifyEmail.beforeListingNoEmail'));
       }
       return;
     }
@@ -371,7 +371,7 @@ export default function SellPage() {
             <h1 className="text-3xl font-bold mb-8">{t('sell.heading')}</h1>
             <VerifyEmailPrompt
               compact
-              message="Verify your email before listing an item. You can keep browsing while unverified."
+              message={t('verifyEmail.beforeListingBanner')}
             />
 
             {apiError && (
