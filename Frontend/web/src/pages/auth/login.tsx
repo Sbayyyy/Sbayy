@@ -253,7 +253,7 @@ export default function Login() {
             </div>
 
             <img
-              alt="Sbayy Logo"
+              alt={t('header.logoAlt')}
               src="/sbay_icon.svg"
               className="mx-auto h-10 w-auto"
             />
@@ -266,12 +266,12 @@ export default function Login() {
           <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
               {showRegisteredNotice && (
               <div className="mb-4 rounded border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                  Check your email for a verification link before signing in.
+                  {t('verifyEmail.checkBeforeSignIn')}
               </div>
               )}
               {showVerifiedNotice && (
               <div className="mb-4 rounded border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                  Email verified. You can now list items and message sellers.
+                  {t('verifyEmail.successAfterVerify')}
               </div>
               )}
               {apiError && (

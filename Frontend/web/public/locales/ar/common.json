@@ -467,7 +467,11 @@
       "categoryPlaceholder": "اختر الفئة",
       "condition": "حالة المنتج *",
       "location": "الموقع *",
-      "locationPlaceholder": "مثال: دمشق - المزة"
+      "locationPlaceholder": "مثال: دمشق - المزة",
+      "region": "المنطقة *",
+      "regionPlaceholder": "اختر المنطقة",
+      "specificLocation": "الموقع المحدد (اختياري)",
+      "specificLocationPlaceholder": "الحي، الشارع، أو المعلم"
     },
     "submit": "نشر المنتج",
     "submitting": "جارٍ النشر...",
@@ -875,7 +879,8 @@
     "cancel": "إلغاء"
   },
   "header": {
-    "brandName": "سباي"
+    "brandName": "سباي",
+    "logoAlt": "شعار سباي"
   },
   "sellerProfile": {
     "loading": "جارٍ تحميل ملف البائع...",
@@ -919,7 +924,11 @@
       "categoryPlaceholder": "اختر الفئة",
       "condition": "الحالة *",
       "location": "الموقع *",
-      "locationPlaceholder": "مثال: دمشق - المزة"
+      "locationPlaceholder": "مثال: دمشق - المزة",
+      "region": "المنطقة *",
+      "regionPlaceholder": "اختر المنطقة",
+      "specificLocation": "الموقع المحدد (اختياري)",
+      "specificLocationPlaceholder": "الحي، الشارع، أو المعلم"
     },
     "categories": {
       "electronics": "إلكترونيات",
@@ -1329,7 +1338,25 @@
         "content": "قدم خدمة ممتازة لكل مشتري. التقييمات الإيجابية تزيد من ثقة المشترين الجدد. كن صادقاً ومحترفاً في جميع تعاملاتك."
       }
     }
-  },  "validation": {
+  },  "verifyEmail": {
+    "sending": "جارٍ الإرسال...",
+    "verifyNow": "تحقق الآن",
+    "defaultMessage": "تحقق من بريدك الإلكتروني لنشر الإعلانات ومراسلة البائعين واستخدام ميزات السوق.",
+    "emailSent": "تم إرسال بريد التحقق. تحقق من صندوق الوارد.",
+    "sendError": "تعذر إرسال بريد التحقق الآن.",
+    "checkBeforeSignIn": "تحقق من بريدك الإلكتروني للحصول على رابط التحقق قبل تسجيل الدخول.",
+    "successAfterVerify": "تم التحقق من البريد الإلكتروني. يمكنك الآن نشر الإعلانات ومراسلة البائعين.",
+    "beforeListing": "تحقق من بريدك الإلكتروني قبل نشر الإعلان. لقد أرسلنا لك بريد تحقق.",
+    "beforeListingNoEmail": "تحقق من بريدك الإلكتروني قبل نشر الإعلان. لم نتمكن من إرسال بريد التحقق.",
+    "beforeListingBanner": "تحقق من بريدك الإلكتروني قبل نشر إعلان. يمكنك التصفح في غضون ذلك.",
+    "beforeMessaging": "تحقق من بريدك الإلكتروني قبل مراسلة البائعين.",
+    "beforeMessagingEmailSent": "تم إرسال بريد التحقق. تحقق من بريدك الإلكتروني قبل مراسلة البائعين.",
+    "beforeMessages": "تحقق من بريدك الإلكتروني قبل إرسال الرسائل والعروض.",
+    "beforeMessagesEmailSent": "تم إرسال بريد التحقق. تحقق من بريدك الإلكتروني قبل إرسال الرسائل.",
+    "beforeUploading": "تحقق من بريدك الإلكتروني قبل رفع صور الإعلان.",
+    "beforeUploadingEmailSent": "تم إرسال بريد التحقق. تحقق من بريدك الإلكتروني قبل رفع الصور."
+  },
+  "validation": {
     "required": "هذا الحقل مطلوب.",
     "profanity": "يرجى إزالة الكلمات غير اللائقة.",
     "sqlInjection": "يحتوي الإدخال على أنماط غير مسموحة.",

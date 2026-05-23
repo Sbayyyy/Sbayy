@@ -80,11 +80,11 @@ export default function ListingDetail() {
     if (user && !user.verified) {
       requestEmailVerification()
         .then(() => {
-          toast.success('Verification email sent. Verify your email before messaging sellers.');
+          toast.success(t('verifyEmail.beforeMessagingEmailSent'));
         })
         .catch((err) => {
           console.error('Error requesting verification email:', err);
-          toast.error('Verify your email before messaging sellers.');
+          toast.error(t('verifyEmail.beforeMessaging'));
         });
       return;
     }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MailCheck } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
 
 import { requestEmailVerification } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store';
@@ -13,6 +14,7 @@ interface VerifyEmailPromptProps {
 export default function VerifyEmailPrompt({ compact = false, message }: VerifyEmailPromptProps) {
   const { user } = useAuthStore();
   const [sending, setSending] = useState(false);
+  const { t } = useTranslation('common');
 
   if (!user || user.verified) return null;
 
@@ -20,10 +22,10 @@ export default function VerifyEmailPrompt({ compact = false, message }: VerifyEm
     setSending(true);
     try {
       await requestEmailVerification();
-      toast.success('Verification email sent. Check your inbox.');
+      toast.success(t('verifyEmail.emailSent'));
     } catch (error) {
       console.error('Unable to request verification email:', error);
-      toast.error('Unable to send verification email right now.');
+      toast.error(t('verifyEmail.sendError'));
     } finally {
       setSending(false);
     }
@@ -40,10 +42,7 @@ export default function VerifyEmailPrompt({ compact = false, message }: VerifyEm
       <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-2">
           <MailCheck className="mt-0.5 h-4 w-4 flex-none" />
-          <span>
-            {message ??
-              'Verify your email to list items, message sellers, and use marketplace actions.'}
-          </span>
+          <span>{message ?? t('verifyEmail.defaultMessage')}</span>
         </div>
         <button
           type="button"
@@ -51,7 +50,7 @@ export default function VerifyEmailPrompt({ compact = false, message }: VerifyEm
           disabled={sending}
           className="btn btn-primary h-9 shrink-0 px-4 text-sm"
         >
-          {sending ? 'Sending...' : 'Verify now'}
+          {sending ? t('verifyEmail.sending') : t('verifyEmail.verifyNow')}
         </button>
       </div>
     </div>

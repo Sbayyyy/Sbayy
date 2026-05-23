@@ -20,6 +20,8 @@ using SBay.Domain.Authentication;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
 using SBay.Domain.ValueObjects;
+using Microsoft.Extensions.Localization;
+using SBay.Backend;
 using Sentry;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -206,6 +208,8 @@ builder.Services.AddSingleton<ITextSanitizer>(sp =>
     })
 );
 
+
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
@@ -414,6 +418,14 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+app.UseRequestLocalization(options =>
+{
+    var supported = new[] { "en", "ar" };
+    options.SetDefaultCulture("en")
+           .AddSupportedCultures(supported)
+           .AddSupportedUICultures(supported);
+    options.ApplyCurrentCultureToResponseHeaders = true;
+});
 app.UseRouting();
 app.UseMiddleware<ApiExceptionMiddleware>();
 if (useSentry)
@@ -433,12 +445,13 @@ app.Use(async (ctx, next) =>
         var user = await users.GetByIdAsync(userId, ctx.RequestAborted);
         if (user is not null && !user.IsActive)
         {
+            var localizer = ctx.RequestServices.GetRequiredService<IStringLocalizer<BackendMessages>>();
             ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
             await ctx.Response.WriteAsJsonAsync(new
             {
                 status = StatusCodes.Status403Forbidden,
                 code = "account_inactive",
-                message = "This account is inactive."
+                message = localizer["General_AccountInactive"].Value
             }, ctx.RequestAborted);
             return;
         }

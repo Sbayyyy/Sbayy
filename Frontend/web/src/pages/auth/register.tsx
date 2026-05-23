@@ -268,7 +268,7 @@ export default function Register() {
           </div>
 
           <img
-            alt="Sbayy Logo"
+            alt={t('header.logoAlt')}
             src="/sbay_icon.svg"
             className="mx-auto h-10 w-auto"
           />

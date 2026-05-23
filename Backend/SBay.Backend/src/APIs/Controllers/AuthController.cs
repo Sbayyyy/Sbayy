@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SBay.Backend.Utils;
@@ -43,8 +44,9 @@ public class AuthController : ControllerBase
     private readonly JwtOptions _jwt;
     private readonly IConfiguration _config;
     private readonly IEmailSender _emailSender;
+    private readonly IStringLocalizer<BackendMessages> _l;
 
-    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender)
+    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender, IStringLocalizer<BackendMessages> localizer)
     {
         _users = users;
         _refreshTokens = refreshTokens;
@@ -53,6 +55,7 @@ public class AuthController : ControllerBase
         _jwt = jwt.Value;
         _config = config;
         _emailSender = emailSender;
+        _l = localizer;
     }
 
     
@@ -62,14 +65,14 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req?.Email) || string.IsNullOrWhiteSpace(req?.Password))
-            return BadRequest("Email and password are required.");
+            return BadRequest(_l["Auth_EmailPasswordRequired"].Value);
         if (!EmailValidator.TryNormalize(req.Email, out var email))
-            return BadRequest("Email is invalid.");
+            return BadRequest(_l["Auth_EmailInvalid"].Value);
         if (!IsStrongPassword(req.Password))
-            return BadRequest("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+            return BadRequest(_l["Auth_PasswordWeak"].Value);
 
         var exists = await _users.EmailExistsAsync(email, ct);
-        if (exists) return Conflict("Registration could not be completed.");
+        if (exists) return Conflict(_l["Auth_RegistrationConflict"].Value);
 
         var user = new User
         {
@@ -105,7 +108,7 @@ public class AuthController : ControllerBase
         {
             await _users.RemoveAsync(user, ct);
             await _uow.SaveChangesAsync(ct);
-            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send verification email. Please try registering again.");
+            return StatusCode(StatusCodes.Status500InternalServerError, _l["Auth_VerificationEmailFailed"].Value);
         }
 
         return CreatedAtAction(nameof(GetMe), new { }, new
@@ -125,30 +128,30 @@ public class AuthController : ControllerBase
         var pwd   = (req?.Password ?? string.Empty);
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pwd))
-            return BadRequest("Email and password are required.");
+            return BadRequest(_l["Auth_EmailPasswordRequired"].Value);
         if (!EmailValidator.IsValid(email) || pwd.Length > 128)
-            return Unauthorized("Invalid email or password.");
+            return Unauthorized(_l["Auth_InvalidCredentials"].Value);
         var attemptKey = $"{email}:{HttpContext.Connection.RemoteIpAddress}";
         if (IsLoginRateLimited(attemptKey))
-            return StatusCode(StatusCodes.Status429TooManyRequests, "Too many login attempts. Please try again later.");
+            return StatusCode(StatusCodes.Status429TooManyRequests, _l["Auth_TooManyAttempts"].Value);
 
         var user = await _users.GetByEmailAsync(email, ct);
         if (user is null)
         {
             DummyHasher.VerifyHashedPassword(DummyUser, DummyPasswordHash, pwd);
             TrackFailedLogin(attemptKey);
-            return Unauthorized("Invalid email or password.");
+            return Unauthorized(_l["Auth_InvalidCredentials"].Value);
         }
 
         var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, pwd);
         if (result == PasswordVerificationResult.Failed)
         {
             TrackFailedLogin(attemptKey);
-            return Unauthorized("Invalid email or password.");
+            return Unauthorized(_l["Auth_InvalidCredentials"].Value);
         }
 
         if (!user.IsActive)
-            return StatusCode(StatusCodes.Status403Forbidden, "This account is inactive.");
+            return StatusCode(StatusCodes.Status403Forbidden, _l["Auth_AccountInactive"].Value);
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
             user.PasswordHash = _hasher.HashPassword(user, pwd);
@@ -173,7 +176,7 @@ public class AuthController : ControllerBase
 public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request, CancellationToken ct)
 {
     if (request is null ||string.IsNullOrWhiteSpace(request.Token))
-        return BadRequest("Verification token is required.");
+        return BadRequest(_l["Auth_VerificationTokenRequired"].Value);
 
     var tokenHash = HashToken(request.Token);
     var user = await _users.GetByEmailVerificationTokenHashAsync(tokenHash, ct);
@@ -182,13 +185,13 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         user.EmailVerificationExpiresAt is null ||
         user.EmailVerificationExpiresAt <= DateTimeOffset.UtcNow)
     {
-        return BadRequest("Verification link is invalid or expired.");
+        return BadRequest(_l["Auth_VerificationLinkExpired"].Value);
     }
     if (user.EmailVerified)
 {
     return Ok(new
     {
-        Message = "Email already verified."
+        Message = _l["Auth_EmailAlreadyVerified"].Value
     });
 }
 
@@ -202,7 +205,7 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
 
     return Ok(new
     {
-        Message = "Email verified successfully."
+        Message = _l["Auth_EmailVerifiedSuccessfully"].Value
     });
 }
 
@@ -222,7 +225,7 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         {
             return Ok(new
             {
-                Message = "Email is already verified.",
+                Message = _l["Auth_AlreadyVerified"].Value,
                 EmailVerificationRequired = false
             });
         }
@@ -237,12 +240,12 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         }
         catch
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, "Failed to send verification email. Please try again.");
+            return StatusCode(StatusCodes.Status500InternalServerError, _l["Auth_VerificationEmailFailedRetry"].Value);
         }
 
         return Ok(new
         {
-            Message = "Verification email sent.",
+            Message = _l["Auth_VerificationEmailSent"].Value,
             EmailVerificationRequired = true
         });
     }
@@ -253,16 +256,16 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req?.RefreshToken))
-            return Unauthorized("Invalid refresh token.");
+            return Unauthorized(_l["Auth_InvalidRefreshToken"].Value);
 
         var now = DateTimeOffset.UtcNow;
         var existing = await _refreshTokens.GetByHashAsync(HashRefreshToken(req.RefreshToken), ct);
         if (existing is null || existing.RevokedAt is not null || existing.ExpiresAt <= now)
-            return Unauthorized("Invalid refresh token.");
+            return Unauthorized(_l["Auth_InvalidRefreshToken"].Value);
 
         var user = await _users.GetByIdAsync(existing.UserId, ct);
-        if (user is null) return Unauthorized("Invalid refresh token.");
-        if (!user.IsActive) return Unauthorized("Invalid refresh token.");
+        if (user is null) return Unauthorized(_l["Auth_InvalidRefreshToken"].Value);
+        if (!user.IsActive) return Unauthorized(_l["Auth_InvalidRefreshToken"].Value);
 
         var replacement = CreateRefreshToken(user.Id);
         await using var tx = await _uow.BeginTransactionAsync(ct);
@@ -270,7 +273,7 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         if (revoked != 1)
         {
             await tx.RollbackAsync(ct);
-            return Unauthorized("Invalid refresh token.");
+            return Unauthorized(_l["Auth_InvalidRefreshToken"].Value);
         }
 
         await _refreshTokens.AddAsync(replacement.Entity, ct);
@@ -323,10 +326,10 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req?.CurrentPassword) || string.IsNullOrWhiteSpace(req?.NewPassword))
-            return BadRequest("Current and new password are required.");
+            return BadRequest(_l["Auth_PasswordChangeRequired"].Value);
 
         if (!IsStrongPassword(req.NewPassword))
-            return BadRequest("New password must be at least 8 characters and include uppercase, lowercase, and a number.");
+            return BadRequest(_l["Auth_NewPasswordWeak"].Value);
 
         var sub = User.FindFirstValue("sub");
         if (!Guid.TryParse(sub, out var id)) return Unauthorized();
@@ -336,7 +339,7 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
 
         var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, req.CurrentPassword);
         if (result == PasswordVerificationResult.Failed)
-            return Unauthorized("Invalid current password.");
+            return Unauthorized(_l["Auth_InvalidCurrentPassword"].Value);
 
         user.PasswordHash = _hasher.HashPassword(user, req.NewPassword);
         await _users.UpdateAsync(user, ct);

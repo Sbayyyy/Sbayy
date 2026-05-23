@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- Auth -->
+  <data name="Auth_EmailPasswordRequired" xml:space="preserve"><value>Email and password are required.</value></data>
+  <data name="Auth_EmailInvalid" xml:space="preserve"><value>Email is invalid.</value></data>
+  <data name="Auth_PasswordWeak" xml:space="preserve"><value>Password must be at least 8 characters and include uppercase, lowercase, and a number.</value></data>
+  <data name="Auth_RegistrationConflict" xml:space="preserve"><value>Registration could not be completed.</value></data>
+  <data name="Auth_VerificationEmailFailed" xml:space="preserve"><value>Failed to send verification email. Please try registering again.</value></data>
+  <data name="Auth_VerificationTokenRequired" xml:space="preserve"><value>Verification token is required.</value></data>
+  <data name="Auth_VerificationLinkExpired" xml:space="preserve"><value>Verification link is invalid or expired.</value></data>
+  <data name="Auth_EmailAlreadyVerified" xml:space="preserve"><value>Email already verified.</value></data>
+  <data name="Auth_EmailVerifiedSuccessfully" xml:space="preserve"><value>Email verified successfully.</value></data>
+  <data name="Auth_AlreadyVerified" xml:space="preserve"><value>Email is already verified.</value></data>
+  <data name="Auth_VerificationEmailFailedRetry" xml:space="preserve"><value>Failed to send verification email. Please try again.</value></data>
+  <data name="Auth_VerificationEmailSent" xml:space="preserve"><value>Verification email sent.</value></data>
+  <data name="Auth_InvalidRefreshToken" xml:space="preserve"><value>Invalid refresh token.</value></data>
+  <data name="Auth_InvalidCredentials" xml:space="preserve"><value>Invalid email or password.</value></data>
+  <data name="Auth_AccountInactive" xml:space="preserve"><value>This account is inactive.</value></data>
+  <data name="Auth_TooManyAttempts" xml:space="preserve"><value>Too many login attempts. Please try again later.</value></data>
+  <data name="Auth_PasswordChangeRequired" xml:space="preserve"><value>Current and new password are required.</value></data>
+  <data name="Auth_NewPasswordWeak" xml:space="preserve"><value>New password must be at least 8 characters and include uppercase, lowercase, and a number.</value></data>
+  <data name="Auth_InvalidCurrentPassword" xml:space="preserve"><value>Invalid current password.</value></data>
+
+  <!-- Chat / Offer notifications -->
+  <data name="Chat_OfferReceivedTitle" xml:space="preserve"><value>New offer received</value></data>
+  <data name="Chat_OfferReceivedBody" xml:space="preserve"><value>{0} {1} offer for {2}</value></data>
+  <data name="Chat_OfferAcceptedTitle" xml:space="preserve"><value>Offer accepted</value></data>
+  <data name="Chat_OfferAcceptedBody" xml:space="preserve"><value>Your offer for {0} was accepted.</value></data>
+  <data name="Chat_OfferAcceptedContent" xml:space="preserve"><value>Offer accepted: {0} {1}</value></data>
+  <data name="Chat_CounterOfferTitle" xml:space="preserve"><value>Counter offer received</value></data>
+  <data name="Chat_CounterOfferBody" xml:space="preserve"><value>Counter offer: {0} {1} for {2}</value></data>
+
+  <!-- General -->
+  <data name="General_AccountInactive" xml:space="preserve"><value>This account is inactive.</value></data>
+</root>

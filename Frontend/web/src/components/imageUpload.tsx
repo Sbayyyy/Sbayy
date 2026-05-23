@@ -34,10 +34,10 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
     if (user && !user.verified) {
       try {
         await requestEmailVerification();
-        alert('Verification email sent. Verify your email before uploading listing images.');
+        alert(t('verifyEmail.beforeUploadingEmailSent'));
       } catch (error) {
         console.error('Error requesting verification email:', error);
-        alert('Verify your email before uploading listing images.');
+        alert(t('verifyEmail.beforeUploading'));
       }
       return;
     }
