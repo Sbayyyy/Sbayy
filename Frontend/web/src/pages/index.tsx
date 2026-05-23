@@ -164,7 +164,7 @@ export default function Home() {
 
   const loadHomeProducts = async () => {
     try {
-      const data = await getAllListings(1, 12);
+      const data = await getAllListings(1, 16);
       const products = data?.items ?? [];
       setFeaturedProducts(products.filter(p => p.isBoosted));
       setBrowseProducts(products.filter(p => !p.isBoosted));
@@ -182,14 +182,15 @@ export default function Home() {
     setLoadingMore(true);
     try {
       const nextPage = browsePage + 1;
-      const data = await getAllListings(nextPage, 12);
+      const data = await getAllListings(nextPage, 16);
       const products = data?.items ?? [];
       setBrowseProducts(prev => {
         const existingIds = new Set(prev.map(p => p.id));
-        const newItems = products.filter(p => !p.isBoosted && !existingIds.has(p.id));
+        const newItems = products.filter(p => !existingIds.has(p.id));
         return [...prev, ...newItems];
       });
-      setHasMore((data?.page ?? nextPage) < (data?.totalPages ?? nextPage));
+      const more = (data?.page ?? nextPage) < (data?.totalPages ?? nextPage);
+      setHasMore(more && products.length > 0);
       setBrowsePage(nextPage);
     } catch (err) {
       console.error('Error loading more products:', err);

@@ -26,12 +26,13 @@ export function normalizeListingsResponse(
 ): SearchResponse {
   if (data && typeof data === 'object') {
     if (Array.isArray(data)) {
+      const mightHaveMore = data.length >= limit;
       return {
         items: data,
         total: data.length,
         page,
         limit,
-        totalPages: 1,
+        totalPages: mightHaveMore ? page + 1 : page,
       };
     }
     const obj = data as Record<string, unknown>;
