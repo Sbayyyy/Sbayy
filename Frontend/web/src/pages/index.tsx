@@ -17,6 +17,9 @@ export default function Home() {
   const [browseProducts, setBrowseProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [browsePage, setBrowsePage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('');
   const [regionMenuOpen, setRegionMenuOpen] = useState(false);
@@ -161,42 +164,37 @@ export default function Home() {
 
   const loadHomeProducts = async () => {
     try {
-      const targetCount = 8;
-      const perPage = 24;
-      let page = 1;
-      let hasMorePages = true;
-      const featuredById = new Map<string, Product>();
-      const browseById = new Map<string, Product>();
-
-      while (browseById.size < targetCount && hasMorePages) {
-        const data = await getAllListings(page, perPage);
-        const products = data?.items ?? [];
-        const totalPages = data?.totalPages ?? 0;
-
-        if (page === 1) {
-          products
-            .filter(product => product.isBoosted)
-            .forEach(product => featuredById.set(product.id, product));
-        }
-
-        products
-          .filter(product => !product.isBoosted && !featuredById.has(product.id))
-          .forEach(product => {
-            if (browseById.size < targetCount) {
-              browseById.set(product.id, product);
-            }
-          });
-
-        hasMorePages = products.length > 0 && page < totalPages;
-        page += 1;
-      }
-
-      setFeaturedProducts(Array.from(featuredById.values()).slice(0, targetCount));
-      setBrowseProducts(Array.from(browseById.values()).slice(0, targetCount));
+      const data = await getAllListings(1, 12);
+      const products = data?.items ?? [];
+      setFeaturedProducts(products.filter(p => p.isBoosted));
+      setBrowseProducts(products.filter(p => !p.isBoosted));
+      setHasMore((data?.page ?? 1) < (data?.totalPages ?? 1));
+      setBrowsePage(1);
     } catch (err) {
       console.error('Error loading home products:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreBrowse = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = browsePage + 1;
+      const data = await getAllListings(nextPage, 12);
+      const products = data?.items ?? [];
+      setBrowseProducts(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const newItems = products.filter(p => !p.isBoosted && !existingIds.has(p.id));
+        return [...prev, ...newItems];
+      });
+      setHasMore((data?.page ?? nextPage) < (data?.totalPages ?? nextPage));
+      setBrowsePage(nextPage);
+    } catch (err) {
+      console.error('Error loading more products:', err);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -335,11 +333,24 @@ export default function Home() {
               ))}
             </div>
           ) : browseProducts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {browseProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {browseProducts.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={loadMoreBrowse}
+                    disabled={loadingMore}
+                    className="rounded-full border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {loadingMore ? t('common.loading', 'Loading…') : t('common.loadMore', 'Load more')}
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="empty-state">
               <Package size={56} className="mx-auto mb-4 text-slate-300" />
