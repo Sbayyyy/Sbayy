@@ -48,7 +48,7 @@ public sealed class DatabaseProviderTests
             var act = () => factory.Services.GetRequiredService<IListingRepository>();
 
             act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Firestore refresh-token repository not implemented; change Database:Provider or implement FirebaseRefreshTokenRepository.");
+                .WithMessage("Firestore provider is not production-ready*");
         }
         finally
         {
