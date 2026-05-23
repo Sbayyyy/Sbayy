@@ -11,20 +11,8 @@ public class FirebaseChatRepository : IChatRepository
     private readonly FirestoreDb _db;
     public FirebaseChatRepository(FirestoreDb db) => _db = db;
 
-    private static async Task<T> EnsureCompleted<T>(Task<T> task)
-    {
-        var result = await task;
-        if (!task.IsCompletedSuccessfully)
-            throw new DatabaseException("Operation failed");
-        return result;
-    }
-
-    private static async Task EnsureCompleted(Task task)
-    {
-        await task;
-        if (!task.IsCompletedSuccessfully)
-            throw new DatabaseException("Operation failed");
-    }
+    private static Task<T> EnsureCompleted<T>(Task<T> task) => task;
+    private static Task EnsureCompleted(Task task) => task;
 
     private static Chat Convert(DocumentSnapshot snapshot)
     {

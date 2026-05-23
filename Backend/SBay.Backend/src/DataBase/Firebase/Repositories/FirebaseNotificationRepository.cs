@@ -25,6 +25,11 @@ namespace SBay.Backend.DataBase.Firebase
             throw new NotImplementedException("Firestore notification storage is not implemented.");
         }
 
+        public Task<bool> MarkReadAsync(Guid userId, Guid notificationId, DateTimeOffset now, CancellationToken ct)
+        {
+            throw new NotImplementedException("Firestore notification storage is not implemented.");
+        }
+
         public Task ArchiveAsync(Guid userId, Guid notificationId, CancellationToken ct)
         {
             throw new NotImplementedException("Firestore notification storage is not implemented.");

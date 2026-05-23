@@ -44,7 +44,7 @@ var useEf = !string.Equals(providerName, "firestore", StringComparison.OrdinalIg
 
 if (!useEf)
 {
-    throw new InvalidOperationException("Firestore refresh-token repository not implemented; change Database:Provider or implement FirebaseRefreshTokenRepository.");
+    throw new InvalidOperationException("Firestore provider is not production-ready: refresh-token, notification, notification preference, push-token, reports, and user-block repositories are incomplete. Use Database:Provider=ef until those repositories are fully implemented.");
 }
 
 ProductionConfigurationGuard.Validate(builder.Configuration, builder.Environment);
@@ -264,6 +264,14 @@ builder.Services.AddRateLimiter(options =>
         {
             PermitLimit = builder.Configuration.GetValue("RateLimits:Reports:PermitLimit", 10),
             Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Reports:WindowMinutes", 10)),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("ads", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:Ads:PermitLimit", 120),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Ads:WindowMinutes", 1)),
             QueueLimit = 0
         }));
     options.AddPolicy("chat", context => RateLimitPartition.GetFixedWindowLimiter(

@@ -73,6 +73,34 @@ public class NotificationsController : ControllerBase
         return Ok(new NotificationMarkedReadResponse(count));
     }
 
+    [HttpPost("{id:guid}/mark-read")]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
+    public async Task<IActionResult> MarkRead(Guid id, CancellationToken ct)
+    {
+        var me = GetCurrentUserId();
+        if (!me.HasValue) return Unauthorized();
+
+        var marked = await _notifications.MarkReadAsync(me.Value, id, DateTimeOffset.UtcNow, ct);
+        if (!marked) return NotFound();
+
+        await _uow.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = ScopePolicies.UsersWrite)]
+    [EnableRateLimiting("write")]
+    public async Task<IActionResult> Archive(Guid id, CancellationToken ct)
+    {
+        var me = GetCurrentUserId();
+        if (!me.HasValue) return Unauthorized();
+
+        await _notifications.ArchiveAsync(me.Value, id, ct);
+        await _uow.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
     [HttpGet("preferences")]
     [Authorize(Policy = ScopePolicies.UsersRead)]
     public async Task<ActionResult<NotificationPreferencesDto>> GetPreferences(CancellationToken ct)
