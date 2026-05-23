@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.syrianbay.app",
+      "sha256_cert_fingerprints": [
+        "1A:FD:0E:8D:19:66:A3:5D:27:68:9E:E9:5C:A9:E2:A5:E3:78:17:8D:A6:68:5E:4F:A0:8D:59:59:88:95:F3:A9"
+      ]
+    }
+  }
+]

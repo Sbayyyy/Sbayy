@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -93,6 +94,7 @@ public sealed class AdsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/impression")]
+    [EnableRateLimiting("ads")]
     public async Task<IActionResult> Impression(Guid id, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -108,6 +110,7 @@ public sealed class AdsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/click")]
+    [EnableRateLimiting("ads")]
     public async Task<IActionResult> Click(Guid id, CancellationToken ct)
     {
         var now = DateTime.UtcNow;

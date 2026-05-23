@@ -8,6 +8,7 @@ namespace SBay.Domain.Database
         Task<int> GetUnreadCountAsync(Guid userId, CancellationToken ct);
         Task AddAsync(UserNotification notification, CancellationToken ct);
         Task<int> MarkAllReadAsync(Guid userId, DateTimeOffset now, CancellationToken ct);
+        Task<bool> MarkReadAsync(Guid userId, Guid notificationId, DateTimeOffset now, CancellationToken ct);
         Task ArchiveAsync(Guid userId, Guid notificationId, CancellationToken ct);
     }
 }

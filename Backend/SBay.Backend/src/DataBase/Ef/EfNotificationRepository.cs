@@ -49,6 +49,27 @@ namespace SBay.Domain.Database
                     .SetProperty(x => x.ReadAt, now), ct);
         }
 
+        public async Task<bool> MarkReadAsync(Guid userId, Guid notificationId, DateTimeOffset now, CancellationToken ct)
+        {
+            if (_db.Database.IsRelational())
+            {
+                var updated = await _db.Set<UserNotification>()
+                    .Where(x => x.UserId == userId && x.Id == notificationId && !x.IsArchived)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(x => x.IsRead, true)
+                        .SetProperty(x => x.ReadAt, now), ct);
+                return updated > 0;
+            }
+
+            var notification = await _db.Set<UserNotification>()
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == notificationId && !x.IsArchived, ct);
+            if (notification is null) return false;
+            notification.IsRead = true;
+            notification.ReadAt = now;
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
         public async Task ArchiveAsync(Guid userId, Guid notificationId, CancellationToken ct)
         {
             if (_db.Database.IsRelational())

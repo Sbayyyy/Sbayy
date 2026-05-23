@@ -29,6 +29,7 @@ public sealed class ChatService : IChatService
     private readonly INotificationPreferenceRepository? _preferences;
     private readonly IPushNotificationService? _push;
     private readonly IEmailSender? _emailSender;
+    private readonly ILogger<ChatService>? _logger;
 
     public ChatService(
         IChatRepository chats,
@@ -44,7 +45,8 @@ public sealed class ChatService : IChatService
         IUserRepository? users = null,
         INotificationPreferenceRepository? preferences = null,
         IPushNotificationService? push = null,
-        IEmailSender? emailSender = null)
+        IEmailSender? emailSender = null,
+        ILogger<ChatService>? logger = null)
     {
         _chats = chats;
         _messages = messages;
@@ -60,6 +62,7 @@ public sealed class ChatService : IChatService
         _preferences = preferences;
         _push = push;
         _emailSender = emailSender;
+        _logger = logger;
     }
 
     public async Task<Chat> OpenOrGetAsync(Guid me, Guid otherUserId, Guid? listingId, CancellationToken ct = default)
@@ -176,21 +179,12 @@ public sealed class ChatService : IChatService
         var href = $"/messages/{chat.Id}";
         var data = new { type = "offer_received", chatId = chat.Id, messageId = message.Id, listingId = chat.ListingId, amount = payload.Amount, currency = payload.Currency, href };
 
-        await _notifications.AddAsync(new UserNotification
-        {
-            UserId = receiverId,
-            Type = "offer_received",
-            Title = "New offer received",
-            Body = body,
-            Href = href,
-            DataJson = JsonSerializer.Serialize(data),
-            CreatedAt = DateTimeOffset.UtcNow
-        }, ct);
-        await _uow.SaveChangesAsync(ct);
-        await SendPreferenceNotificationAsync(
+        await TrySendOfferNotificationAsync(
             receiverId,
+            "offer_received",
             "New offer received",
             body,
+            href,
             data,
             p => p.PushNewBids,
             p => p.EmailNewBids,
@@ -215,23 +209,18 @@ public sealed class ChatService : IChatService
         await _listings.UpdateAsync(listing, ct);
 
         var acceptedData = new { type = "offer_accepted", chatId = chat.Id, messageId = offerMessage.Id, listingId = listing.Id, href = $"/messages/{chat.Id}" };
-        await AddSystemMessageAsync(chat, responderId, offerMessage.SenderId, $"Offer accepted: {payload.Amount:0.##} {payload.Currency}", ct);
-        await _notifications.AddAsync(new UserNotification
-        {
-            UserId = offerMessage.SenderId,
-            Type = "offer_accepted",
-            Title = "Offer accepted",
-            Body = $"Your offer for {listing.Title} was accepted.",
-            Href = $"/messages/{chat.Id}",
-            DataJson = JsonSerializer.Serialize(acceptedData),
-            CreatedAt = DateTimeOffset.UtcNow
-        }, ct);
+        var systemMessage = await AddSystemMessageAsync(chat, responderId, offerMessage.SenderId, $"Offer accepted: {payload.Amount:0.##} {payload.Currency}", ct);
         await _uow.SaveChangesAsync(ct);
-        await _events.MessageUpdatedAsync(offerMessage, ct);
-        await SendPreferenceNotificationAsync(
+        try { await _events.MessageNewAsync(systemMessage, ct); }
+        catch (Exception ex) { _logger?.LogWarning(ex, "Failed to fire MessageNew event for system message {MessageId}", systemMessage.Id); }
+        try { await _events.MessageUpdatedAsync(offerMessage, ct); }
+        catch (Exception ex) { _logger?.LogWarning(ex, "Failed to fire MessageUpdated event for offer {MessageId}", offerMessage.Id); }
+        await TrySendOfferNotificationAsync(
             offerMessage.SenderId,
+            "offer_accepted",
             "Offer accepted",
             $"Your offer for {listing.Title} was accepted.",
+            $"/messages/{chat.Id}",
             acceptedData,
             p => p.PushWonAuctions,
             p => p.EmailWonAuctions,
@@ -277,22 +266,13 @@ public sealed class ChatService : IChatService
         var counter = await AddOfferMessageAsync(chat, responderId, offerMessage.SenderId, counterPayload, ct);
         var counterBody = $"Counter offer: {counterPayload.Amount:0.##} {counterPayload.Currency} for {listing.Title}";
         var counterData = new { type = "counter_offer", chatId = chat.Id, messageId = counter.Id, listingId = listing.Id, href = $"/messages/{chat.Id}" };
-        await _notifications.AddAsync(new UserNotification
-        {
-            UserId = offerMessage.SenderId,
-            Type = "counter_offer",
-            Title = "Counter offer received",
-            Body = counterBody,
-            Href = $"/messages/{chat.Id}",
-            DataJson = JsonSerializer.Serialize(counterData),
-            CreatedAt = DateTimeOffset.UtcNow
-        }, ct);
-        await _uow.SaveChangesAsync(ct);
         await _events.MessageUpdatedAsync(offerMessage, ct);
-        await SendPreferenceNotificationAsync(
+        await TrySendOfferNotificationAsync(
             offerMessage.SenderId,
+            "counter_offer",
             "Counter offer received",
             counterBody,
+            $"/messages/{chat.Id}",
             counterData,
             p => p.PushOutbidAlerts,
             p => p.EmailOutbidAlerts,
@@ -407,11 +387,12 @@ public sealed class ChatService : IChatService
         await _messages.AddAsync(message, ct);
         await _chats.UpdateLastMessageTimestampAsync(chat.Id, message.CreatedAt, ct);
         await _uow.SaveChangesAsync(ct);
-        await _events.MessageNewAsync(message, ct);
+        try { await _events.MessageNewAsync(message, ct); }
+        catch (Exception ex) { _logger?.LogWarning(ex, "Failed to fire MessageNew event for offer {MessageId}", message.Id); }
         return message;
     }
 
-    private async Task AddSystemMessageAsync(Chat chat, Guid senderId, Guid receiverId, string content, CancellationToken ct)
+    private async Task<Message> AddSystemMessageAsync(Chat chat, Guid senderId, Guid receiverId, string content, CancellationToken ct)
     {
         var message = new Message(chat.Id, content, senderId, receiverId, chat.ListingId, "system")
         {
@@ -419,7 +400,7 @@ public sealed class ChatService : IChatService
         };
         await _messages.AddAsync(message, ct);
         await _chats.UpdateLastMessageTimestampAsync(chat.Id, message.CreatedAt, ct);
-        await _events.MessageNewAsync(message, ct);
+        return message;
     }
 
     private async Task SendPreferenceNotificationAsync(
@@ -451,6 +432,38 @@ public sealed class ChatService : IChatService
                     $"{title}\n\n{body}",
                     ct);
             }
+        }
+    }
+
+    private async Task TrySendOfferNotificationAsync(
+        Guid receiverId,
+        string type,
+        string title,
+        string body,
+        string href,
+        object data,
+        Func<NotificationPreference, bool> allowPush,
+        Func<NotificationPreference, bool> allowEmail,
+        CancellationToken ct)
+    {
+        try
+        {
+            await _notifications.AddAsync(new UserNotification
+            {
+                UserId = receiverId,
+                Type = type,
+                Title = title,
+                Body = body,
+                Href = href,
+                DataJson = JsonSerializer.Serialize(data),
+                CreatedAt = DateTimeOffset.UtcNow
+            }, ct);
+            await _uow.SaveChangesAsync(ct);
+            await SendPreferenceNotificationAsync(receiverId, title, body, data, allowPush, allowEmail, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to create or send offer notification of type {NotificationType} for user {UserId}", type, receiverId);
         }
     }
 
