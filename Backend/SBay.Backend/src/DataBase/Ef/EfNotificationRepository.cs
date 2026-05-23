@@ -66,6 +66,7 @@ namespace SBay.Domain.Database
             if (notification is null) return false;
             notification.IsRead = true;
             notification.ReadAt = now;
+            await _db.SaveChangesAsync(ct);
             return true;
         }
 
