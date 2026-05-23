@@ -37,11 +37,11 @@ export const isValidEmail = (email: string): boolean => {
 };
 
 /**
- * Validate phone number (Syrian format)
+ * Validate phone number (international format)
  */
 export const isValidPhone = (phone: string): boolean => {
-  const phoneRegex = /^(\+?963|0)?9\d{8}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ''));
+  const digits = phone.replace(/[\s\-().]/g, '');
+  return /^\+?[\d]{7,15}$/.test(digits);
 };
 
 /**
