@@ -295,22 +295,17 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
 
         var tokenHash = HashToken(req.Token);
         var now = DateTimeOffset.UtcNow;
+        var passwordHash = _hasher.HashPassword(DummyUser, req.NewPassword);
 
         await using var tx = await _uow.BeginTransactionAsync(ct);
-        var user = await _users.ConsumePasswordResetTokenAsync(tokenHash, now, ct);
-        if (user is null)
+        var userId = await _users.ConsumePasswordResetTokenAndUpdatePasswordAsync(tokenHash, passwordHash, now, ct);
+        if (userId is null)
         {
             await tx.RollbackAsync(ct);
             return BadRequest("This password reset link is invalid or expired.");
         }
 
-        user.PasswordHash = _hasher.HashPassword(user, req.NewPassword);
-        user.PasswordResetTokenHash = null;
-        user.PasswordResetExpiresAt = null;
-        user.PasswordResetRequestedAt = null;
-
-        await _users.UpdateAsync(user, ct);
-        await _refreshTokens.RevokeAllForUserAsync(user.Id, now, ct);
+        await _refreshTokens.RevokeAllForUserAsync(userId.Value, now, ct);
         await _uow.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 

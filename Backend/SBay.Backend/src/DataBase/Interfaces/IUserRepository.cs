@@ -6,7 +6,7 @@ namespace SBay.Domain.Database
         Task<Entities.User?> GetByEmailAsync(string email, CancellationToken ct);
         Task<Entities.User?> GetByEmailVerificationTokenHashAsync(string tokenHash, CancellationToken ct);
         Task<Entities.User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken ct);
-        Task<Entities.User?> ConsumePasswordResetTokenAsync(string tokenHash, DateTimeOffset now, CancellationToken ct);
+        Task<Guid?> ConsumePasswordResetTokenAndUpdatePasswordAsync(string tokenHash, string passwordHash, DateTimeOffset now, CancellationToken ct);
         Task<bool> EmailExistsAsync(string email, CancellationToken ct);
         Task<bool> TryConsumeListingSlotAsync(Guid userId, int limit, DateTimeOffset now, int periodHours, CancellationToken ct);
     }

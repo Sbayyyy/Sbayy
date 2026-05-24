@@ -1,5 +1,6 @@
-using System.Threading.Channels;
+using Microsoft.EntityFrameworkCore;
 using SBay.Domain.Database;
+using SBay.Domain.Entities;
 
 namespace SBay.Backend.Services;
 
@@ -12,35 +13,50 @@ public interface IPasswordResetEmailQueue
 
 public sealed class PasswordResetEmailQueue : IPasswordResetEmailQueue
 {
-    private readonly Channel<PasswordResetEmailJob> _channel = Channel.CreateBounded<PasswordResetEmailJob>(
-        new BoundedChannelOptions(256)
+    private readonly IServiceScopeFactory _scopeFactory;
+
+    public PasswordResetEmailQueue(IServiceScopeFactory scopeFactory)
+    {
+        _scopeFactory = scopeFactory;
+    }
+
+    public async ValueTask EnqueueAsync(PasswordResetEmailJob job, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+        var now = DateTimeOffset.UtcNow;
+
+        db.PasswordResetEmailOutbox.Add(new PasswordResetEmailOutbox
         {
-            FullMode = BoundedChannelFullMode.Wait,
-            SingleReader = true,
-            SingleWriter = false
+            Id = Guid.NewGuid(),
+            UserId = job.UserId,
+            Email = job.Email,
+            Token = job.Token,
+            IsNoOp = job.IsNoOp,
+            Status = "pending",
+            CreatedAt = now,
+            NextAttemptAt = now
         });
-
-    public ValueTask EnqueueAsync(PasswordResetEmailJob job, CancellationToken ct) =>
-        _channel.Writer.WriteAsync(job, ct);
-
-    internal IAsyncEnumerable<PasswordResetEmailJob> ReadAllAsync(CancellationToken ct) =>
-        _channel.Reader.ReadAllAsync(ct);
+        await db.SaveChangesAsync(ct);
+    }
 }
 
 public sealed class PasswordResetEmailWorker : BackgroundService
 {
-    private readonly PasswordResetEmailQueue _queue;
+    private const int BatchSize = 10;
+    private const int MaxAttempts = 5;
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan StaleProcessingTimeout = TimeSpan.FromMinutes(10);
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _config;
     private readonly ILogger<PasswordResetEmailWorker> _logger;
 
     public PasswordResetEmailWorker(
-        PasswordResetEmailQueue queue,
         IServiceScopeFactory scopeFactory,
         IConfiguration config,
         ILogger<PasswordResetEmailWorker> logger)
     {
-        _queue = queue;
         _scopeFactory = scopeFactory;
         _config = config;
         _logger = logger;
@@ -48,52 +64,160 @@ public sealed class PasswordResetEmailWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var job in _queue.ReadAllAsync(stoppingToken))
+        using var timer = new PeriodicTimer(PollInterval);
+        do
         {
-            if (job.IsNoOp)
-            {
-                await Task.Yield();
-                continue;
-            }
+            await ProcessDueJobsAsync(stoppingToken);
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
 
-            if (job.UserId is null || string.IsNullOrWhiteSpace(job.Email))
-            {
-                _logger.LogWarning("Password reset email job {UserId} skipped because user id or email was empty.", job.UserId);
-                continue;
-            }
+    private async Task ProcessDueJobsAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            var jobs = await ClaimDueJobsAsync(ct);
+            if (jobs.Count == 0) return;
 
-            try
+            foreach (var job in jobs)
             {
-                using var scope = _scopeFactory.CreateScope();
-                var users = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-                var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
-
-                var persisted = await PersistPasswordResetTokenAsync(users, uow, job, stoppingToken);
-                if (!persisted)
-                    continue;
-
-                await SendPasswordResetEmailAsync(emailSender, job.Email, job.Token, stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send password reset email for user {UserId}.", job.UserId);
+                await ProcessJobAsync(job, ct);
             }
         }
+    }
+
+    private async Task<IReadOnlyList<PasswordResetEmailOutbox>> ClaimDueJobsAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+        var now = DateTimeOffset.UtcNow;
+        var staleBefore = now.Subtract(StaleProcessingTimeout);
+
+        var ids = await db.PasswordResetEmailOutbox
+            .AsNoTracking()
+            .Where(x =>
+                !x.DeadLetteredAt.HasValue &&
+                !x.ProcessedAt.HasValue &&
+                x.NextAttemptAt <= now &&
+                (x.Status == "pending" || x.Status == "failed" || (x.Status == "processing" && x.LockedAt < staleBefore)))
+            .OrderBy(x => x.NextAttemptAt)
+            .Select(x => x.Id)
+            .Take(BatchSize)
+            .ToListAsync(ct);
+
+        var claimed = new List<PasswordResetEmailOutbox>(ids.Count);
+        foreach (var id in ids)
+        {
+            var rows = await db.PasswordResetEmailOutbox
+                .Where(x =>
+                    x.Id == id &&
+                    !x.DeadLetteredAt.HasValue &&
+                    !x.ProcessedAt.HasValue &&
+                    x.NextAttemptAt <= now &&
+                    (x.Status == "pending" || x.Status == "failed" || (x.Status == "processing" && x.LockedAt < staleBefore)))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Status, "processing")
+                    .SetProperty(x => x.LockedAt, now),
+                    ct);
+
+            if (rows == 1)
+            {
+                var job = await db.PasswordResetEmailOutbox.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+                if (job is not null) claimed.Add(job);
+            }
+        }
+
+        return claimed;
+    }
+
+    private async Task ProcessJobAsync(PasswordResetEmailOutbox job, CancellationToken ct)
+    {
+        if (job.IsNoOp)
+        {
+            await MarkSucceededAsync(job.Id, ct);
+            return;
+        }
+
+        if (job.UserId is null || string.IsNullOrWhiteSpace(job.Email))
+        {
+            await MarkFailedAsync(job.Id, "Password reset email job was missing user id or email.", ct);
+            return;
+        }
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var users = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+            var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+
+            var persisted = await PersistPasswordResetTokenAsync(users, uow, job, ct);
+            if (!persisted)
+            {
+                await MarkFailedAsync(job.Id, "User was missing or inactive.", ct);
+                return;
+            }
+
+            await SendPasswordResetEmailAsync(emailSender, job.Email, job.Token, ct);
+            await MarkSucceededAsync(job.Id, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password reset email for job {JobId} user {UserId}.", job.Id, job.UserId);
+            await MarkFailedAsync(job.Id, ex.Message, ct);
+        }
+    }
+
+    private async Task MarkSucceededAsync(Guid id, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+        var now = DateTimeOffset.UtcNow;
+        await db.PasswordResetEmailOutbox
+            .Where(x => x.Id == id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, "succeeded")
+                .SetProperty(x => x.ProcessedAt, now)
+                .SetProperty(x => x.LockedAt, (DateTimeOffset?)null)
+                .SetProperty(x => x.LastError, (string?)null),
+                ct);
+    }
+
+    private async Task MarkFailedAsync(Guid id, string error, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<EfDbContext>();
+        var existing = await db.PasswordResetEmailOutbox.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (existing is null) return;
+
+        var attempts = existing.Attempts + 1;
+        var deadLetter = attempts >= MaxAttempts;
+        var now = DateTimeOffset.UtcNow;
+        var delaySeconds = Math.Min(3600, Math.Pow(2, attempts) * 30);
+        var nextAttemptAt = deadLetter ? now : now.AddSeconds(delaySeconds);
+        var safeError = error.Length <= 1000 ? error : error[..1000];
+
+        await db.PasswordResetEmailOutbox
+            .Where(x => x.Id == id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, deadLetter ? "dead_letter" : "failed")
+                .SetProperty(x => x.Attempts, attempts)
+                .SetProperty(x => x.NextAttemptAt, nextAttemptAt)
+                .SetProperty(x => x.LockedAt, (DateTimeOffset?)null)
+                .SetProperty(x => x.DeadLetteredAt, deadLetter ? now : null)
+                .SetProperty(x => x.LastError, safeError),
+                ct);
     }
 
     private async Task<bool> PersistPasswordResetTokenAsync(
         IUserRepository users,
         IUnitOfWork uow,
-        PasswordResetEmailJob job,
+        PasswordResetEmailOutbox job,
         CancellationToken ct)
     {
         var user = await users.GetByIdAsync(job.UserId!.Value, ct);
         if (user is null || !user.IsActive)
-        {
-            _logger.LogWarning("Password reset email job {UserId} skipped because the user was missing or inactive.", job.UserId);
             return false;
-        }
 
         user.PasswordResetTokenHash = HashToken(job.Token);
         user.PasswordResetExpiresAt = DateTimeOffset.UtcNow.AddMinutes(

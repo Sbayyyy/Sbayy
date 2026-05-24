@@ -14,7 +14,7 @@ import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { Select } from '@/components/ui/select';
-import config from '@/lib/config';
+import { config } from '@/lib/config';
 import { CITIES, normalizeCityValue } from '@/lib/constants';
 
 export default function Register() {

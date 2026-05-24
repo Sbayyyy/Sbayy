@@ -68,7 +68,7 @@ public sealed class ClientLogsController : ControllerBase
         _db.ClientLogs.Add(log);
         await _db.SaveChangesAsync(ct);
 
-        _logger.LogWarning(
+        _logger.LogInformation(
             "Client log stored {ClientLogId} level={Level} source={Source} user={UserId}",
             log.Id,
             log.Level,

@@ -178,6 +178,27 @@ CREATE INDEX IF NOT EXISTS ix_client_logs_created_level ON client_logs(created_a
 CREATE INDEX IF NOT EXISTS ix_client_logs_source ON client_logs(source);
 CREATE INDEX IF NOT EXISTS ix_client_logs_user_id ON client_logs(user_id);
 
+CREATE TABLE IF NOT EXISTS password_reset_email_outbox (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  email VARCHAR(320),
+  token TEXT NOT NULL,
+  is_no_op BOOLEAN NOT NULL DEFAULT FALSE,
+  status VARCHAR(32) NOT NULL DEFAULT 'pending',
+  attempts INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  processed_at TIMESTAMPTZ,
+  locked_at TIMESTAMPTZ,
+  dead_lettered_at TIMESTAMPTZ,
+  last_error VARCHAR(1000)
+);
+
+CREATE INDEX IF NOT EXISTS ix_password_reset_email_outbox_status_next
+  ON password_reset_email_outbox(status, next_attempt_at);
+CREATE INDEX IF NOT EXISTS ix_password_reset_email_outbox_user_id
+  ON password_reset_email_outbox(user_id);
+
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

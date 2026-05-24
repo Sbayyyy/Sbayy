@@ -6,7 +6,7 @@ import {
 } from '@sbay/shared';
 import { forgotPassword } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
-import config from '@/lib/config';
+import { config } from '@/lib/config';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 

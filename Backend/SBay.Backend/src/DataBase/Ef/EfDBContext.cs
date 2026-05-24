@@ -24,6 +24,7 @@ using UserNotification = SBay.Domain.Entities.UserNotification;
 using NotificationPreference = SBay.Domain.Entities.NotificationPreference;
 using RefreshToken = SBay.Domain.Entities.RefreshToken;
 using ClientLog = SBay.Domain.Entities.ClientLog;
+using PasswordResetEmailOutbox = SBay.Domain.Entities.PasswordResetEmailOutbox;
 
 namespace SBay.Domain.Database
 {
@@ -53,6 +54,7 @@ namespace SBay.Domain.Database
         public DbSet<PlatformFee> PlatformFees => Set<PlatformFee>();
         public DbSet<SponsoredAd> SponsoredAds => Set<SponsoredAd>();
         public DbSet<ClientLog> ClientLogs => Set<ClientLog>();
+        public DbSet<PasswordResetEmailOutbox> PasswordResetEmailOutbox => Set<PasswordResetEmailOutbox>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -247,6 +249,26 @@ namespace SBay.Domain.Database
                 e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
                 e.HasIndex(x => new { x.CreatedAt, x.Level });
                 e.HasIndex(x => x.Source);
+                e.HasIndex(x => x.UserId);
+            });
+            modelBuilder.Entity<PasswordResetEmailOutbox>(e =>
+            {
+                e.ToTable("password_reset_email_outbox");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.UserId).HasColumnName("user_id");
+                e.Property(x => x.Email).HasColumnName("email").HasMaxLength(320);
+                e.Property(x => x.Token).HasColumnName("token").IsRequired();
+                e.Property(x => x.IsNoOp).HasColumnName("is_no_op").HasDefaultValue(false);
+                e.Property(x => x.Status).HasColumnName("status").HasMaxLength(32).HasDefaultValue("pending");
+                e.Property(x => x.Attempts).HasColumnName("attempts").HasDefaultValue(0);
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                e.Property(x => x.NextAttemptAt).HasColumnName("next_attempt_at").HasDefaultValueSql("now()");
+                e.Property(x => x.ProcessedAt).HasColumnName("processed_at");
+                e.Property(x => x.LockedAt).HasColumnName("locked_at");
+                e.Property(x => x.DeadLetteredAt).HasColumnName("dead_lettered_at");
+                e.Property(x => x.LastError).HasColumnName("last_error").HasMaxLength(1000);
+                e.HasIndex(x => new { x.Status, x.NextAttemptAt });
                 e.HasIndex(x => x.UserId);
             });
             modelBuilder.Entity<RefreshToken>(e =>

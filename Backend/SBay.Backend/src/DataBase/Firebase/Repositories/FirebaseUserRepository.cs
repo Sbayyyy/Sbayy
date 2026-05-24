@@ -147,15 +147,15 @@ public class FirebaseUserRepository : IUserRepository
         return Convert(doc);
     }
 
-    public async Task<User?> ConsumePasswordResetTokenAsync(string tokenHash, DateTimeOffset now, CancellationToken ct)
+    public async Task<Guid?> ConsumePasswordResetTokenAndUpdatePasswordAsync(string tokenHash, string passwordHash, DateTimeOffset now, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(tokenHash)) return null;
+        if (string.IsNullOrWhiteSpace(tokenHash) || string.IsNullOrWhiteSpace(passwordHash)) return null;
 
         var query = _db.Collection("users")
             .WhereEqualTo("PasswordResetTokenHash", tokenHash)
             .Limit(1);
 
-        return await _db.RunTransactionAsync(async transaction =>
+        return await _db.RunTransactionAsync<Guid?>(async transaction =>
         {
             var snapshot = await transaction.GetSnapshotAsync(query, ct);
             var doc = snapshot.Documents.FirstOrDefault();
@@ -173,15 +173,13 @@ public class FirebaseUserRepository : IUserRepository
 
             transaction.Update(doc.Reference, new Dictionary<string, object>
             {
+                ["PasswordHash"] = passwordHash,
                 ["PasswordResetTokenHash"] = null!,
                 ["PasswordResetExpiresAt"] = null!,
                 ["PasswordResetRequestedAt"] = null!
             });
 
-            userDoc.PasswordResetTokenHash = null;
-            userDoc.PasswordResetExpiresAt = null;
-            userDoc.PasswordResetRequestedAt = null;
-            return userDoc.ToDomain();
+            return FirestoreId.ParseRequired(userDoc.Id);
         }, cancellationToken: ct);
     }
 
