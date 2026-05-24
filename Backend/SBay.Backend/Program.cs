@@ -146,6 +146,9 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IUserOwnership, UserOwnership>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddSingleton<PasswordResetEmailQueue>();
+builder.Services.AddSingleton<IPasswordResetEmailQueue>(sp => sp.GetRequiredService<PasswordResetEmailQueue>());
+builder.Services.AddHostedService<PasswordResetEmailWorker>();
 builder.Services.AddHttpClient<IPushNotificationService, ExpoPushNotificationService>();
 builder.Services.AddScoped<IImageStorageProvider>(sp =>
 {
@@ -269,6 +272,14 @@ builder.Services.AddRateLimiter(options =>
         {
             PermitLimit = builder.Configuration.GetValue("RateLimits:Reports:PermitLimit", 10),
             Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Reports:WindowMinutes", 10)),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("clientLogs", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:ClientLogs:PermitLimit", 60),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:ClientLogs:WindowMinutes", 10)),
             QueueLimit = 0
         }));
     options.AddPolicy("ads", context => RateLimitPartition.GetFixedWindowLimiter(

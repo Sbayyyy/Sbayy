@@ -7,13 +7,14 @@ import {
 } from '@sbay/shared';
 import { resetPassword } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
+import { config } from '@/lib/config';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function ResetPassword() {
   const { t } = useTranslation('common');
   const router = useRouter();
-  const token = typeof router.query.token === 'string' ? router.query.token : '';
+  const [token, setToken] = useState<string | undefined>(undefined);
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,6 +36,12 @@ export default function ResetPassword() {
   useEffect(() => {
     void loadProfanityListFromUrl('/profanities.txt');
   }, []);
+
+  useEffect(() => {
+    if (!router.isReady || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    setToken(params.get('token') ?? '');
+  }, [router.isReady]);
 
   const validatePasswordRules = (value: string): string | undefined => {
     if (!value) return t('auth.errors.passwordRequired');
@@ -118,6 +125,11 @@ export default function ResetPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!token) {
+      setApiError(t('resetPassword.invalidToken'));
+      return;
+    }
+
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -133,11 +145,24 @@ export default function ResetPassword() {
     }
   };
 
-  if (!token && router.isReady) {
+  if (router.isReady && token === undefined) {
+    return (
+      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-sm text-center">
+          <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
+          <p className="mt-10 text-sm text-gray-600">
+            {t('resetPassword.loading', 'Loading reset link...')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (router.isReady && token !== undefined && !token) {
     return (
       <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <img alt={t('header.logoAlt')} src="/sbay_icon.svg" className="mx-auto h-10 w-auto" />
+          <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
           <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
             {t('resetPassword.invalidToken')}
           </h2>
@@ -161,7 +186,7 @@ export default function ResetPassword() {
     return (
       <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <img alt={t('header.logoAlt')} src="/sbay_icon.svg" className="mx-auto h-10 w-auto" />
+          <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
           <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
             {t('resetPassword.success')}
           </h2>
@@ -184,7 +209,7 @@ export default function ResetPassword() {
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <img alt={t('header.logoAlt')} src="/sbay_icon.svg" className="mx-auto h-10 w-auto" />
+        <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
         <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
           {t('resetPassword.title')}
         </h2>

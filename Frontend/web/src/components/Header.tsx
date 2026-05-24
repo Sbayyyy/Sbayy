@@ -9,6 +9,7 @@ import { createChatConnection, onMessageNew, onMessagesRead, onMessageDeleted, t
 import { getUnreadCount } from '@/lib/api/messages';
 import type { Message } from '@sbay/shared';
 import { DropdownMenu, DropdownMenuDivider, DropdownMenuHeader, dropdownMenuItemClass, dropdownMenuDangerItemClass } from '@/components/ui/dropdown-menu';
+import { config } from '@/lib/config';
 
 export default function Header() {
   const router = useRouter();
@@ -90,8 +91,13 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-8">
-            <Link href="/" className="text-2xl font-extrabold tracking-normal text-primary-600 transition-colors hover:text-primary-700">
-              {t('header.brandName')}
+            <Link href="/" className="flex items-center gap-2 text-2xl font-extrabold tracking-normal text-primary-600 transition-colors hover:text-primary-700">
+              <img
+                src={config.logoUrl}
+                alt={t('header.logoAlt')}
+                className="h-9 w-9 rounded-xl object-contain"
+              />
+              <span>{t('header.brandName')}</span>
             </Link>
 
             <nav className="hidden items-center gap-1 md:flex">

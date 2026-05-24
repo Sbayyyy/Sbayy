@@ -1,4 +1,5 @@
 import React from 'react';
+import { ClientLogger } from '@/lib/clientLogger';
 
 interface Props {
   children: React.ReactNode;
@@ -20,6 +21,10 @@ export default class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
+    ClientLogger.captureException(error, {
+      componentStack: errorInfo.componentStack,
+      boundary: 'web-root',
+    });
   }
 
   render() {

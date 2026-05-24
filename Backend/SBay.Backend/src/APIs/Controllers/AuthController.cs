@@ -25,6 +25,8 @@ using ChangePasswordRequest = SBay.Backend.APIs.Records.ChangePasswordRequest;
 using RefreshTokenRequest = SBay.Backend.APIs.Records.RefreshTokenRequest;
 using LogoutRequest = SBay.Backend.APIs.Records.LogoutRequest;
 using VerifyEmailRequest = SBay.Backend.APIs.Records.Requests.VerifyEmailRequest;
+using ForgotPasswordRequest = SBay.Backend.APIs.Records.Requests.ForgotPasswordRequest;
+using ResetPasswordRequest = SBay.Backend.APIs.Records.Requests.ResetPasswordRequest;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
@@ -44,9 +46,10 @@ public class AuthController : ControllerBase
     private readonly JwtOptions _jwt;
     private readonly IConfiguration _config;
     private readonly IEmailSender _emailSender;
+    private readonly IPasswordResetEmailQueue _passwordResetEmailQueue;
     private readonly IStringLocalizer<BackendMessages> _l;
 
-    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender, IStringLocalizer<BackendMessages> localizer)
+    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender, IPasswordResetEmailQueue passwordResetEmailQueue, IStringLocalizer<BackendMessages> localizer)
     {
         _users = users;
         _refreshTokens = refreshTokens;
@@ -55,6 +58,7 @@ public class AuthController : ControllerBase
         _jwt = jwt.Value;
         _config = config;
         _emailSender = emailSender;
+        _passwordResetEmailQueue = passwordResetEmailQueue;
         _l = localizer;
     }
 
@@ -248,6 +252,65 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
             Message = _l["Auth_VerificationEmailSent"].Value,
             EmailVerificationRequired = true
         });
+    }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest? req, CancellationToken ct)
+    {
+        if (req is null || !EmailValidator.TryNormalize(req.Email, out var email))
+            return BadRequest("Enter a valid email address.");
+
+        var response = new
+        {
+            Message = "If an account exists for this email, a password reset link has been sent."
+        };
+
+        var user = await _users.GetByEmailAsync(email, ct);
+        if (user is null || !user.IsActive)
+        {
+            await _passwordResetEmailQueue.EnqueueAsync(new PasswordResetEmailJob(null, null, IsNoOp: true), ct);
+            return Ok(response);
+        }
+
+        await _passwordResetEmailQueue.EnqueueAsync(new PasswordResetEmailJob(user.Id, user.Email, IsNoOp: false), ct);
+
+        return Ok(response);
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest? req, CancellationToken ct)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.Token))
+            return BadRequest("Password reset token is required.");
+        if (string.IsNullOrWhiteSpace(req.NewPassword))
+            return BadRequest("New password is required.");
+        if (!IsStrongPassword(req.NewPassword))
+            return BadRequest("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+
+        var tokenHash = HashToken(req.Token);
+        var now = DateTimeOffset.UtcNow;
+        var resetUser = await _users.GetByPasswordResetTokenHashAsync(tokenHash, ct);
+        if (resetUser is null)
+            return BadRequest("This password reset link is invalid or expired.");
+        var passwordHash = _hasher.HashPassword(resetUser, req.NewPassword);
+
+        await using var tx = await _uow.BeginTransactionAsync(ct);
+        var userId = await _users.ConsumePasswordResetTokenAndUpdatePasswordAsync(tokenHash, passwordHash, now, ct);
+        if (userId is null)
+        {
+            await tx.RollbackAsync(ct);
+            return BadRequest("This password reset link is invalid or expired.");
+        }
+
+        await _refreshTokens.RevokeAllForUserAsync(userId.Value, now, ct);
+        await _uow.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        return Ok(new { Message = "Password reset successfully. You can now sign in." });
     }
 
     [HttpPost("refresh")]

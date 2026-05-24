@@ -23,6 +23,8 @@ using SponsoredAd = SBay.Domain.Entities.SponsoredAd;
 using UserNotification = SBay.Domain.Entities.UserNotification;
 using NotificationPreference = SBay.Domain.Entities.NotificationPreference;
 using RefreshToken = SBay.Domain.Entities.RefreshToken;
+using ClientLog = SBay.Domain.Entities.ClientLog;
+using PasswordResetEmailOutbox = SBay.Domain.Entities.PasswordResetEmailOutbox;
 
 namespace SBay.Domain.Database
 {
@@ -51,6 +53,8 @@ namespace SBay.Domain.Database
         public DbSet<ListingBoostPurchase> ListingBoostPurchases => Set<ListingBoostPurchase>();
         public DbSet<PlatformFee> PlatformFees => Set<PlatformFee>();
         public DbSet<SponsoredAd> SponsoredAds => Set<SponsoredAd>();
+        public DbSet<ClientLog> ClientLogs => Set<ClientLog>();
+        public DbSet<PasswordResetEmailOutbox> PasswordResetEmailOutbox => Set<PasswordResetEmailOutbox>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Money>();
@@ -86,6 +90,13 @@ namespace SBay.Domain.Database
                     .HasColumnName("email_verification_expires_at");
                 e.Property(x => x.EmailVerifiedAt)
                     .HasColumnName("email_verified_at");
+                e.Property(x => x.PasswordResetTokenHash)
+                    .HasColumnName("password_reset_token_hash")
+                    .HasMaxLength(128);
+                e.Property(x => x.PasswordResetExpiresAt)
+                    .HasColumnName("password_reset_expires_at");
+                e.Property(x => x.PasswordResetRequestedAt)
+                    .HasColumnName("password_reset_requested_at");
                 e.Property(x => x.LastSeen).HasColumnName("last_seen");
                 e.Property(x => x.IsSeller).HasColumnName("is_seller").HasDefaultValue(true);
                 e.Property(x => x.TotalRevenue)
@@ -124,6 +135,7 @@ namespace SBay.Domain.Database
                 e.HasIndex(x => x.Email).IsUnique();
                 e.HasIndex(x => x.ExternalId).IsUnique().HasFilter("external_id IS NOT NULL");
                 e.HasIndex(x => x.EmailVerificationTokenHash).IsUnique().HasFilter("email_verification_token_hash IS NOT NULL");
+                e.HasIndex(x => x.PasswordResetTokenHash).IsUnique().HasFilter("password_reset_token_hash IS NOT NULL");
                 e.HasIndex(x => new { x.Status, x.DeactivatedAt });
                 e.Ignore(x => x.IsActive);
                 e.Ignore(x => x.Region);
@@ -215,6 +227,48 @@ namespace SBay.Domain.Database
                     .WithMany()
                     .HasForeignKey(x => x.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<ClientLog>(e =>
+            {
+                e.ToTable("client_logs");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.UserId).HasColumnName("user_id");
+                e.Property(x => x.Level).HasColumnName("level").HasMaxLength(32).IsRequired();
+                e.Property(x => x.Source).HasColumnName("source").HasMaxLength(64).IsRequired();
+                e.Property(x => x.Message).HasColumnName("message").HasMaxLength(1000).IsRequired();
+                e.Property(x => x.ExceptionType).HasColumnName("exception_type").HasMaxLength(160);
+                e.Property(x => x.StackTrace).HasColumnName("stack_trace");
+                e.Property(x => x.ContextJson).HasColumnName("context_json").HasColumnType("jsonb");
+                e.Property(x => x.AppVersion).HasColumnName("app_version").HasMaxLength(64);
+                e.Property(x => x.Platform).HasColumnName("platform").HasMaxLength(64);
+                e.Property(x => x.DeviceId).HasColumnName("device_id").HasMaxLength(160);
+                e.Property(x => x.RequestId).HasColumnName("request_id").HasMaxLength(160);
+                e.Property(x => x.UserAgent).HasColumnName("user_agent").HasMaxLength(512);
+                e.Property(x => x.Url).HasColumnName("url").HasMaxLength(1000);
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                e.HasIndex(x => new { x.CreatedAt, x.Level });
+                e.HasIndex(x => x.Source);
+                e.HasIndex(x => x.UserId);
+            });
+            modelBuilder.Entity<PasswordResetEmailOutbox>(e =>
+            {
+                e.ToTable("password_reset_email_outbox");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+                e.Property(x => x.UserId).HasColumnName("user_id");
+                e.Property(x => x.Email).HasColumnName("email").HasMaxLength(320);
+                e.Property(x => x.IsNoOp).HasColumnName("is_no_op").HasDefaultValue(false);
+                e.Property(x => x.Status).HasColumnName("status").HasMaxLength(32).HasDefaultValue("pending");
+                e.Property(x => x.Attempts).HasColumnName("attempts").HasDefaultValue(0);
+                e.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+                e.Property(x => x.NextAttemptAt).HasColumnName("next_attempt_at").HasDefaultValueSql("now()");
+                e.Property(x => x.ProcessedAt).HasColumnName("processed_at");
+                e.Property(x => x.LockedAt).HasColumnName("locked_at");
+                e.Property(x => x.DeadLetteredAt).HasColumnName("dead_lettered_at");
+                e.Property(x => x.LastError).HasColumnName("last_error").HasMaxLength(1000);
+                e.HasIndex(x => new { x.Status, x.NextAttemptAt });
+                e.HasIndex(x => x.UserId);
             });
             modelBuilder.Entity<RefreshToken>(e =>
             {

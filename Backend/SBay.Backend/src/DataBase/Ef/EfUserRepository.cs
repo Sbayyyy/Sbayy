@@ -59,6 +59,42 @@ namespace SBay.Domain.Database
                 .FirstOrDefaultAsync(u => u.EmailVerificationTokenHash == tokenHash, ct);
         }
 
+        public async Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(tokenHash)) return null;
+            return await _db.Set<User>()
+                .FirstOrDefaultAsync(u => u.PasswordResetTokenHash == tokenHash, ct);
+        }
+
+        public async Task<Guid?> ConsumePasswordResetTokenAndUpdatePasswordAsync(string tokenHash, string passwordHash, DateTimeOffset now, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(tokenHash) || string.IsNullOrWhiteSpace(passwordHash)) return null;
+
+            var userId = await _db.Set<User>()
+                .AsNoTracking()
+                .Where(u => u.PasswordResetTokenHash == tokenHash)
+                .Select(u => (Guid?)u.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (userId is null) return null;
+
+            var rows = await _db.Set<User>()
+                .Where(u =>
+                    u.Id == userId.Value &&
+                    u.PasswordResetTokenHash == tokenHash &&
+                    u.PasswordResetExpiresAt != null &&
+                    u.PasswordResetExpiresAt > now &&
+                    u.Status == "active")
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(u => u.PasswordHash, passwordHash)
+                    .SetProperty(u => u.PasswordResetTokenHash, (string?)null)
+                    .SetProperty(u => u.PasswordResetExpiresAt, (DateTimeOffset?)null)
+                    .SetProperty(u => u.PasswordResetRequestedAt, (DateTimeOffset?)null),
+                    ct);
+
+            return rows == 1 ? userId : null;
+        }
+
         public async Task<bool> EmailExistsAsync(string email, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(email)) return false;

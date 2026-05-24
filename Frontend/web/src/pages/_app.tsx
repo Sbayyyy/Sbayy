@@ -7,9 +7,20 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { ToastContainer } from '@/lib/toast';
 import { appWithTranslation } from 'next-i18next';
 import { i18n as i18nextInstance } from 'next-i18next';
+import { ClientLogger } from '@/lib/clientLogger';
+import { useAuthStore } from '@/lib/store';
 
 function App({ Component, pageProps }: AppProps) {
   const [queryClient] = useState(() => new QueryClient());
+  const user = useAuthStore(state => state.user);
+
+  useEffect(() => {
+    ClientLogger.init();
+  }, []);
+
+  useEffect(() => {
+    ClientLogger.setUser(user ? { id: user.id, email: user.email } : null);
+  }, [user]);
   
   useEffect(() => {
     if (typeof document === 'undefined') return;

@@ -131,6 +131,58 @@ public class FirebaseUserRepository : IUserRepository
         return Convert(doc);
     }
 
+    public async Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash)) return null;
+        var snapshot = await EnsureCompleted(
+            _db.Collection("users")
+               .WhereEqualTo("PasswordResetTokenHash", tokenHash)
+               .Limit(1)
+               .GetSnapshotAsync(ct));
+
+        var doc = snapshot.Documents.FirstOrDefault();
+        if (doc == null || !doc.Exists)
+            return null;
+
+        return Convert(doc);
+    }
+
+    public async Task<Guid?> ConsumePasswordResetTokenAndUpdatePasswordAsync(string tokenHash, string passwordHash, DateTimeOffset now, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash) || string.IsNullOrWhiteSpace(passwordHash)) return null;
+
+        var query = _db.Collection("users")
+            .WhereEqualTo("PasswordResetTokenHash", tokenHash)
+            .Limit(1);
+
+        return await _db.RunTransactionAsync<Guid?>(async transaction =>
+        {
+            var snapshot = await transaction.GetSnapshotAsync(query, ct);
+            var doc = snapshot.Documents.FirstOrDefault();
+            if (doc == null || !doc.Exists)
+                return null;
+
+            var userDoc = doc.ConvertTo<UserDocument>();
+            if (userDoc == null ||
+                userDoc.PasswordResetExpiresAt is null ||
+                userDoc.PasswordResetExpiresAt <= now ||
+                !string.Equals(userDoc.Status ?? (userDoc.IsActive == false ? "inactive" : "active"), "active", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            transaction.Update(doc.Reference, new Dictionary<string, object>
+            {
+                ["PasswordHash"] = passwordHash,
+                ["PasswordResetTokenHash"] = null!,
+                ["PasswordResetExpiresAt"] = null!,
+                ["PasswordResetRequestedAt"] = null!
+            });
+
+            return FirestoreId.ParseRequired(userDoc.Id);
+        }, cancellationToken: ct);
+    }
+
     public async Task<bool> EmailExistsAsync(string email, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(email)) return false;

@@ -79,6 +79,13 @@ public sealed class AdminDashboardController : ControllerBase
             false,
             "Bug reports are currently sent to support email and application logs, so no stored count is available without adding storage or a log analytics source.");
 
+        var clientLogs = new DashboardClientLogsDto(
+            await _db.ClientLogs.CountAsync(ct),
+            await _db.ClientLogs.CountAsync(l => l.CreatedAt >= DateTimeOffset.UtcNow.AddHours(-24), ct),
+            await _db.ClientLogs.CountAsync(l => l.Level == "error", ct),
+            await _db.ClientLogs.CountAsync(l => l.Level == "warning", ct),
+            await _db.ClientLogs.CountAsync(l => l.Level == "critical", ct));
+
         return Ok(new AdminDashboardSummaryDto(
             DateTimeOffset.UtcNow,
             users,
@@ -88,7 +95,8 @@ public sealed class AdminDashboardController : ControllerBase
             orders,
             notifications,
             commerce,
-            bugReports));
+            bugReports,
+            clientLogs));
     }
 }
 
@@ -101,7 +109,8 @@ public sealed record AdminDashboardSummaryDto(
     DashboardOrdersDto Orders,
     DashboardNotificationsDto Notifications,
     DashboardCommerceDto Commerce,
-    DashboardBugReportsDto BugReports);
+    DashboardBugReportsDto BugReports,
+    DashboardClientLogsDto ClientLogs);
 
 public sealed record DashboardUsersDto(
     int Total,
@@ -153,3 +162,10 @@ public sealed record DashboardBugReportsDto(
     int? Total,
     bool Stored,
     string Note);
+
+public sealed record DashboardClientLogsDto(
+    int Total,
+    int Last24Hours,
+    int Errors,
+    int Warnings,
+    int Critical);
