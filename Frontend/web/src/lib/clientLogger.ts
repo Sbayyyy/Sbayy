@@ -12,6 +12,11 @@ function getVersion() {
   return process.env.NEXT_PUBLIC_APP_VERSION || process.env.NEXT_PUBLIC_BUILD_VERSION || undefined;
 }
 
+function getSanitizedUrl() {
+  if (!isBrowser()) return undefined;
+  return window.location.pathname;
+}
+
 function normalizeError(error: unknown) {
   if (error instanceof Error) {
     return {
@@ -49,10 +54,9 @@ async function send(payload: ClientLogPayload) {
       source: 'web',
       platform: navigator.platform || 'web',
       appVersion: getVersion(),
-      url: window.location.href,
+      url: getSanitizedUrl(),
       context: {
         userId: user?.id,
-        email: user?.email,
         language: navigator.language,
         viewport: `${window.innerWidth}x${window.innerHeight}`,
         ...payload.context,

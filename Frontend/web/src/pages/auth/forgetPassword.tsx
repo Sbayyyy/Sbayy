@@ -6,6 +6,7 @@ import {
 } from '@sbay/shared';
 import { forgotPassword } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
+import config from '@/lib/config';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
@@ -90,7 +91,7 @@ export default function ForgotPassword() {
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <img
           alt={t('header.logoAlt')}
-          src="/assets/sbaylogo.png"
+          src={config.logoUrl}
           className="mx-auto h-14 w-14 rounded-2xl object-contain"
         />
         <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">

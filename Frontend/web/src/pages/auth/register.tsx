@@ -14,6 +14,7 @@ import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { Select } from '@/components/ui/select';
+import config from '@/lib/config';
 import { CITIES, normalizeCityValue } from '@/lib/constants';
 
 export default function Register() {
@@ -269,7 +270,7 @@ export default function Register() {
 
           <img
             alt={t('header.logoAlt')}
-            src="/assets/sbaylogo.png"
+            src={config.logoUrl}
             className="mx-auto h-14 w-14 rounded-2xl object-contain"
           />
 

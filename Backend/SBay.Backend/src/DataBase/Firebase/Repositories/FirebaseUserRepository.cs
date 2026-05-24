@@ -147,6 +147,44 @@ public class FirebaseUserRepository : IUserRepository
         return Convert(doc);
     }
 
+    public async Task<User?> ConsumePasswordResetTokenAsync(string tokenHash, DateTimeOffset now, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash)) return null;
+
+        var query = _db.Collection("users")
+            .WhereEqualTo("PasswordResetTokenHash", tokenHash)
+            .Limit(1);
+
+        return await _db.RunTransactionAsync(async transaction =>
+        {
+            var snapshot = await transaction.GetSnapshotAsync(query, ct);
+            var doc = snapshot.Documents.FirstOrDefault();
+            if (doc == null || !doc.Exists)
+                return null;
+
+            var userDoc = doc.ConvertTo<UserDocument>();
+            if (userDoc == null ||
+                userDoc.PasswordResetExpiresAt is null ||
+                userDoc.PasswordResetExpiresAt <= now ||
+                !string.Equals(userDoc.Status ?? (userDoc.IsActive == false ? "inactive" : "active"), "active", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            transaction.Update(doc.Reference, new Dictionary<string, object>
+            {
+                ["PasswordResetTokenHash"] = null!,
+                ["PasswordResetExpiresAt"] = null!,
+                ["PasswordResetRequestedAt"] = null!
+            });
+
+            userDoc.PasswordResetTokenHash = null;
+            userDoc.PasswordResetExpiresAt = null;
+            userDoc.PasswordResetRequestedAt = null;
+            return userDoc.ToDomain();
+        }, cancellationToken: ct);
+    }
+
     public async Task<bool> EmailExistsAsync(string email, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(email)) return false;

@@ -146,6 +146,9 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IUserOwnership, UserOwnership>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddSingleton<PasswordResetEmailQueue>();
+builder.Services.AddSingleton<IPasswordResetEmailQueue>(sp => sp.GetRequiredService<PasswordResetEmailQueue>());
+builder.Services.AddHostedService<PasswordResetEmailWorker>();
 builder.Services.AddHttpClient<IPushNotificationService, ExpoPushNotificationService>();
 builder.Services.AddScoped<IImageStorageProvider>(sp =>
 {

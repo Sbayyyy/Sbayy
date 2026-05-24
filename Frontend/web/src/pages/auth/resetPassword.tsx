@@ -7,13 +7,14 @@ import {
 } from '@sbay/shared';
 import { resetPassword } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
+import config from '@/lib/config';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function ResetPassword() {
   const { t } = useTranslation('common');
   const router = useRouter();
-  const token = typeof router.query.token === 'string' ? router.query.token : '';
+  const [token, setToken] = useState('');
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,6 +36,12 @@ export default function ResetPassword() {
   useEffect(() => {
     void loadProfanityListFromUrl('/profanities.txt');
   }, []);
+
+  useEffect(() => {
+    if (!router.isReady || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    setToken(params.get('token') ?? '');
+  }, [router.isReady]);
 
   const validatePasswordRules = (value: string): string | undefined => {
     if (!value) return t('auth.errors.passwordRequired');
@@ -137,7 +144,7 @@ export default function ResetPassword() {
     return (
       <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <img alt={t('header.logoAlt')} src="/assets/sbaylogo.png" className="mx-auto h-14 w-14 rounded-2xl object-contain" />
+          <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
           <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
             {t('resetPassword.invalidToken')}
           </h2>
@@ -161,7 +168,7 @@ export default function ResetPassword() {
     return (
       <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <img alt={t('header.logoAlt')} src="/assets/sbaylogo.png" className="mx-auto h-14 w-14 rounded-2xl object-contain" />
+          <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
           <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
             {t('resetPassword.success')}
           </h2>
@@ -184,7 +191,7 @@ export default function ResetPassword() {
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <img alt={t('header.logoAlt')} src="/assets/sbaylogo.png" className="mx-auto h-14 w-14 rounded-2xl object-contain" />
+        <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
         <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
           {t('resetPassword.title')}
         </h2>

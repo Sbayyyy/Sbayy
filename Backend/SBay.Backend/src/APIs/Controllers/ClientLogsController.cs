@@ -69,12 +69,11 @@ public sealed class ClientLogsController : ControllerBase
         await _db.SaveChangesAsync(ct);
 
         _logger.LogWarning(
-            "Client log stored {ClientLogId} level={Level} source={Source} user={UserId} message={Message}",
+            "Client log stored {ClientLogId} level={Level} source={Source} user={UserId}",
             log.Id,
             log.Level,
             log.Source,
-            log.UserId,
-            log.Message);
+            log.UserId);
 
         return Ok(ToDto(log));
     }
@@ -170,7 +169,13 @@ public sealed class ClientLogsController : ControllerBase
     {
         if (context == null || context.Count == 0) return null;
         var json = JsonSerializer.Serialize(context);
-        return json.Length <= 6000 ? json : json[..6000];
+        return json.Length <= 6000
+            ? json
+            : JsonSerializer.Serialize(new
+            {
+                contextSnippet = json[..6000],
+                truncated = true
+            });
     }
 
     private static ClientLogDto ToDto(ClientLog log) => new(
