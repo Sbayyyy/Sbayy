@@ -5,7 +5,6 @@ public sealed class PasswordResetEmailOutbox
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid? UserId { get; set; }
     public string? Email { get; set; }
-    public string Token { get; set; } = string.Empty;
     public bool IsNoOp { get; set; }
     public string Status { get; set; } = "pending";
     public int Attempts { get; set; }

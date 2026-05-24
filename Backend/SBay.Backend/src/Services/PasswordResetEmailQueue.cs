@@ -4,7 +4,7 @@ using SBay.Domain.Entities;
 
 namespace SBay.Backend.Services;
 
-public sealed record PasswordResetEmailJob(Guid? UserId, string? Email, string Token, bool IsNoOp);
+public sealed record PasswordResetEmailJob(Guid? UserId, string? Email, bool IsNoOp);
 
 public interface IPasswordResetEmailQueue
 {
@@ -31,7 +31,6 @@ public sealed class PasswordResetEmailQueue : IPasswordResetEmailQueue
             Id = Guid.NewGuid(),
             UserId = job.UserId,
             Email = job.Email,
-            Token = job.Token,
             IsNoOp = job.IsNoOp,
             Status = "pending",
             CreatedAt = now,
@@ -151,14 +150,20 @@ public sealed class PasswordResetEmailWorker : BackgroundService
             var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
-            var persisted = await PersistPasswordResetTokenAsync(users, uow, job, ct);
-            if (!persisted)
+            var tokenResult = await PersistPasswordResetTokenAsync(users, uow, job, ct);
+            if (tokenResult.Status == PasswordResetTokenPersistStatus.Stale)
+            {
+                await MarkSucceededAsync(job.Id, ct);
+                return;
+            }
+
+            if (tokenResult.Status == PasswordResetTokenPersistStatus.Failed || tokenResult.Token is null)
             {
                 await MarkFailedAsync(job.Id, "User was missing or inactive.", ct);
                 return;
             }
 
-            await SendPasswordResetEmailAsync(emailSender, job.Email, job.Token, ct);
+            await SendPasswordResetEmailAsync(emailSender, job.Email, tokenResult.Token, ct);
             await MarkSucceededAsync(job.Id, ct);
         }
         catch (Exception ex)
@@ -209,7 +214,7 @@ public sealed class PasswordResetEmailWorker : BackgroundService
                 ct);
     }
 
-    private async Task<bool> PersistPasswordResetTokenAsync(
+    private async Task<PasswordResetTokenPersistResult> PersistPasswordResetTokenAsync(
         IUserRepository users,
         IUnitOfWork uow,
         PasswordResetEmailOutbox job,
@@ -217,16 +222,20 @@ public sealed class PasswordResetEmailWorker : BackgroundService
     {
         var user = await users.GetByIdAsync(job.UserId!.Value, ct);
         if (user is null || !user.IsActive)
-            return false;
+            return PasswordResetTokenPersistResult.Failed;
 
-        user.PasswordResetTokenHash = HashToken(job.Token);
+        if (user.PasswordResetRequestedAt.HasValue && user.PasswordResetRequestedAt.Value > job.CreatedAt)
+            return PasswordResetTokenPersistResult.Stale;
+
+        var token = CreatePasswordResetToken();
+        user.PasswordResetTokenHash = HashToken(token);
         user.PasswordResetExpiresAt = DateTimeOffset.UtcNow.AddMinutes(
             Math.Clamp(_config.GetValue<int?>("PasswordReset:TokenMinutes") ?? 60, 10, 1440));
-        user.PasswordResetRequestedAt = DateTimeOffset.UtcNow;
+        user.PasswordResetRequestedAt = job.CreatedAt;
 
         await users.UpdateAsync(user, ct);
         await uow.SaveChangesAsync(ct);
-        return true;
+        return PasswordResetTokenPersistResult.Created(token);
     }
 
     private async Task SendPasswordResetEmailAsync(IEmailSender emailSender, string email, string token, CancellationToken ct)
@@ -252,5 +261,25 @@ public sealed class PasswordResetEmailWorker : BackgroundService
     {
         var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
         return Convert.ToHexString(bytes);
+    }
+
+    private static string CreatePasswordResetToken()
+    {
+        return Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+    }
+
+    private enum PasswordResetTokenPersistStatus
+    {
+        Created,
+        Stale,
+        Failed
+    }
+
+    private sealed record PasswordResetTokenPersistResult(PasswordResetTokenPersistStatus Status, string? Token = null)
+    {
+        public static PasswordResetTokenPersistResult Created(string token) => new(PasswordResetTokenPersistStatus.Created, token);
+        public static PasswordResetTokenPersistResult Stale { get; } = new(PasswordResetTokenPersistStatus.Stale);
+        public static PasswordResetTokenPersistResult Failed { get; } = new(PasswordResetTokenPersistStatus.Failed);
     }
 }

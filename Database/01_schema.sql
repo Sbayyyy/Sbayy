@@ -182,7 +182,6 @@ CREATE TABLE IF NOT EXISTS password_reset_email_outbox (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   email VARCHAR(320),
-  token TEXT NOT NULL,
   is_no_op BOOLEAN NOT NULL DEFAULT FALSE,
   status VARCHAR(32) NOT NULL DEFAULT 'pending',
   attempts INT NOT NULL DEFAULT 0,
@@ -193,6 +192,8 @@ CREATE TABLE IF NOT EXISTS password_reset_email_outbox (
   dead_lettered_at TIMESTAMPTZ,
   last_error VARCHAR(1000)
 );
+
+ALTER TABLE IF EXISTS password_reset_email_outbox DROP COLUMN IF EXISTS token;
 
 CREATE INDEX IF NOT EXISTS ix_password_reset_email_outbox_status_next
   ON password_reset_email_outbox(status, next_attempt_at);

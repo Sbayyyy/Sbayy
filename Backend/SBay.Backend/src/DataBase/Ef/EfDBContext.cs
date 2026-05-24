@@ -258,7 +258,6 @@ namespace SBay.Domain.Database
                 e.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
                 e.Property(x => x.UserId).HasColumnName("user_id");
                 e.Property(x => x.Email).HasColumnName("email").HasMaxLength(320);
-                e.Property(x => x.Token).HasColumnName("token").IsRequired();
                 e.Property(x => x.IsNoOp).HasColumnName("is_no_op").HasDefaultValue(false);
                 e.Property(x => x.Status).HasColumnName("status").HasMaxLength(32).HasDefaultValue("pending");
                 e.Property(x => x.Attempts).HasColumnName("attempts").HasDefaultValue(0);

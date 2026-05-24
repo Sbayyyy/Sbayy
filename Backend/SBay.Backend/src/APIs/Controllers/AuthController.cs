@@ -270,13 +270,11 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         var user = await _users.GetByEmailAsync(email, ct);
         if (user is null || !user.IsActive)
         {
-            var syntheticToken = CreateSyntheticPasswordResetToken();
-            await _passwordResetEmailQueue.EnqueueAsync(new PasswordResetEmailJob(null, null, syntheticToken, IsNoOp: true), ct);
+            await _passwordResetEmailQueue.EnqueueAsync(new PasswordResetEmailJob(null, null, IsNoOp: true), ct);
             return Ok(response);
         }
 
-        var token = CreatePasswordResetToken();
-        await _passwordResetEmailQueue.EnqueueAsync(new PasswordResetEmailJob(user.Id, user.Email, token, IsNoOp: false), ct);
+        await _passwordResetEmailQueue.EnqueueAsync(new PasswordResetEmailJob(user.Id, user.Email, IsNoOp: false), ct);
 
         return Ok(response);
     }
@@ -295,7 +293,10 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
 
         var tokenHash = HashToken(req.Token);
         var now = DateTimeOffset.UtcNow;
-        var passwordHash = _hasher.HashPassword(DummyUser, req.NewPassword);
+        var resetUser = await _users.GetByPasswordResetTokenHashAsync(tokenHash, ct);
+        if (resetUser is null)
+            return BadRequest("This password reset link is invalid or expired.");
+        var passwordHash = _hasher.HashPassword(resetUser, req.NewPassword);
 
         await using var tx = await _uow.BeginTransactionAsync(ct);
         var userId = await _users.ConsumePasswordResetTokenAndUpdatePasswordAsync(tokenHash, passwordHash, now, ct);
@@ -470,19 +471,6 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         user.EmailVerificationExpiresAt = DateTimeOffset.UtcNow.AddHours(
             Math.Clamp(_config.GetValue<int?>("EmailVerification:TokenHours") ?? 24, 1, 168));
         user.EmailVerifiedAt = null;
-        return raw;
-    }
-
-    private static string CreatePasswordResetToken()
-    {
-        var raw = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
-        return raw;
-    }
-
-    private static string CreateSyntheticPasswordResetToken()
-    {
-        var raw = CreatePasswordResetToken();
-        _ = HashToken(raw);
         return raw;
     }
 
