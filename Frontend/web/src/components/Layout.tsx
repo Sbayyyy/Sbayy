@@ -5,7 +5,6 @@ import Footer from './Footer';
 import VerifyEmailPrompt from './VerifyEmailPrompt';
 import BugReportButton from './BugReportButton';
 import { useTranslation } from 'next-i18next';
-import { config } from '@/lib/config';
 
 interface LayoutProps {
   children: ReactNode;
@@ -33,8 +32,8 @@ export default function Layout({
         <title>{resolvedTitle}</title>
         <meta name="description" content={resolvedDescription} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href={config.logoUrl} />
-        <link rel="shortcut icon" href={config.logoUrl} />
+        <link rel="icon" href="/sbay_icon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/sbay_icon.svg" />
       </Head>
 
       <div className="flex flex-col min-h-screen">

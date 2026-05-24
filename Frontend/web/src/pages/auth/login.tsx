@@ -12,6 +12,7 @@ import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { config } from '@/lib/config';
 
 export default function Login() {
     const { t, i18n } = useTranslation('common');
@@ -254,8 +255,8 @@ export default function Login() {
 
             <img
               alt={t('header.logoAlt')}
-              src="/sbay_icon.svg"
-              className="mx-auto h-10 w-auto"
+              src={config.logoUrl}
+              className="mx-auto h-14 w-auto"
             />
 
             <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">

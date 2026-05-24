@@ -82,6 +82,7 @@ public sealed class AdminUsersController : ControllerBase
                 u.Role,
                 u.Status,
                 u.IsSeller,
+                u.EmailVerified,
                 u.CreatedAt,
                 u.DeactivatedAt,
                 u.ListingBanned,
@@ -180,6 +181,22 @@ public sealed class AdminUsersController : ControllerBase
                 : null;
         }
 
+        if (req.DisplayNameSet)
+            user.DisplayName = string.IsNullOrWhiteSpace(req.DisplayName) ? null : req.DisplayName.Trim();
+        if (req.EmailVerified.HasValue)
+        {
+            user.EmailVerified = req.EmailVerified.Value;
+            if (req.EmailVerified.Value)
+            {
+                user.EmailVerifiedAt ??= DateTimeOffset.UtcNow;
+                user.EmailVerificationTokenHash = null;
+                user.EmailVerificationExpiresAt = null;
+            }
+            else
+            {
+                user.EmailVerifiedAt = null;
+            }
+        }
         if (req.IsSeller.HasValue)
             user.IsSeller = req.IsSeller.Value;
         if (req.ListingBanned.HasValue)
@@ -295,6 +312,7 @@ public sealed class AdminUsersController : ControllerBase
             user.Role,
             user.Status,
             user.IsSeller,
+            user.EmailVerified,
             user.CreatedAt,
             user.DeactivatedAt,
             user.ListingBanned,
@@ -319,6 +337,7 @@ public sealed record AdminUserDto(
     string Role,
     string Status,
     bool IsSeller,
+    bool EmailVerified,
     DateTime CreatedAt,
     DateTimeOffset? DeactivatedAt,
     bool ListingBanned,
@@ -334,4 +353,7 @@ public sealed record UpdateAdminUserRequest(
     DateTimeOffset? ListingBanUntil,
     bool ListingBanUntilSet,
     int? ListingLimit,
-    bool ListingLimitSet);
+    bool ListingLimitSet,
+    string? DisplayName,
+    bool DisplayNameSet,
+    bool? EmailVerified);

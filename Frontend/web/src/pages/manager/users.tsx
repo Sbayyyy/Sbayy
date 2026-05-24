@@ -7,6 +7,7 @@ import {
   deleteAdminUser,
   getAdminUsers,
   unbanAdminUser,
+  updateAdminUser,
   type AdminUser,
 } from '@/lib/api/adminManagement';
 import { useAuthStore } from '@/lib/store';
@@ -18,6 +19,11 @@ export default function ManagerUsersPage() {
   const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [editing, setEditing] = useState<AdminUser | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editVerified, setEditVerified] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const loadUsers = useCallback(async () => {
     if (user?.role !== 'admin') return;
@@ -44,6 +50,31 @@ export default function ManagerUsersPage() {
       await loadUsers();
     } catch {
       setError('Action failed. Make sure your admin session is still valid.');
+    }
+  }
+
+  function startEdit(item: AdminUser) {
+    setEditing(item);
+    setEditName(item.displayName ?? '');
+    setEditVerified(item.emailVerified);
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      await updateAdminUser(editing.id, {
+        displayName: editName.trim(),
+        displayNameSet: true,
+        emailVerified: editVerified,
+      });
+      setEditing(null);
+      await loadUsers();
+    } catch {
+      setError('Could not save changes. Make sure your admin session is still valid.');
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -100,6 +131,7 @@ export default function ManagerUsersPage() {
                     <th className="px-4 py-3">Role</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Seller</th>
+                    <th className="px-4 py-3">Verified</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -113,8 +145,16 @@ export default function ManagerUsersPage() {
                       <td className="px-4 py-3 text-gray-700">{item.role}</td>
                       <td className="px-4 py-3 text-gray-700">{item.status}</td>
                       <td className="px-4 py-3 text-gray-700">{item.isSeller ? 'Yes' : 'No'}</td>
+                      <td className="px-4 py-3 text-gray-700">{item.emailVerified ? 'Yes' : 'No'}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(item)}
+                            className="rounded-md border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50"
+                          >
+                            Edit
+                          </button>
                           {item.status === 'blocked' ? (
                             <button
                               type="button"
@@ -145,7 +185,7 @@ export default function ManagerUsersPage() {
                   ))}
                   {users.length === 0 && (
                     <tr>
-                      <td className="px-4 py-8 text-center text-gray-500" colSpan={5}>No users found.</td>
+                      <td className="px-4 py-8 text-center text-gray-500" colSpan={6}>No users found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -153,6 +193,52 @@ export default function ManagerUsersPage() {
             </div>
           </div>
         </div>
+
+        {editing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl">
+              <h2 className="text-lg font-semibold text-gray-950">Edit user</h2>
+              <p className="mt-1 text-xs text-gray-500">{editing.email}</p>
+
+              <label className="mt-4 block text-sm font-medium text-gray-700">Display name</label>
+              <input
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                placeholder="Display name"
+                className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+              />
+
+              <label className="mt-4 flex items-center gap-2 text-sm font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={editVerified}
+                  onChange={e => setEditVerified(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                Email verified
+              </label>
+
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(null)}
+                  disabled={isSaving}
+                  className="rounded-md border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEdit}
+                  disabled={isSaving}
+                  className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:bg-gray-400"
+                >
+                  {isSaving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </AdminGate>
     </Layout>
   );

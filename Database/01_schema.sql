@@ -262,6 +262,17 @@ CREATE TABLE IF NOT EXISTS favorites (
 
 CREATE INDEX IF NOT EXISTS idx_favorites_user_time ON favorites(user_id, created_at DESC);
 
+-- User category interests (recommendation signals)
+CREATE TABLE IF NOT EXISTS user_category_interests (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category TEXT NOT NULL,
+  score DOUBLE PRECISION NOT NULL DEFAULT 0,
+  last_interaction_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, category)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_category_interests_user_score ON user_category_interests(user_id, score DESC);
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Chats & Messages
 -- ─────────────────────────────────────────────────────────────────────────────
