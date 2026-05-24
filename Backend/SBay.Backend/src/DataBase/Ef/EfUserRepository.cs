@@ -59,6 +59,13 @@ namespace SBay.Domain.Database
                 .FirstOrDefaultAsync(u => u.EmailVerificationTokenHash == tokenHash, ct);
         }
 
+        public async Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(tokenHash)) return null;
+            return await _db.Set<User>()
+                .FirstOrDefaultAsync(u => u.PasswordResetTokenHash == tokenHash, ct);
+        }
+
         public async Task<bool> EmailExistsAsync(string email, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(email)) return false;

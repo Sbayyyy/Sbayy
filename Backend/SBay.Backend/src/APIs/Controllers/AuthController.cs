@@ -25,6 +25,8 @@ using ChangePasswordRequest = SBay.Backend.APIs.Records.ChangePasswordRequest;
 using RefreshTokenRequest = SBay.Backend.APIs.Records.RefreshTokenRequest;
 using LogoutRequest = SBay.Backend.APIs.Records.LogoutRequest;
 using VerifyEmailRequest = SBay.Backend.APIs.Records.Requests.VerifyEmailRequest;
+using ForgotPasswordRequest = SBay.Backend.APIs.Records.Requests.ForgotPasswordRequest;
+using ResetPasswordRequest = SBay.Backend.APIs.Records.Requests.ResetPasswordRequest;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
@@ -44,9 +46,10 @@ public class AuthController : ControllerBase
     private readonly JwtOptions _jwt;
     private readonly IConfiguration _config;
     private readonly IEmailSender _emailSender;
+    private readonly ILogger<AuthController> _logger;
     private readonly IStringLocalizer<BackendMessages> _l;
 
-    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender, IStringLocalizer<BackendMessages> localizer)
+    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender, ILogger<AuthController> logger, IStringLocalizer<BackendMessages> localizer)
     {
         _users = users;
         _refreshTokens = refreshTokens;
@@ -55,6 +58,7 @@ public class AuthController : ControllerBase
         _jwt = jwt.Value;
         _config = config;
         _emailSender = emailSender;
+        _logger = logger;
         _l = localizer;
     }
 
@@ -250,6 +254,75 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         });
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest? req, CancellationToken ct)
+    {
+        if (req is null || !EmailValidator.TryNormalize(req.Email, out var email))
+            return BadRequest("Enter a valid email address.");
+
+        var response = new
+        {
+            Message = "If an account exists for this email, a password reset link has been sent."
+        };
+
+        var user = await _users.GetByEmailAsync(email, ct);
+        if (user is null || !user.IsActive)
+            return Ok(response);
+
+        var token = CreatePasswordResetToken(user);
+        await _users.UpdateAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        try
+        {
+            await SendPasswordResetEmailAsync(user, token, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password reset email for user {UserId}.", user.Id);
+        }
+
+        return Ok(response);
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest? req, CancellationToken ct)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.Token))
+            return BadRequest("Password reset token is required.");
+        if (string.IsNullOrWhiteSpace(req.NewPassword))
+            return BadRequest("New password is required.");
+        if (!IsStrongPassword(req.NewPassword))
+            return BadRequest("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+
+        var tokenHash = HashToken(req.Token);
+        var user = await _users.GetByPasswordResetTokenHashAsync(tokenHash, ct);
+        if (user is null ||
+            user.PasswordResetExpiresAt is null ||
+            user.PasswordResetExpiresAt <= DateTimeOffset.UtcNow ||
+            !user.IsActive)
+        {
+            return BadRequest("This password reset link is invalid or expired.");
+        }
+
+        user.PasswordHash = _hasher.HashPassword(user, req.NewPassword);
+        user.PasswordResetTokenHash = null;
+        user.PasswordResetExpiresAt = null;
+        user.PasswordResetRequestedAt = null;
+
+        await using var tx = await _uow.BeginTransactionAsync(ct);
+        await _users.UpdateAsync(user, ct);
+        await _refreshTokens.RevokeAllForUserAsync(user.Id, DateTimeOffset.UtcNow, ct);
+        await _uow.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        return Ok(new { Message = "Password reset successfully. You can now sign in." });
+    }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     [EnableRateLimiting("auth")]
@@ -411,6 +484,16 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         return raw;
     }
 
+    private string CreatePasswordResetToken(User user)
+    {
+        var raw = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+        user.PasswordResetTokenHash = HashToken(raw);
+        user.PasswordResetExpiresAt = DateTimeOffset.UtcNow.AddMinutes(
+            Math.Clamp(_config.GetValue<int?>("PasswordReset:TokenMinutes") ?? 60, 10, 1440));
+        user.PasswordResetRequestedAt = DateTimeOffset.UtcNow;
+        return raw;
+    }
+
     private async Task SendVerificationEmailAsync(User user, string token, CancellationToken ct)
     {
         var baseUrl = (_config["Frontend:BaseUrl"]
@@ -425,6 +508,25 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
             <p><a href="{verifyUrl}">Verify your email and sign in</a></p>
             <p>If the button does not work, copy and paste this link:</p>
             <p>{verifyUrl}</p>
+            """;
+        await _emailSender.SendEmailAsync(user.Email, subject, html, text, ct);
+    }
+
+    private async Task SendPasswordResetEmailAsync(User user, string token, CancellationToken ct)
+    {
+        var baseUrl = (_config["Frontend:BaseUrl"]
+            ?? _config["Cors:AllowedOrigins:0"]
+            ?? _config["FRONTEND_URL"]
+            ?? "http://localhost:3000").TrimEnd('/');
+        var resetUrl = $"{baseUrl}/auth/resetPassword?token={Uri.EscapeDataString(token)}";
+        var subject = "Reset your SBay password";
+        var text = $"Reset your SBay password here: {resetUrl}\n\nIf you did not request this, you can ignore this email.";
+        var html = $"""
+            <p>We received a request to reset your SBay password.</p>
+            <p><a href="{resetUrl}">Reset your password</a></p>
+            <p>If the button does not work, copy and paste this link:</p>
+            <p>{resetUrl}</p>
+            <p>If you did not request this, you can ignore this email.</p>
             """;
         await _emailSender.SendEmailAsync(user.Email, subject, html, text, ct);
     }

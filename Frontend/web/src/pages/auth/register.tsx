@@ -269,8 +269,8 @@ export default function Register() {
 
           <img
             alt={t('header.logoAlt')}
-            src="/sbay_icon.svg"
-            className="mx-auto h-10 w-auto"
+            src="/assets/sbaylogo.png"
+            className="mx-auto h-14 w-14 rounded-2xl object-contain"
           />
 
           <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">

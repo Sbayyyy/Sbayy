@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS users (
   email_verification_token_hash VARCHAR(128),
   email_verification_expires_at TIMESTAMPTZ,
   email_verified_at TIMESTAMPTZ,
+  password_reset_token_hash VARCHAR(128),
+  password_reset_expires_at TIMESTAMPTZ,
+  password_reset_requested_at TIMESTAMPTZ,
   is_seller BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_seen TIMESTAMPTZ,
@@ -76,6 +79,9 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verification_token_hash VARCHAR(128);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMPTZ;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password_reset_token_hash VARCHAR(128);
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password_reset_requested_at TIMESTAMPTZ;
 -- Preserve write access for accounts that existed before email verification.
 UPDATE users
 SET email_verified = TRUE,
@@ -89,6 +95,7 @@ UPDATE users SET status = lower(trim(status)) WHERE status IS NOT NULL AND lower
 UPDATE users SET status = 'active' WHERE status IS NULL OR status NOT IN ('active','deactivated','blocked');
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_external_id ON users(external_id) WHERE external_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_users_email_verification_token_hash ON users(email_verification_token_hash) WHERE email_verification_token_hash IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_password_reset_token_hash ON users(password_reset_token_hash) WHERE password_reset_token_hash IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_users_status_deactivated_at ON users(status, deactivated_at);
 CREATE INDEX IF NOT EXISTS ix_users_role_status ON users(role, status);
 DO $$
@@ -148,6 +155,28 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   push_messages BOOLEAN NOT NULL DEFAULT FALSE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS client_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  level VARCHAR(32) NOT NULL DEFAULT 'error',
+  source VARCHAR(64) NOT NULL DEFAULT 'unknown',
+  message VARCHAR(1000) NOT NULL,
+  exception_type VARCHAR(160),
+  stack_trace TEXT,
+  context_json JSONB,
+  app_version VARCHAR(64),
+  platform VARCHAR(64),
+  device_id VARCHAR(160),
+  request_id VARCHAR(160),
+  user_agent VARCHAR(512),
+  url VARCHAR(1000),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ix_client_logs_created_level ON client_logs(created_at DESC, level);
+CREATE INDEX IF NOT EXISTS ix_client_logs_source ON client_logs(source);
+CREATE INDEX IF NOT EXISTS ix_client_logs_user_id ON client_logs(user_id);
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

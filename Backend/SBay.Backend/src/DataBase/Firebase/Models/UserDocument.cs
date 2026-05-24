@@ -22,6 +22,9 @@ internal sealed class UserDocument
     [FirestoreProperty] public string? EmailVerificationTokenHash { get; set; }
     [FirestoreProperty] public DateTimeOffset? EmailVerificationExpiresAt { get; set; }
     [FirestoreProperty] public DateTimeOffset? EmailVerifiedAt { get; set; }
+    [FirestoreProperty] public string? PasswordResetTokenHash { get; set; }
+    [FirestoreProperty] public DateTimeOffset? PasswordResetExpiresAt { get; set; }
+    [FirestoreProperty] public DateTimeOffset? PasswordResetRequestedAt { get; set; }
     [FirestoreProperty] public bool IsSeller { get; set; }
     [FirestoreProperty] public bool? IsAdmin { get; set; }
     [FirestoreProperty] public bool? IsActive { get; set; }
@@ -58,6 +61,9 @@ internal sealed class UserDocument
         EmailVerificationTokenHash = user.EmailVerificationTokenHash,
         EmailVerificationExpiresAt = user.EmailVerificationExpiresAt,
         EmailVerifiedAt = user.EmailVerifiedAt,
+        PasswordResetTokenHash = user.PasswordResetTokenHash,
+        PasswordResetExpiresAt = user.PasswordResetExpiresAt,
+        PasswordResetRequestedAt = user.PasswordResetRequestedAt,
         IsSeller = user.IsSeller,
         CreatedAt = user.CreatedAt,
         LastSeen = user.LastSeen,
@@ -95,6 +101,9 @@ internal sealed class UserDocument
             EmailVerificationTokenHash = EmailVerificationTokenHash,
             EmailVerificationExpiresAt = EmailVerificationExpiresAt,
             EmailVerifiedAt = EmailVerifiedAt,
+            PasswordResetTokenHash = PasswordResetTokenHash,
+            PasswordResetExpiresAt = PasswordResetExpiresAt,
+            PasswordResetRequestedAt = PasswordResetRequestedAt,
             IsSeller = IsSeller,
             CreatedAt = CreatedAt,
             LastSeen = LastSeen,

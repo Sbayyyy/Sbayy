@@ -271,6 +271,14 @@ builder.Services.AddRateLimiter(options =>
             Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:Reports:WindowMinutes", 10)),
             QueueLimit = 0
         }));
+    options.AddPolicy("clientLogs", context => RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitKeys.ForRequest(context),
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Configuration.GetValue("RateLimits:ClientLogs:PermitLimit", 60),
+            Window = TimeSpan.FromMinutes(builder.Configuration.GetValue("RateLimits:ClientLogs:WindowMinutes", 10)),
+            QueueLimit = 0
+        }));
     options.AddPolicy("ads", context => RateLimitPartition.GetFixedWindowLimiter(
         RateLimitKeys.ForRequest(context),
         _ => new FixedWindowRateLimiterOptions

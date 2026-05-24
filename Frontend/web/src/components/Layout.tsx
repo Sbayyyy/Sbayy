@@ -32,8 +32,8 @@ export default function Layout({
         <title>{resolvedTitle}</title>
         <meta name="description" content={resolvedDescription} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/sbay_icon.svg" type="image/svg+xml" />
-        <link rel="shortcut icon" href="/sbay_icon.svg" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </Head>
 
       <div className="flex flex-col min-h-screen">

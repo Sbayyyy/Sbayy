@@ -13,6 +13,7 @@ import {
   Bell,
   BarChart3,
   Bug,
+  FileWarning,
   RefreshCw,
   type LucideIcon,
 } from 'lucide-react';
@@ -35,6 +36,7 @@ const sections: DashboardSection[] = [
   { key: 'notifications', title: 'Notifications', primary: 'total', rows: ['unread'], icon: Bell, accent: 'bg-indigo-50 text-indigo-600' },
   { key: 'commerce', title: 'Commerce', primary: 'reviews', rows: ['favorites', 'payments', 'sponsoredAds', 'activeSponsoredAds'], icon: BarChart3, accent: 'bg-teal-50 text-teal-600' },
   { key: 'bugReports', title: 'Bug Reports', primary: 'total', rows: ['stored'], icon: Bug, accent: 'bg-rose-50 text-rose-600' },
+  { key: 'clientLogs', title: 'Client Logs', primary: 'total', rows: ['last24Hours', 'errors', 'warnings', 'critical'], icon: FileWarning, accent: 'bg-orange-50 text-orange-600' },
 ];
 
 const quickLinks = [
@@ -42,6 +44,7 @@ const quickLinks = [
   { href: '/manager/listings', label: 'Manage listings' },
   { href: '/manager/chats', label: 'Moderate chats' },
   { href: '/manager/reports', label: 'Moderate reports' },
+  { href: '/manager/logs', label: 'Client logs' },
 ];
 
 function labelFor(key: string) {

@@ -59,6 +59,14 @@ export interface DashboardBugReports {
   note: string;
 }
 
+export interface DashboardClientLogs {
+  total: number;
+  last24Hours: number;
+  errors: number;
+  warnings: number;
+  critical: number;
+}
+
 export interface AdminDashboardSummary {
   generatedAt: string;
   users: DashboardUsers;
@@ -69,6 +77,7 @@ export interface AdminDashboardSummary {
   notifications: DashboardNotifications;
   commerce: DashboardCommerce;
   bugReports: DashboardBugReports;
+  clientLogs: DashboardClientLogs;
 }
 
 export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary> {

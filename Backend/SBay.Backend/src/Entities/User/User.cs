@@ -40,6 +40,10 @@ namespace SBay.Domain.Entities
         public string? EmailVerificationTokenHash { get; set; }
         public DateTimeOffset? EmailVerificationExpiresAt { get; set; }
         public DateTimeOffset? EmailVerifiedAt { get; set; }
+        [MaxLength(128)]
+        public string? PasswordResetTokenHash { get; set; }
+        public DateTimeOffset? PasswordResetExpiresAt { get; set; }
+        public DateTimeOffset? PasswordResetRequestedAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTimeOffset? DeactivatedAt { get; set; }
         public DateTimeOffset? AccountDeletionRequestedAt { get; set; }
