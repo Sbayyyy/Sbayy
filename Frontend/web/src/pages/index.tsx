@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { getAllListings } from '@/lib/api/listings';
+import { getRecommendedListings, trackInteraction } from '@/lib/api/recommendations';
 import { Product, defaultTextInputValidator, loadProfanityListFromUrl } from '@sbay/shared';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
@@ -16,6 +17,7 @@ export default function Home() {
   const { t, i18n } = useTranslation('common');
   const [browseProducts, setBrowseProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [browsePage, setBrowsePage] = useState(1);
@@ -46,6 +48,7 @@ export default function Home() {
   
   useEffect(() => {
     loadHomeProducts();
+    void loadRecommended();
   }, []);
 
   useEffect(() => {
@@ -177,6 +180,11 @@ export default function Home() {
     }
   };
 
+  const loadRecommended = async () => {
+    const items = await getRecommendedListings(8);
+    setRecommendedProducts(items);
+  };
+
   const loadMoreBrowse = async () => {
     if (loadingMore) return;
     setLoadingMore(true);
@@ -301,6 +309,19 @@ export default function Home() {
           </div>
         </div>
 
+        {recommendedProducts.length > 0 && (
+          <div className="container mx-auto px-4">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-950">{t('home.recommendedForYou', 'Recommended for you')}</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {recommendedProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="container mx-auto px-4">
           <div className="surface-card p-5 sm:p-6">
             <h3 className="mb-4 text-xl font-bold text-slate-950">{t('home.browseCategories')}</h3>
@@ -309,6 +330,7 @@ export default function Home() {
                 <Link
                   key={category.id}
                   href={`/category/${category.slug}`}
+                  onClick={() => void trackInteraction(category.slug, 'category_click')}
                   className="flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-2xl border border-transparent p-3 text-slate-700 transition-all hover:-translate-y-0.5 hover:border-primary-100 hover:bg-primary-50/60 hover:text-primary-700 hover:shadow-sm"
                 >
                   <span className="text-2xl">{category.icon}</span>

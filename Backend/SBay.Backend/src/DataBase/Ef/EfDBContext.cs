@@ -10,6 +10,7 @@ using User = SBay.Domain.Entities.User;
 using Category = SBay.Domain.Entities.Category;
 using Address = SBay.Domain.Entities.Address;
 using FavoriteListing = SBay.Domain.Entities.FavoriteListing;
+using UserCategoryInterest = SBay.Domain.Entities.UserCategoryInterest;
 using Review = SBay.Domain.Entities.Review;
 using ReviewHelpful = SBay.Domain.Entities.ReviewHelpful;
 using PushToken = SBay.Domain.Entities.PushToken;
@@ -37,6 +38,7 @@ namespace SBay.Domain.Database
         public DbSet<Message> Messages => Set<Message>();
         public DbSet<Address> Addresses => Set<Address>();
         public DbSet<FavoriteListing> Favorites => Set<FavoriteListing>();
+        public DbSet<UserCategoryInterest> UserCategoryInterests => Set<UserCategoryInterest>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewHelpful> ReviewHelpfuls => Set<ReviewHelpful>();
         public DbSet<PushToken> PushTokens => Set<PushToken>();
@@ -277,6 +279,20 @@ namespace SBay.Domain.Database
                     .WithMany()
                     .HasForeignKey(x => x.ListingId)
                     .OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<UserCategoryInterest>(e =>
+            {
+                e.ToTable("user_category_interests");
+                e.HasKey(x => new { x.UserId, x.Category });
+                e.Property(x => x.UserId).HasColumnName("user_id");
+                e.Property(x => x.Category).HasColumnName("category");
+                e.Property(x => x.Score).HasColumnName("score").HasDefaultValue(0d);
+                e.Property(x => x.LastInteractionAt).HasColumnName("last_interaction_at").HasDefaultValueSql("now()");
+                e.HasIndex(x => new { x.UserId, x.Score }).HasDatabaseName("idx_user_category_interests_user_score");
                 e.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(x => x.UserId)

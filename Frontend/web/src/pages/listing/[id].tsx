@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { Heart, Share2, MapPin } from 'lucide-react';
 import { deleteListing, getListingById } from '@/lib/api/listings';
 import { addFavorite, getFavorites, removeFavorite } from '@/lib/api/favorites';
+import { trackInteraction } from '@/lib/api/recommendations';
 import { openChat } from '@/lib/api/messages';
 import { requestEmailVerification } from '@/lib/api/auth';
 import { Product } from '@sbay/shared';
@@ -66,6 +67,9 @@ export default function ListingDetail() {
       setLoading(true);
       const data = await getListingById(listingId);
       setListing(data);
+      if (data.categoryPath) {
+        void trackInteraction(data.categoryPath, 'view');
+      }
     } catch (err: unknown) {
       console.error('Error loading listing:', err);
       setError(t('listing.errors.load', 'Failed to load listing'));
@@ -154,6 +158,9 @@ export default function ListingDetail() {
     try {
       if (nextIsFavorite) {
         await addFavorite(listing.id);
+        if (listing.categoryPath) {
+          void trackInteraction(listing.categoryPath, 'favorite');
+        }
         toast.success(t('listing.actions.favoriteAdded', 'Added to favorites.'));
       } else {
         await removeFavorite(listing.id);

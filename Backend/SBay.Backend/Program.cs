@@ -72,6 +72,7 @@ if (useEf)
     builder.Services.AddScoped<IWriteStore<Listing>>(sp => sp.GetRequiredService<IListingRepository>());
     builder.Services.AddScoped<ICartRepository, EfCartRepository>();
     builder.Services.AddScoped<IFavoriteRepository, EfFavoriteRepository>();
+    builder.Services.AddScoped<IUserInteractionRepository, EfUserInteractionRepository>();
     builder.Services.AddScoped<IOrderRepository, EfOrderRepository>();
     builder.Services.AddScoped<IReviewRepository, EfReviewRepository>();
     builder.Services.AddScoped<IChatRepository, EfChatRepository>();

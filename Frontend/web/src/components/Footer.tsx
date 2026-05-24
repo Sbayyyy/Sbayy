@@ -41,7 +41,7 @@ export default function Footer() {
               <img
                 src={config.logoUrl}
                 alt=""
-                className="h-7 w-auto max-w-[4.5rem] object-contain"
+                className="h-10 w-auto max-w-[6.5rem] object-contain"
                 loading="lazy"
               />
               <h4 className="text-xl font-bold">{t('footer.brandName')}</h4>
