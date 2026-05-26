@@ -3,6 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL;
 using NpgsqlTypes;
 using SBay.Backend.DataBase.Queries;
 using SBay.Domain.Entities;
+using System.Linq.Expressions;
 
 namespace SBay.Domain.Database
 {
@@ -89,8 +90,8 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             _db.Users.Any(u => u.Id == l.SellerId && u.Status == "active"));
     var isPostgres = _isPostgres;
 
-    if (!string.IsNullOrEmpty(q.Category))
-        query = query.Where(l => l.CategoryPath != null && l.CategoryPath.StartsWith(q.Category));
+    if (!string.IsNullOrWhiteSpace(q.Category))
+        query = WhereCategoryPathMatches(query, CategorySearchAliases.ResolveStoragePrefixes(q.Category));
 
     if (q.MinPrice.HasValue)
         query = query.Where(l => l.Price.Amount >= q.MinPrice.Value);
@@ -114,7 +115,15 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
         query = query.Where(l => l.BoostedUntil != null && l.BoostedUntil > now);
     }
 
-    if (!string.IsNullOrWhiteSpace(text))
+    var textCategoryPrefixes = string.IsNullOrWhiteSpace(q.Category)
+        ? CategorySearchAliases.ResolveStoragePrefixes(text)
+        : Array.Empty<string>();
+    var textMatchedCategory = textCategoryPrefixes.Count > 0;
+
+    if (textMatchedCategory)
+        query = WhereCategoryPathMatches(query, textCategoryPrefixes);
+
+    if (!string.IsNullOrWhiteSpace(text) && !textMatchedCategory)
     {
         if (isPostgres)
         {
@@ -170,6 +179,35 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
                 .Replace("%", @"\%")
                 .Replace("_", @"\_");
         }
+
+        private static IQueryable<Listing> WhereCategoryPathMatches(
+            IQueryable<Listing> source,
+            IReadOnlyList<string> prefixes)
+        {
+            return prefixes.Count == 0 ? source : source.Where(BuildCategoryPathPredicate(prefixes));
+        }
+
+        private static Expression<Func<Listing, bool>> BuildCategoryPathPredicate(IReadOnlyList<string> prefixes)
+        {
+            var listing = Expression.Parameter(typeof(Listing), "l");
+            var categoryPath = Expression.Property(listing, nameof(Listing.CategoryPath));
+            var notNull = Expression.NotEqual(categoryPath, Expression.Constant(null, typeof(string)));
+            var toLower = Expression.Call(categoryPath, nameof(string.ToLower), Type.EmptyTypes);
+            var startsWith = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])
+                ?? throw new InvalidOperationException("string.StartsWith(string) was not found.");
+
+            Expression? body = null;
+            foreach (var prefix in prefixes.Select(p => p.ToLowerInvariant()).Distinct(StringComparer.Ordinal))
+            {
+                var exact = Expression.Equal(toLower, Expression.Constant(prefix));
+                var child = Expression.Call(toLower, startsWith, Expression.Constant(prefix + "/"));
+                var categoryMatch = Expression.AndAlso(notNull, Expression.OrElse(exact, child));
+                body = body is null ? categoryMatch : Expression.OrElse(body, categoryMatch);
+            }
+
+            return Expression.Lambda<Func<Listing, bool>>(body ?? Expression.Constant(true), listing);
+        }
+
         public async Task<IReadOnlyList<Listing>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
         {
             var idsArray = ids?.Where(id => id != Guid.Empty).Distinct().ToArray() ?? Array.Empty<Guid>();

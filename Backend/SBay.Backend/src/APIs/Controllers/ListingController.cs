@@ -138,7 +138,7 @@ public sealed class ListingsController : ControllerBase
             stock: body.Stock,
             condition: ItemConditionExtensions.FromString(body.Condition),
             thumb: string.IsNullOrWhiteSpace(primaryImage) ? null : primaryImage.Trim(),
-            categoryPath: body.CategoryPath,
+            categoryPath: CategorySearchAliases.NormalizeCategoryPath(body.CategoryPath),
             original: null,
             region: body.Region,
             specificLocation: specificLocation
@@ -261,7 +261,7 @@ public sealed class ListingsController : ControllerBase
             price,
             body.Stock,
             condition,
-            body.CategoryPath,
+            CategorySearchAliases.NormalizeCategoryPath(body.CategoryPath),
             body.Region,
             body.SpecificLocation);
 

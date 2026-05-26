@@ -40,4 +40,22 @@ public class ListingQueryTests
         q.MinPrice.Should().Be(5);
         q.MaxPrice.Should().Be(15);
     }
+
+    [Theory]
+    [InlineData("electronics", "electronics")]
+    [InlineData("Electronics", "electronics")]
+    [InlineData("إلكترونيات", "electronics")]
+    [InlineData("الكترونيات", "electronics")]
+    [InlineData("real estate", "real-estate")]
+    [InlineData("عقارات", "real-estate")]
+    public void CategoryAliases_Should_Normalize_To_Canonical_Slug(string input, string expected)
+    {
+        CategorySearchAliases.NormalizeCategoryPath(input).Should().Be(expected);
+    }
+
+    [Fact]
+    public void CategoryAliases_Should_Preserve_SubCategory_Path()
+    {
+        CategorySearchAliases.NormalizeCategoryPath("Electronics/mobiles").Should().Be("electronics/mobiles");
+    }
 }
