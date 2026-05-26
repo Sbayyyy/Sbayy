@@ -13,3 +13,4 @@ export * from './contact';
 export * from './notifications';
 export * from './adminDashboard';
 export * from './adminManagement';
+export * from './platform';
