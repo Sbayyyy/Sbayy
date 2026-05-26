@@ -57,6 +57,7 @@ public class ListingQueryTests
     public void CategoryAliases_Should_Preserve_SubCategory_Path()
     {
         CategorySearchAliases.NormalizeCategoryPath("Electronics/mobiles").Should().Be("electronics/mobiles");
+        CategorySearchAliases.NormalizeCategoryPath("real estate/apartments-for-rent").Should().Be("real-estate/apartments-for-rent");
     }
 
     [Fact]

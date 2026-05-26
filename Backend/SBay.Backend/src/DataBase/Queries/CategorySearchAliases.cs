@@ -96,12 +96,14 @@ public static class CategorySearchAliases
 
     public static string? NormalizeCategoryPath(string? value)
     {
-        var normalized = Normalize(value);
-        if (normalized.Length == 0)
+        if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        var parts = normalized.Split('/', 2);
-        var topLevel = parts[0].Trim();
+        var parts = value.Trim().Split('/', 2);
+        var topLevel = Normalize(parts[0]);
+        if (topLevel.Length == 0)
+            return null;
+
         var slug = AliasesBySlug.ContainsKey(topLevel)
             ? topLevel
             : SlugByAlias.TryGetValue(topLevel, out var resolved)
