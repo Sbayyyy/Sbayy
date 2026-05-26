@@ -485,6 +485,8 @@
       "freeTitle": "Free listing",
       "freeDescription": "Standard feed placement",
       "freePrice": "Free",
+      "comingSoon": "Coming soon",
+      "comingSoonDescription": "Boost options are being prepared and cannot be selected yet.",
       "days": "days",
       "submit": "Create listing and continue to payment"
     },

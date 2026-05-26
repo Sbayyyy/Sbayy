@@ -146,6 +146,79 @@ RESTART IDENTITY CASCADE;");
             results[0].Price.Amount.Should().BeGreaterThanOrEqualTo(400m);
         }
 
+        [Theory]
+        [InlineData("Electronics")]
+        [InlineData("إلكترونيات")]
+        [InlineData("الكترونيات")]
+        public async Task Search_Category_Filter_Should_Accept_Localized_Category_Names(string category)
+        {
+            await using var db = _fx.CreateContext();
+            await SeedSampleAsync(db);
+
+            var repo = new EfListingRepository(db);
+
+            var results = await repo.SearchAsync(new ListingQuery
+            {
+                Category = category,
+                Page = 1,
+                PageSize = 50
+            }, CancellationToken.None);
+
+            results.Should().HaveCount(3);
+            results.Should().OnlyContain(r => r.CategoryPath!.StartsWith("electronics", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Theory]
+        [InlineData("Electronics")]
+        [InlineData("إلكترونيات")]
+        [InlineData("الكترونيات")]
+        public async Task Search_Text_Should_Find_Category_Aliases(string text)
+        {
+            await using var db = _fx.CreateContext();
+            await SeedSampleAsync(db);
+
+            var repo = new EfListingRepository(db);
+
+            var results = await repo.SearchAsync(new ListingQuery
+            {
+                Text = text,
+                Page = 1,
+                PageSize = 50
+            }, CancellationToken.None);
+
+            results.Should().HaveCount(3);
+            results.Should().OnlyContain(r => r.CategoryPath!.StartsWith("electronics", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public async Task Search_Category_Filter_Should_Find_Legacy_Localized_Stored_Categories()
+        {
+            await using var db = _fx.CreateContext();
+            await SeedSampleAsync(db);
+
+            var sellerId = await EnsureSellerAsync(db);
+            db.Add(new Listing(
+                sellerId: sellerId,
+                title: "Legacy Arabic category item",
+                desc: "stored before category normalization",
+                price: new Money(50m, "EUR"),
+                categoryPath: "إلكترونيات",
+                region: "BW"
+            ));
+            await db.SaveChangesAsync();
+
+            var repo = new EfListingRepository(db);
+
+            var results = await repo.SearchAsync(new ListingQuery
+            {
+                Category = "Electronics",
+                Page = 1,
+                PageSize = 50
+            }, CancellationToken.None);
+
+            results.Should().Contain(r => r.Title == "Legacy Arabic category item");
+        }
+
         [Fact]
         public async Task Search_Paging_Should_Return_Disjoint_Pages()
         {
