@@ -88,7 +88,7 @@ public static class CategorySearchAliases
 
         return aliases
             .Append(slug)
-            .Select(Normalize)
+            .SelectMany(StorageCandidates)
             .Where(alias => alias.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -122,6 +122,17 @@ public static class CategorySearchAliases
         }
 
         return map;
+    }
+
+    private static IEnumerable<string> StorageCandidates(string value)
+    {
+        var trimmed = value.Trim().ToLowerInvariant();
+        if (trimmed.Length > 0)
+            yield return trimmed;
+
+        var normalized = Normalize(value);
+        if (normalized.Length > 0)
+            yield return normalized;
     }
 
     private static string Normalize(string? value)

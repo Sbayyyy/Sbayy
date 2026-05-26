@@ -116,9 +116,12 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
     }
 
     var textCategoryPrefixes = string.IsNullOrWhiteSpace(q.Category)
-        ? CategorySearchAliases.ResolveStoragePrefixes(text)
+        ? CategorySearchAliases.ResolveCategoryPrefixes(text)
+            .SelectMany(CategorySearchAliases.ResolveStoragePrefixes)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray()
         : Array.Empty<string>();
-    var textMatchedCategory = textCategoryPrefixes.Count > 0;
+    var textMatchedCategory = textCategoryPrefixes.Length > 0;
 
     if (textMatchedCategory)
         query = WhereCategoryPathMatches(query, textCategoryPrefixes);
