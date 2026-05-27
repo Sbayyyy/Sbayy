@@ -10,6 +10,7 @@ import { getUnreadCount } from '@/lib/api/messages';
 import type { Message } from '@sbay/shared';
 import { DropdownMenu, DropdownMenuDivider, DropdownMenuHeader, dropdownMenuItemClass, dropdownMenuDangerItemClass } from '@/components/ui/dropdown-menu';
 import { config } from '@/lib/config';
+import LanguageToggle from './LanguageToggle';
 
 export default function Header() {
   const router = useRouter();
@@ -116,7 +117,7 @@ export default function Header() {
                 alt={t('header.logoAlt')}
                 className="h-9 w-9 rounded-xl object-contain"
               />
-              <span>{t('header.brandName')}</span>
+              <span className="hidden sm:inline">{t('header.brandName')}</span>
             </Link>
 
             <nav className="hidden items-center gap-1 md:flex">
@@ -130,6 +131,9 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-2">
+            <LanguageToggle className="hidden sm:inline-flex" />
+            <LanguageToggle variant="compact" className="sm:hidden" />
+
             <Link href="/listing/sell" className="btn btn-primary hidden md:flex">
               <Package size={18} />
               {t('nav.sellNow')}
