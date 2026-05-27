@@ -82,6 +82,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/buyer-protection" className="text-gray-400 hover:text-white transition-colors">
+                  {t('footer.buyerProtection')}
+                </Link>
+              </li>
+              <li>
                 <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
                   {t('footer.contactUs')}
                 </Link>
@@ -158,7 +163,7 @@ export default function Footer() {
               <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
                 {t('footer.terms')}
               </Link>
-              <Link href="/sitemap" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="/sitemap.xml" className="text-gray-400 hover:text-white transition-colors">
                 {t('footer.sitemap')}
               </Link>
             </div>

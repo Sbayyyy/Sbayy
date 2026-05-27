@@ -2,7 +2,7 @@
   "name": "sbay-marketplace",
   "version": "1.0.0",
   "private": true,
-  "description": "eBay-like marketplace platform for Syria",
+  "description": "SBay is Syria's online marketplace for local listings, electronics, fashion, home goods, sports gear, toys, and secure buyer-seller chat.",
   "workspaces": [
     "web",
     "packages/*"
