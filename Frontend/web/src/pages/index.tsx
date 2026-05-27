@@ -210,7 +210,7 @@ export default function Home() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedQuery = searchQuery.trim();
-    const validation = defaultTextInputValidator.validate(searchQuery);
+    const validation = defaultTextInputValidator.validate(trimmedQuery);
     if (!validation.isValid) {
       setSearchError(validation.message ?? 'Input contains disallowed content');
       return;

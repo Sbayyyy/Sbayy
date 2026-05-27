@@ -110,11 +110,11 @@ namespace SBay.Domain.Database
             if (regions.Length == 1)
             {
                 var only = regions[0];
-                query = query.Where(l => l.Region != null && l.Region.ToLower() == only);
+                query = query.Where(l => l.Region != null && l.Region.ToLowerInvariant() == only);
             }
             else if (regions.Length > 1)
             {
-                query = query.Where(l => l.Region != null && regions.Contains(l.Region.ToLower()));
+                query = query.Where(l => l.Region != null && regions.Contains(l.Region.ToLowerInvariant()));
             }
 
             var conditions = SplitCsv(q.Condition)
