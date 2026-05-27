@@ -220,6 +220,40 @@ RESTART IDENTITY CASCADE;");
         }
 
         [Fact]
+        public async Task Search_Category_Filter_Should_Prefix_Match_Multiple_Categories()
+        {
+            await using var db = _fx.CreateContext();
+            await SeedSampleAsync(db);
+
+            var sellerId = await EnsureSellerAsync(db);
+            db.Add(new Listing(
+                sellerId: sellerId,
+                title: "Winter jacket",
+                desc: "Warm coat",
+                price: new Money(80m, "EUR"),
+                categoryPath: "fashion/clothing",
+                region: "BW"
+            ));
+            await db.SaveChangesAsync();
+
+            var repo = new EfListingRepository(db);
+
+            var results = await repo.SearchAsync(new ListingQuery
+            {
+                Category = "electronics,fashion",
+                Page = 1,
+                PageSize = 50
+            }, CancellationToken.None);
+
+            results.Should().Contain(r => r.CategoryPath == "electronics/mobiles");
+            results.Should().Contain(r => r.CategoryPath == "electronics/accessories");
+            results.Should().Contain(r => r.CategoryPath == "fashion/clothing");
+            results.Should().OnlyContain(r =>
+                r.CategoryPath!.StartsWith("electronics", StringComparison.OrdinalIgnoreCase) ||
+                r.CategoryPath!.StartsWith("fashion", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public async Task Search_Paging_Should_Return_Disjoint_Pages()
         {
             await using var db = _fx.CreateContext();

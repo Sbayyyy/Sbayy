@@ -393,7 +393,8 @@
     "applyFilters": "Apply filters",
     "resetFilters": "Reset filters",
     "activeFilters": "Filtering by",
-    "clearAll": "Clear all"
+    "clearAll": "Clear all",
+    "close": "Close filters"
   },
   "checkout": {
     "title": "Checkout",
@@ -664,6 +665,7 @@
     "addToFavorites": "Add to favorites",
     "removeFromFavorites": "Remove from favorites",
     "unavailable": "Unavailable",
+    "boosted": "Boosted",
     "sellerRating": "{{rating}}/5 seller rating",
     "memberSince": "Member since {{date}}",
     "view": "View"

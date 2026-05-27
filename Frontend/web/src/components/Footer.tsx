@@ -54,15 +54,33 @@ export default function Footer() {
               {t('footer.about')}
             </p>
             <div className="mt-5 flex items-center gap-2">
-              <a href="#" aria-label="Facebook" className="footer-social">
+              <button
+                type="button"
+                aria-label="Facebook"
+                aria-disabled="true"
+                className="footer-social"
+                onClick={e => e.preventDefault()}
+              >
                 <Facebook size={16} />
-              </a>
-              <a href="#" aria-label="Instagram" className="footer-social">
+              </button>
+              <button
+                type="button"
+                aria-label="Instagram"
+                aria-disabled="true"
+                className="footer-social"
+                onClick={e => e.preventDefault()}
+              >
                 <Instagram size={16} />
-              </a>
-              <a href="#" aria-label="Twitter" className="footer-social">
+              </button>
+              <button
+                type="button"
+                aria-label="Twitter"
+                aria-disabled="true"
+                className="footer-social"
+                onClick={e => e.preventDefault()}
+              >
                 <Twitter size={16} />
-              </a>
+              </button>
               <a href={`mailto:${supportEmail}`} aria-label="Email" className="footer-social">
                 <Mail size={16} />
               </a>
@@ -111,7 +129,7 @@ export default function Footer() {
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
             <div className="flex items-center gap-5">
-              <Link href="/privacy" className="hover:text-primary-700">{t('footer.privacy')}</Link>
+              <Link href="/privacy-policy" className="hover:text-primary-700">{t('footer.privacy')}</Link>
               <Link href="/terms" className="hover:text-primary-700">{t('footer.terms')}</Link>
               <Link href="/sitemap.xml" className="hover:text-primary-700">{t('footer.sitemap')}</Link>
             </div>

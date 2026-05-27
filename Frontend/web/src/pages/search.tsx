@@ -12,6 +12,12 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { CITIES, FILTER_CATEGORIES, getCategoryName, getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 
+function parseOptionalPrice(value: string | string[] | undefined): number | undefined {
+  if (typeof value !== 'string') return undefined;
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 export default function SearchPage() {
   const router = useRouter();
   const { t, i18n } = useTranslation('common');
@@ -55,8 +61,8 @@ export default function SearchPage() {
       setSearchQuery(q);
       const nextFilters: SearchFilters = {
         category: category ? (category as string) : '',
-        minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
-        maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
+        minPrice: parseOptionalPrice(minPrice),
+        maxPrice: parseOptionalPrice(maxPrice),
         condition: (['New', 'Used', 'Refurbished', 'LikeNew'] as const).includes(
           condition as SearchFilters['condition'] & string
         )

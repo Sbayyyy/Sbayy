@@ -229,7 +229,7 @@ export default function FilterSidebar(props: FilterSidebarProps) {
         <div className="p-5">
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-950">{t('filters.filterResults')}</h3>
-            <button onClick={onClose} className="icon-button" aria-label="Close filters">
+            <button onClick={onClose} className="icon-button" aria-label={t('filters.close')}>
               <X size={18} />
             </button>
           </div>

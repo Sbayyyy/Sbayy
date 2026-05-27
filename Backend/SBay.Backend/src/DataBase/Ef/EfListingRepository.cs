@@ -90,8 +90,12 @@ namespace SBay.Domain.Database
                     _db.Users.Any(u => u.Id == l.SellerId && u.Status == "active"));
             var isPostgres = _isPostgres;
 
-            if (!string.IsNullOrWhiteSpace(q.Category))
-                query = WhereCategoryPathMatches(query, CategorySearchAliases.ResolveStoragePrefixes(q.Category));
+            var categoryPrefixes = SplitCsv(q.Category)
+                .SelectMany(CategorySearchAliases.ResolveStoragePrefixes)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (categoryPrefixes.Length > 0)
+                query = WhereCategoryPathMatches(query, categoryPrefixes);
 
             if (q.MinPrice.HasValue)
                 query = query.Where(l => l.Price.Amount >= q.MinPrice.Value);
@@ -111,8 +115,14 @@ namespace SBay.Domain.Database
             }
 
             var conditions = SplitCsv(q.Condition)
-                .Select(c => ItemConditionExtensions.FromString(c))
-                .Where(c => c != ItemCondition.Unknown)
+                .Select(token => new
+                {
+                    Token = token,
+                    Parsed = ItemConditionExtensions.FromString(token)
+                })
+                .Where(x => x.Parsed != ItemCondition.Unknown
+                            || string.Equals(x.Token, "unknown", StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.Parsed)
                 .Distinct()
                 .ToArray();
             if (conditions.Length == 1)

@@ -41,7 +41,7 @@
                 {
                     var parsed = ItemConditionExtensions.FromString(part);
                     if (parsed == ItemCondition.Unknown && !string.Equals(part, "unknown", StringComparison.OrdinalIgnoreCase))
-                        throw new ArgumentException($"Condition value '{part}' is invalid. Allowed: New, Used, LikeNew, Refurbished, ForParts, Damaged, Unknown.", nameof(Condition));
+                        throw new ArgumentOutOfRangeException(nameof(Condition), $"Condition value '{part}' is invalid. Allowed: New, Used, LikeNew, Refurbished, ForParts, Damaged, Unknown.");
                 }
             }
         }
@@ -52,7 +52,7 @@
             foreach (var part in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 if (part.Length > maxLengthPerValue)
-                    throw new ArgumentException($"{paramName} value length must be <= {maxLengthPerValue}.", paramName);
+                    throw new ArgumentOutOfRangeException(paramName, $"{paramName} value length must be <= {maxLengthPerValue}.");
             }
         }
     }

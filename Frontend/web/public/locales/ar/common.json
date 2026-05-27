@@ -393,7 +393,8 @@
     "applyFilters": "تطبيق الفلاتر",
     "resetFilters": "إعادة تعيين الفلاتر",
     "activeFilters": "الفلترة حسب",
-    "clearAll": "إزالة الكل"
+    "clearAll": "إزالة الكل",
+    "close": "إغلاق الفلاتر"
   },
   "checkout": {
     "title": "إتمام الطلب",
@@ -664,6 +665,7 @@
     "addToFavorites": "إضافة للمفضلة",
     "removeFromFavorites": "إزالة من المفضلة",
     "unavailable": "غير متوفر",
+    "boosted": "مميز",
     "sellerRating": "تقييم البائع {{rating}}/5",
     "memberSince": "عضو منذ {{date}}",
     "view": "عرض"

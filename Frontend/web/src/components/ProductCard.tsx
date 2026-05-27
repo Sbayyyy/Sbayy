@@ -104,7 +104,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
           {product.isBoosted && (
             <span className="product-pill product-pill-boosted absolute end-3 bottom-3">
               <Zap size={12} />
-              Boosted
+              {t('productCard.boosted')}
             </span>
           )}
 
@@ -119,7 +119,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
           <button
             onClick={handleFavoriteClick}
             disabled={isTogglingFavorite}
-            className="icon-button absolute end-3 top-3 sm:opacity-0 sm:group-hover:opacity-100"
+            className="icon-button absolute end-3 top-3 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
             title={isLiked ? t('productCard.removeFromFavorites') : t('productCard.addToFavorites')}
             aria-label={isLiked ? t('productCard.removeFromFavorites') : t('productCard.addToFavorites')}
           >
