@@ -47,14 +47,24 @@ export default function BrowsePage() {
   });
 
   useEffect(() => {
-    if (router.isReady && router.query.category) {
-      const cat = router.query.category as string;
-      setFilters(prev => ({
-        ...prev,
-        categories: prev.categories?.includes(cat) ? prev.categories : [...(prev.categories ?? []), cat],
-      }));
-    }
-  }, [router.isReady, router.query.category]);
+    if (!router.isReady) return;
+    const catParam = typeof router.query.category === 'string' ? router.query.category : undefined;
+    const regionParam = typeof router.query.region === 'string' ? router.query.region : undefined;
+    if (!catParam && !regionParam) return;
+
+    setFilters(prev => {
+      const next: typeof prev = { ...prev };
+      if (catParam) {
+        const cats = prev.categories ?? [];
+        next.categories = cats.includes(catParam) ? cats : [...cats, catParam];
+      }
+      if (regionParam) {
+        const regs = prev.regions ?? [];
+        next.regions = regs.includes(regionParam) ? regs : [...regs, regionParam];
+      }
+      return next;
+    });
+  }, [router.isReady, router.query.category, router.query.region]);
 
   useEffect(() => {
     if (

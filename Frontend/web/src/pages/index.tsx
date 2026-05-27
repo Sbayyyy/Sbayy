@@ -209,15 +209,22 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const validation = defaultTextInputValidator.validate(searchQuery);
+    const trimmedQuery = searchQuery.trim();
+    const validation = defaultTextInputValidator.validate(trimmedQuery);
     if (!validation.isValid) {
       setSearchError(validation.message ?? 'Input contains disallowed content');
       return;
     }
+
     const params = new URLSearchParams();
-    if (searchQuery.trim()) params.set('q', searchQuery.trim());
     if (selectedRegion) params.set('region', selectedRegion);
-    router.push(`/search${params.toString() ? `?${params.toString()}` : ''}`);
+
+    if (trimmedQuery) {
+      params.set('q', trimmedQuery);
+      router.push(`/search?${params.toString()}`);
+    } else {
+      router.push(`/browse${params.toString() ? `?${params.toString()}` : ''}`);
+    }
   };
 
   const scrollToNextSection = () => {
