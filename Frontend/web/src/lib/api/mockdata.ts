@@ -5,7 +5,7 @@ export const mockProducts: Product[] = [
   {
     id: '1',
     title: 'iPhone 15 Pro Max جديد بالكرتونة',
-    description: 'آيفون 15 برو ماكس جديد كلياً\n- 256GB\n- تيتانيوم أزرق\n- ضمان أبل',
+    description: 'آيفون 15 برو ماكس جديد كليا\n- 256GB\n- تيتانيوم أزرق\n- ضمان أبل',
     priceAmount: 85000000,
     priceCurrency: 'SYP',
     imageUrls: [

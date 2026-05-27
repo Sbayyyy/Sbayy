@@ -2,34 +2,11 @@ import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 import { Facebook, Instagram, Twitter, Mail } from 'lucide-react';
 import { config } from '@/lib/config';
+import LanguageToggle from './LanguageToggle';
 
 export default function Footer() {
-  const { t, i18n } = useTranslation('common');
-  const currentLocale = i18n?.language ?? 'en';
+  const { t } = useTranslation('common');
   const supportEmail = config.supportEmail;
-  const setLocaleCookie = (locale: string) => {
-    document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
-  };
-
-  const ensureLocaleLoaded = async (locale: string) => {
-    const canCheck = typeof i18n?.hasResourceBundle === 'function';
-    if (!i18n) return;
-    if (canCheck && i18n.hasResourceBundle(locale, 'common')) return;
-    if (typeof i18n.addResourceBundle !== 'function') return;
-    const response = await fetch(`/locales/${locale}/common.json`);
-    if (!response.ok) return;
-    const resources = await response.json();
-    i18n.addResourceBundle(locale, 'common', resources, true, true);
-  };
-
-  const handleLocaleChange = async (locale: string) => {
-    if (typeof window === 'undefined') return;
-    setLocaleCookie(locale);
-    await ensureLocaleLoaded(locale);
-    i18n?.changeLanguage?.(locale);
-    document.documentElement.lang = locale;
-    document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
-  };
 
   const columnHeadingClass = 'mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500';
   const columnLinkClass = 'text-sm text-slate-600 transition-colors hover:text-primary-700';
@@ -133,22 +110,7 @@ export default function Footer() {
               <Link href="/terms" className="hover:text-primary-700">{t('footer.terms')}</Link>
               <Link href="/sitemap.xml" className="hover:text-primary-700">{t('footer.sitemap')}</Link>
             </div>
-            <div className="footer-locale-switch inline-flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={() => handleLocaleChange('en')}
-                className={`footer-locale-btn ${currentLocale === 'en' ? 'footer-locale-btn-active' : ''}`}
-              >
-                EN
-              </button>
-              <button
-                type="button"
-                onClick={() => handleLocaleChange('ar')}
-                className={`footer-locale-btn ${currentLocale === 'ar' ? 'footer-locale-btn-active' : ''}`}
-              >
-                AR
-              </button>
-            </div>
+            <LanguageToggle />
           </div>
         </div>
       </div>

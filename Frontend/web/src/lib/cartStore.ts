@@ -48,7 +48,7 @@ export const useCartStore = create<CartStore>()(
         
         // Validate stock
         if (product.stock !== undefined && product.stock < quantity) {
-          set({ error: `للأسف، المخزون غير كافٍ. المتوفر: ${product.stock}` });
+          set({ error: `للأسف، المخزون غير كاف. المتوفر: ${product.stock}` });
           return;
         }
 
@@ -132,7 +132,7 @@ export const useCartStore = create<CartStore>()(
 
         // Stock Validation
         if (item.product.stock !== undefined && quantity > item.product.stock) {
-          set({ error: `المخزون غير كافٍ. المتوفر: ${item.product.stock}` });
+          set({ error: `المخزون غير كاف. المتوفر: ${item.product.stock}` });
           return;
         }
 
