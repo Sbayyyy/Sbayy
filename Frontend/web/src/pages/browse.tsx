@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
@@ -20,6 +20,10 @@ const SORT_OPTIONS: Array<{ value: string; key: string }> = [
   { value: 'popular-desc', key: 'filters.sortPopular' },
 ];
 
+const SEARCH_DEBOUNCE_MS = 350;
+const CACHE_MAX_ENTRIES = 20;
+const PAGE_SIZE = 20;
+
 export default function BrowsePage() {
   const router = useRouter();
   const { t, i18n } = useTranslation('common');
@@ -34,8 +38,11 @@ export default function BrowsePage() {
   const [priceError, setPriceError] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [searchError, setSearchError] = useState('');
+
   const [filters, setFilters] = useState<SearchFilters>({
     categories: [],
     minPrice: 0,
@@ -46,41 +53,77 @@ export default function BrowsePage() {
     sortOrder: 'desc',
   });
 
+  const initFromUrlRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const cacheRef = useRef<Map<string, { items: Product[]; hasMore: boolean }>>(new Map());
+
+  // Read URL params on initial mount only (deep-link support: ?q, ?category, ?region).
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!router.isReady || initFromUrlRef.current) return;
+    initFromUrlRef.current = true;
+
+    const qParam = typeof router.query.q === 'string' ? router.query.q : '';
     const catParam = typeof router.query.category === 'string' ? router.query.category : undefined;
     const regionParam = typeof router.query.region === 'string' ? router.query.region : undefined;
-    if (!catParam && !regionParam) return;
 
-    setFilters(prev => {
-      const next: typeof prev = { ...prev };
-      if (catParam) {
-        const cats = prev.categories ?? [];
-        next.categories = cats.includes(catParam) ? cats : [...cats, catParam];
-      }
-      if (regionParam) {
-        const regs = prev.regions ?? [];
-        next.regions = regs.includes(regionParam) ? regs : [...regs, regionParam];
-      }
-      return next;
-    });
-  }, [router.isReady, router.query.category, router.query.region]);
+    if (qParam) {
+      setSearchQuery(qParam);
+      setDebouncedQuery(qParam);
+    }
 
+    if (catParam || regionParam) {
+      setFilters(prev => {
+        const next = { ...prev };
+        if (catParam) {
+          const cats = prev.categories ?? [];
+          next.categories = cats.includes(catParam) ? cats : [...cats, catParam];
+        }
+        if (regionParam) {
+          const regs = prev.regions ?? [];
+          next.regions = regs.includes(regionParam) ? regs : [...regs, regionParam];
+        }
+        return next;
+      });
+    }
+  }, [router.isReady, router.query]);
+
+  // Debounce the search query → triggers live API calls.
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed === debouncedQuery) return;
+    const timer = setTimeout(() => setDebouncedQuery(trimmed), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchQuery, debouncedQuery]);
+
+  // Price validation cross-check (doesn't trigger requests, just a UI error).
   useEffect(() => {
     if (
       filters.minPrice !== undefined &&
       filters.maxPrice !== undefined &&
+      filters.minPrice > 0 &&
+      filters.maxPrice > 0 &&
       filters.minPrice > filters.maxPrice
     ) {
       setPriceError(t('filters.priceError'));
-      setError('');
     } else if (priceError) {
       setPriceError('');
     }
-    loadProducts();
-  }, [filters]);
+  }, [filters.minPrice, filters.maxPrice, t, priceError]);
 
-  const normalizedFilters = () => ({
+  // Main load effect: fires on any filter or debounced-query change.
+  useEffect(() => {
+    loadProducts(debouncedQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, debouncedQuery]);
+
+  // Sponsored ads — fire once.
+  useEffect(() => {
+    getSponsoredAds()
+      .then(setSponsoredAds)
+      .catch(() => setSponsoredAds([]));
+  }, []);
+
+  const normalizedFilters = (): SearchFilters => ({
     ...filters,
     minPrice:
       filters.minPrice !== undefined && filters.maxPrice !== undefined && filters.minPrice > filters.maxPrice
@@ -94,38 +137,63 @@ export default function BrowsePage() {
           : filters.maxPrice,
   });
 
-  const loadProducts = async () => {
+  const loadProducts = async (text: string) => {
+    const filtersForApi = normalizedFilters();
+    const cacheKey = JSON.stringify({ text, filters: filtersForApi });
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      setProducts(cached.items);
+      setHasMore(cached.hasMore);
+      setPage(1);
+      setError('');
+      setLoading(false);
+      setIsInitialLoad(false);
+      return;
+    }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       setError('');
       if (isInitialLoad) setLoading(true);
-      const data = await getAllListings(1, 20, normalizedFilters());
-      setProducts(data.items || []);
-      setHasMore(data.items.length >= 20);
+      const data = await getAllListings(1, PAGE_SIZE, filtersForApi, text, controller.signal);
+      if (controller.signal.aborted) return;
+
+      const items = data.items || [];
+      const moreAvailable = items.length >= PAGE_SIZE;
+      cacheRef.current.set(cacheKey, { items, hasMore: moreAvailable });
+      if (cacheRef.current.size > CACHE_MAX_ENTRIES) {
+        const oldest = cacheRef.current.keys().next().value;
+        if (oldest) cacheRef.current.delete(oldest);
+      }
+
+      setProducts(items);
+      setHasMore(moreAvailable);
       setPage(1);
     } catch (err: unknown) {
+      if (err instanceof Error && (err.name === 'CanceledError' || err.name === 'AbortError')) return;
       console.error('Error loading products:', err);
       setError(t('browse.loadError'));
     } finally {
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+      }
       setLoading(false);
       setIsInitialLoad(false);
     }
   };
-
-  useEffect(() => {
-    getSponsoredAds()
-      .then(setSponsoredAds)
-      .catch(() => setSponsoredAds([]));
-  }, []);
 
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
     try {
       setLoadingMore(true);
       const nextPage = page + 1;
-      const data = await getAllListings(nextPage, 20, normalizedFilters());
+      const data = await getAllListings(nextPage, PAGE_SIZE, normalizedFilters(), debouncedQuery);
       setProducts(prev => [...prev, ...(data.items || [])]);
       setPage(nextPage);
-      setHasMore(data.items.length >= 20);
+      setHasMore(data.items.length >= PAGE_SIZE);
     } catch (err) {
       console.error('Error loading more:', err);
     } finally {
@@ -155,19 +223,26 @@ export default function BrowsePage() {
     });
   };
 
+  const syncUrlQuery = (q: string) => {
+    if (!router.isReady) return;
+    const next: Record<string, string | string[]> = { ...router.query };
+    if (q) next.q = q;
+    else delete next.q;
+    router.replace({ pathname: router.pathname, query: next }, undefined, { shallow: true, scroll: false });
+  };
+
+  // Form submit: flush debounce, validate, persist to URL.
   const handleCommandBarSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchQuery.trim();
-    if (!trimmed) return;
     const validation = defaultTextInputValidator.validate(trimmed);
     if (!validation.isValid) {
-      setSearchError(validation.message ?? t('search.placeholder'));
+      setSearchError(validation.message ?? '');
       return;
     }
-    const params = new URLSearchParams({ q: trimmed });
-    const firstCategory = filters.categories?.[0];
-    if (firstCategory) params.set('category', firstCategory);
-    router.push(`/search?${params.toString()}`);
+    setSearchError('');
+    setDebouncedQuery(trimmed);
+    syncUrlQuery(trimmed);
   };
 
   const conditionLabel = (value?: string) => {
@@ -251,7 +326,7 @@ export default function BrowsePage() {
             </div>
             <h2 className="mb-2 text-2xl font-bold text-slate-950">{t('browse.loadError')}</h2>
             <p className="mb-6 text-slate-600">{error}</p>
-            <button onClick={loadProducts} className="btn btn-primary">
+            <button onClick={() => loadProducts(debouncedQuery)} className="btn btn-primary">
               {t('common.tryAgain')}
             </button>
           </div>
@@ -263,41 +338,62 @@ export default function BrowsePage() {
   return (
     <Layout title={t('browse.title')} description={t('browse.heading')}>
       <div className="app-page pb-12">
-        <section className="container mx-auto px-4 pt-8 sm:pt-10">
-          <form onSubmit={handleCommandBarSubmit} className="mx-auto max-w-3xl">
-            <div className="hero-command-bar flex flex-col sm:flex-row sm:items-stretch">
-              <div className="relative flex flex-1 items-center">
-                <Search
-                  className="pointer-events-none absolute start-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
-                  aria-hidden="true"
-                />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={e => {
-                    const next = e.target.value;
-                    setSearchQuery(next);
-                    const validation = defaultTextInputValidator.validate(next);
-                    setSearchError(validation.isValid ? '' : validation.message ?? '');
-                  }}
-                  placeholder={t('home.heroSearchPlaceholder')}
-                  className="hero-command-input ps-12"
-                  aria-label={t('search.placeholder')}
-                />
+        {/* Sticky command bar — pins below the header so users can edit the
+            search query without scrolling all the way back up. */}
+        <div className="browse-sticky-bar sticky top-16 z-30">
+          <div className="container mx-auto px-4 py-4 sm:py-5">
+            <form onSubmit={handleCommandBarSubmit} className="mx-auto max-w-3xl">
+              <div className="hero-command-bar flex flex-col sm:flex-row sm:items-stretch">
+                <div className="relative flex flex-1 items-center">
+                  <Search
+                    className="pointer-events-none absolute start-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={e => {
+                      const next = e.target.value;
+                      setSearchQuery(next);
+                      const validation = defaultTextInputValidator.validate(next);
+                      setSearchError(validation.isValid ? '' : validation.message ?? '');
+                    }}
+                    placeholder={t('home.heroSearchPlaceholder')}
+                    className="hero-command-input ps-12 pe-10"
+                    aria-label={t('search.placeholder')}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchError('');
+                        setDebouncedQuery('');
+                        syncUrlQuery('');
+                      }}
+                      className="absolute end-4 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={t('common.clear', 'Clear')}
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+                <button type="submit" className="hero-command-submit justify-center sm:justify-start">
+                  <Search className="h-4 w-4" aria-hidden="true" />
+                  <span>{t('home.heroSearchCta')}</span>
+                </button>
               </div>
-              <button type="submit" className="hero-command-submit justify-center sm:justify-start">
-                <Search className="h-4 w-4" aria-hidden="true" />
-                <span>{t('home.heroSearchCta')}</span>
-              </button>
-            </div>
-          </form>
-          {searchError && (
-            <p className="mx-auto mt-2 max-w-3xl text-center text-sm font-medium text-red-600">
-              {searchError}
-            </p>
-          )}
+            </form>
+            {searchError && (
+              <p className="mx-auto mt-2 max-w-3xl text-center text-sm font-medium text-red-600">
+                {searchError}
+              </p>
+            )}
+          </div>
+        </div>
 
-          <div className="mt-5 flex w-full items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0">
+        <section className="container mx-auto px-4 pt-6">
+          <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0">
             <button
               type="button"
               onClick={() => handleFilterChange({ categories: [], category: undefined })}
@@ -330,8 +426,14 @@ export default function BrowsePage() {
         <section className="container mx-auto px-4 pt-8">
           <div className="mb-5 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="section-heading">{t('browse.heading')}</h1>
-              <p className="section-subhead">{t('browse.productCount', { count: products.length })}</p>
+              <h1 className="section-heading">
+                {debouncedQuery
+                  ? t('search.resultsFor', { count: products.length, query: debouncedQuery })
+                  : t('browse.heading')}
+              </h1>
+              {!debouncedQuery && (
+                <p className="section-subhead">{t('browse.productCount', { count: products.length })}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -475,11 +577,27 @@ export default function BrowsePage() {
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-50">
                       <Search className="h-8 w-8 text-primary-600" />
                     </div>
-                    <h2 className="mb-2 text-xl font-bold text-slate-950">{t('common.noProducts')}</h2>
-                    <p className="mb-6 text-slate-600">{t('browse.noProductsMatch')}</p>
+                    <h2 className="mb-2 text-xl font-bold text-slate-950">
+                      {debouncedQuery
+                        ? t('search.noResultsFor', { query: debouncedQuery })
+                        : t('common.noProducts')}
+                    </h2>
+                    <p className="mb-6 text-slate-600">
+                      {debouncedQuery
+                        ? t('search.noResultsSuggestion')
+                        : t('browse.noProductsMatch')}
+                    </p>
                     <div className="flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
-                      {hasActiveFilters && (
-                        <button onClick={clearFilters} className="btn btn-outline">
+                      {(hasActiveFilters || debouncedQuery) && (
+                        <button
+                          onClick={() => {
+                            clearFilters();
+                            setSearchQuery('');
+                            setDebouncedQuery('');
+                            syncUrlQuery('');
+                          }}
+                          className="btn btn-outline"
+                        >
                           {t('filters.resetFilters')}
                         </button>
                       )}

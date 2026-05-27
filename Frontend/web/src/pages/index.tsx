@@ -217,14 +217,9 @@ export default function Home() {
     }
 
     const params = new URLSearchParams();
+    if (trimmedQuery) params.set('q', trimmedQuery);
     if (selectedRegion) params.set('region', selectedRegion);
-
-    if (trimmedQuery) {
-      params.set('q', trimmedQuery);
-      router.push(`/search?${params.toString()}`);
-    } else {
-      router.push(`/browse${params.toString() ? `?${params.toString()}` : ''}`);
-    }
+    router.push(`/browse${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   const scrollToNextSection = () => {
