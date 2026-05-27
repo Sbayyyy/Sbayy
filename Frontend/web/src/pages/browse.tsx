@@ -225,7 +225,12 @@ export default function BrowsePage() {
 
   const syncUrlQuery = (q: string) => {
     if (!router.isReady) return;
-    const next: Record<string, string | string[]> = { ...router.query };
+    const next: Record<string, string | string[]> = {};
+    for (const [key, value] of Object.entries(router.query)) {
+      if (typeof value === 'string' || Array.isArray(value)) {
+        next[key] = value;
+      }
+    }
     if (q) next.q = q;
     else delete next.q;
     router.replace({ pathname: router.pathname, query: next }, undefined, { shallow: true, scroll: false });

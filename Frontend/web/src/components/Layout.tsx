@@ -62,7 +62,8 @@ export default function Layout({
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://syrian-bay.com').replace(/\/+$/, '');
 
   // Strip query + hash so the canonical URL stays clean.
-  const cleanPath = seo?.path ?? (router.asPath || '/').split('#')[0].split('?')[0] || '/';
+  const routePath = (router.asPath || '/').split('#')[0].split('?')[0] || '/';
+  const cleanPath = seo?.path ?? routePath;
 
   // Robots: noindex is automatic for these private routes; pages can override via seo.noindex.
   const privatePrefixes = [
