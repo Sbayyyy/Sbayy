@@ -103,15 +103,18 @@ namespace SBay.Domain.Database
             if (q.MaxPrice.HasValue)
                 query = query.Where(l => l.Price.Amount <= q.MaxPrice.Value);
 
-            var regions = SplitCsv(q.Region);
+            var regions = SplitCsv(q.Region)
+                .Select(r => r.ToLowerInvariant())
+                .Distinct()
+                .ToArray();
             if (regions.Length == 1)
             {
                 var only = regions[0];
-                query = query.Where(l => l.Region == only);
+                query = query.Where(l => l.Region != null && l.Region.ToLower() == only);
             }
             else if (regions.Length > 1)
             {
-                query = query.Where(l => l.Region != null && regions.Contains(l.Region));
+                query = query.Where(l => l.Region != null && regions.Contains(l.Region.ToLower()));
             }
 
             var conditions = SplitCsv(q.Condition)
