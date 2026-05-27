@@ -20,24 +20,27 @@ export default function SellerGuide() {
         <title>{t('sellerGuide.pageTitle')}</title>
       </Head>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="info-page">
+        <div className="info-shell max-w-4xl">
+          <section className="info-hero">
+            <span className="info-kicker">{t('footer.sellerGuide')}</span>
+            <h1 className="info-title">
             {t('sellerGuide.title')}
           </h1>
-          <p className="text-gray-600 mb-8">{t('sellerGuide.subtitle')}</p>
+            <p className="info-subtitle">{t('sellerGuide.subtitle')}</p>
+          </section>
 
-          <div className="space-y-8">
+          <div className="space-y-4">
             {SECTIONS.map((key, index) => (
-              <div key={key} className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-lg">
+              <div key={key} className="info-card flex gap-4">
+                <div className="info-step-number">
                   {index + 1}
                 </div>
-                <div className="flex-1 border-l-4 border-primary-500 pl-4">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                <div className="flex-1">
+                  <h2 className="mb-2 text-xl font-semibold text-slate-950">
                     {t(`sellerGuide.sections.${key}.title`)}
                   </h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <p className="leading-7 text-slate-600">
                     {t(`sellerGuide.sections.${key}.content`)}
                   </p>
                 </div>

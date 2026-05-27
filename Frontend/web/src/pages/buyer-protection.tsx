@@ -23,45 +23,48 @@ export default function BuyerProtection() {
         <meta name="description" content={t('buyerProtection.subtitle')} />
       </Head>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="info-page">
+        <div className="info-shell max-w-4xl">
+          <section className="info-hero">
+            <span className="info-kicker">{t('footer.buyerProtection')}</span>
+            <h1 className="info-title">
             {t('buyerProtection.title')}
           </h1>
-          <p className="text-gray-600 mb-8">
+            <p className="info-subtitle">
             {t('buyerProtection.subtitle')}
           </p>
+          </section>
 
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="mb-8 grid gap-5 md:grid-cols-2">
             {SECTIONS.map(({ key, Icon }) => (
               <div
                 key={key}
-                className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                className="info-card"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center">
-                    <Icon className="w-5 h-5" />
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="info-icon">
+                    <Icon className="h-5 w-5" />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-lg font-semibold text-slate-950">
                     {t(`buyerProtection.sections.${key}.title`)}
                   </h2>
                 </div>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="leading-7 text-slate-600">
                   {t(`buyerProtection.sections.${key}.content`)}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          <div className="info-muted-panel">
+            <h2 className="mb-4 text-xl font-semibold text-slate-950">
               {t('buyerProtection.tips.title')}
             </h2>
             <ul className="space-y-3">
               {TIP_ITEMS.map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">
+                  <CheckCircle className="info-list-check" />
+                  <span className="leading-6 text-slate-700">
                     {t(`buyerProtection.tips.items.${item}`)}
                   </span>
                 </li>

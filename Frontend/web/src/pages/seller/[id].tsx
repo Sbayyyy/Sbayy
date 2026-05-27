@@ -113,9 +113,9 @@ export default function SellerProfilePage() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-600">
-            <Loader2 className="w-8 h-8 animate-spin" />
+        <div className="app-page flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-slate-600">
+            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
             <span>{t('sellerProfile.loading')}</span>
           </div>
         </div>
@@ -126,8 +126,8 @@ export default function SellerProfilePage() {
   if (!seller) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center text-gray-600">{t('sellerProfile.notFound')}</div>
+        <div className="app-page flex items-center justify-center">
+          <div className="info-panel text-center text-slate-600">{t('sellerProfile.notFound')}</div>
         </div>
       </Layout>
     );
@@ -150,35 +150,35 @@ export default function SellerProfilePage() {
         />
       </Head>
 
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-            <div className="flex flex-col md:flex-row gap-6">
+      <div className="app-page">
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          <div className="surface-card mb-6 p-6">
+            <div className="flex flex-col gap-6 md:flex-row">
               <div className="flex-shrink-0">
                 {seller.avatar ? (
                   <img
                     src={seller.avatar}
                     alt={seller.name}
-                    className="w-28 h-28 rounded-full object-cover"
+                    className="h-28 w-28 rounded-full object-cover ring-4 ring-white"
                   />
                 ) : (
-                  <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center">
-                    <UserIcon className="w-12 h-12 text-gray-400" />
+                  <div className="flex h-28 w-28 items-center justify-center rounded-full bg-slate-100 ring-4 ring-white">
+                    <UserIcon className="h-12 w-12 text-slate-400" />
                   </div>
                 )}
               </div>
 
               <div className="flex-1">
-                <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="mb-3 flex items-start justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{seller.name}</h1>
-                    <div className="flex items-center gap-2 mt-2">
+                    <h1 className="section-heading">{seller.name}</h1>
+                    <div className="mt-2 flex items-center gap-2">
                       <RatingStars rating={averageRating} size="md" showNumber />
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-slate-600">
                         {averageRating.toFixed(1)} | {t('sellerProfile.reviews', { count: reviewTotal })}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-600">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         <span>{t('sellerProfile.joined', { date: formatDate(seller.createdAt) })}</span>
@@ -193,13 +193,13 @@ export default function SellerProfilePage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 mt-4">
+                <div className="mt-4 flex flex-wrap gap-3">
 
                   <button
                     onClick={() => setReportOpen(true)}
-                    className="flex items-center gap-2 border border-red-300 text-red-700 px-5 py-2.5 rounded-lg hover:bg-red-50 transition-colors"
+                    className="btn border border-red-200 bg-white text-red-700 hover:bg-red-50"
                   >
-                    <AlertCircle className="w-5 h-5" />
+                    <AlertCircle className="h-5 w-5" />
                     {t('report.actions.report', { defaultValue: 'Report' })}
                   </button>
                 </div>
@@ -216,44 +216,44 @@ export default function SellerProfilePage() {
             />
           ) : null}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-2xl shadow-sm p-5">
-              <div className="flex items-center gap-2 text-gray-600 mb-1">
-                <Package className="w-4 h-4" />
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="surface-card p-5">
+              <div className="mb-1 flex items-center gap-2 text-slate-600">
+                <Package className="h-4 w-4" />
                 <span className="text-xs uppercase tracking-wide">{t('sellerProfile.itemsSold')}</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{seller.totalOrders}</p>
-              <p className="text-xs text-gray-500 mt-1">{t('sellerProfile.completedSales')}</p>
+              <p className="text-2xl font-bold text-slate-950">{seller.totalOrders}</p>
+              <p className="mt-1 text-xs text-slate-500">{t('sellerProfile.completedSales')}</p>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm p-5">
-              <div className="flex items-center gap-2 text-gray-600 mb-1">
-                <Star className="w-4 h-4" />
+            <div className="surface-card p-5">
+              <div className="mb-1 flex items-center gap-2 text-slate-600">
+                <Star className="h-4 w-4" />
                 <span className="text-xs uppercase tracking-wide">{t('sellerProfile.averageRating')}</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{averageRating.toFixed(1)}</p>
-              <p className="text-xs text-gray-500 mt-1">{t('sellerProfile.totalReviews', { count: reviewTotal })}</p>
+              <p className="text-2xl font-bold text-slate-950">{averageRating.toFixed(1)}</p>
+              <p className="mt-1 text-xs text-slate-500">{t('sellerProfile.totalReviews', { count: reviewTotal })}</p>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm p-5">
-              <div className="flex items-center gap-2 text-gray-600 mb-1">
-                <CheckCircle className="w-4 h-4" />
+            <div className="surface-card p-5">
+              <div className="mb-1 flex items-center gap-2 text-slate-600">
+                <CheckCircle className="h-4 w-4" />
                 <span className="text-xs uppercase tracking-wide">{t('sellerProfile.positiveFeedback')}</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-slate-950">
                 {hasReviewStats ? `${positiveFeedback}%` : t('sellerProfile.noStats')}
               </p>
-              <p className="text-xs text-gray-500 mt-1">{t('sellerProfile.basedOnReviews')}</p>
+              <p className="mt-1 text-xs text-slate-500">{t('sellerProfile.basedOnReviews')}</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm mb-6">
-            <div className="border-b border-gray-200">
+          <div className="surface-card mb-6 overflow-hidden">
+            <div className="border-b border-slate-200">
               <div className="flex">
                 <button
                   onClick={() => setActiveTab('products')}
                   className={`flex-1 px-6 py-4 font-medium transition-colors ${
                     activeTab === 'products'
-                      ? 'text-primary border-b-2 border-primary'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'border-b-2 border-primary-600 text-primary-700'
+                      : 'text-slate-600 hover:text-slate-950'
                   }`}
                 >
                   {t('sellerProfile.tabListings', { count: products.length })}
@@ -262,8 +262,8 @@ export default function SellerProfilePage() {
                   onClick={() => setActiveTab('reviews')}
                   className={`flex-1 px-6 py-4 font-medium transition-colors ${
                     activeTab === 'reviews'
-                      ? 'text-primary border-b-2 border-primary'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'border-b-2 border-primary-600 text-primary-700'
+                      : 'text-slate-600 hover:text-slate-950'
                   }`}
                 >
                   {t('sellerProfile.tabReviews', { count: reviewTotal })}
@@ -281,21 +281,21 @@ export default function SellerProfilePage() {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">{t('sellerProfile.noListings')}</p>
+                    <Package className="mx-auto mb-4 h-16 w-16 text-slate-300" />
+                    <p className="text-slate-500">{t('sellerProfile.noListings')}</p>
                   </div>
                 )
               ) : (
                 <div className="space-y-8">
-                  <div className="bg-gray-50 rounded-xl p-6">
+                  <div className="rounded-2xl border border-slate-200/70 bg-slate-50/70 p-6">
                     {hasReviewStats ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="text-center">
-                          <div className="text-4xl font-bold text-gray-900 mb-2">
+                          <div className="mb-2 text-4xl font-bold text-slate-950">
                             {averageRating.toFixed(1)}
                           </div>
                           <RatingStars rating={averageRating} size="md" showNumber={false} />
-                          <p className="text-sm text-gray-600 mt-2">
+                          <p className="mt-2 text-sm text-slate-600">
                             {t('sellerProfile.totalRatings', { count: reviewTotal })}
                           </p>
                         </div>
@@ -303,13 +303,13 @@ export default function SellerProfilePage() {
                           {[5, 4, 3, 2, 1].map((stars) => (
                             <div key={stars} className="flex items-center gap-3">
                               <span className="text-sm w-12">{t('sellerProfile.star', { count: stars })}</span>
-                              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200">
                                 <div
-                                  className="h-full bg-primary"
+                                  className="h-full bg-primary-600"
                                   style={{ width: `${getDistributionPercent(stars as 1 | 2 | 3 | 4 | 5)}%` }}
                                 />
                               </div>
-                              <span className="text-sm text-gray-600 w-12 text-right">
+                              <span className="w-12 text-right text-sm text-slate-600">
                                 {getDistributionPercent(stars as 1 | 2 | 3 | 4 | 5)}%
                               </span>
                             </div>
@@ -317,7 +317,7 @@ export default function SellerProfilePage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center text-sm text-gray-500">{t('sellerProfile.noStats')}</div>
+                      <div className="text-center text-sm text-slate-500">{t('sellerProfile.noStats')}</div>
                     )}
                   </div>
 

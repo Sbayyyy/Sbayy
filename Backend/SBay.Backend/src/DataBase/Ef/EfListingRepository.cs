@@ -89,8 +89,16 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             _db.Users.Any(u => u.Id == l.SellerId && u.Status == "active"));
     var isPostgres = _isPostgres;
 
-    if (!string.IsNullOrEmpty(q.Category))
-        query = query.Where(l => l.CategoryPath != null && l.CategoryPath.StartsWith(q.Category));
+    var categories = SplitCsv(q.Category);
+    if (categories.Length == 1)
+    {
+        var only = categories[0];
+        query = query.Where(l => l.CategoryPath != null && l.CategoryPath.StartsWith(only));
+    }
+    else if (categories.Length > 1)
+    {
+        query = query.Where(l => l.CategoryPath != null && categories.Contains(l.CategoryPath));
+    }
 
     if (q.MinPrice.HasValue)
         query = query.Where(l => l.Price.Amount >= q.MinPrice.Value);
@@ -98,14 +106,30 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
     if (q.MaxPrice.HasValue)
         query = query.Where(l => l.Price.Amount <= q.MaxPrice.Value);
 
-    if (!string.IsNullOrEmpty(q.Region))
-        query = query.Where(l => l.Region == q.Region);
-
-    if (!string.IsNullOrWhiteSpace(q.Condition))
+    var regions = SplitCsv(q.Region);
+    if (regions.Length == 1)
     {
-        var parsedCondition = ItemConditionExtensions.FromString(q.Condition);
-        if (parsedCondition != ItemCondition.Unknown)
-            query = query.Where(l => l.Condition == parsedCondition);
+        var only = regions[0];
+        query = query.Where(l => l.Region == only);
+    }
+    else if (regions.Length > 1)
+    {
+        query = query.Where(l => l.Region != null && regions.Contains(l.Region));
+    }
+
+    var conditions = SplitCsv(q.Condition)
+        .Select(c => ItemConditionExtensions.FromString(c))
+        .Where(c => c != ItemCondition.Unknown)
+        .Distinct()
+        .ToArray();
+    if (conditions.Length == 1)
+    {
+        var only = conditions[0];
+        query = query.Where(l => l.Condition == only);
+    }
+    else if (conditions.Length > 1)
+    {
+        query = query.Where(l => conditions.Contains(l.Condition));
     }
 
     if (q.Featured)
@@ -169,6 +193,15 @@ public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, Cancellati
             return input.Replace(@"\", @"\\")
                 .Replace("%", @"\%")
                 .Replace("_", @"\_");
+        }
+
+        private static string[] SplitCsv(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return Array.Empty<string>();
+            return value
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct()
+                .ToArray();
         }
         public async Task<IReadOnlyList<Listing>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
         {

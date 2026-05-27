@@ -57,20 +57,29 @@ export const getListingsBySeller = async (sellerId: string): Promise<Product[]> 
 /**
  * Alle Listings abrufen (mit Pagination und Filtern)
  */
+const joinCsv = (values?: string[]) => {
+  if (!values || values.length === 0) return undefined;
+  return values.filter(Boolean).join(',') || undefined;
+};
+
 export const getAllListings = async (
   page = 1,
   limit = 20,
   filters?: SearchFilters
 ): Promise<SearchResponse> => {
+  const category = joinCsv(filters?.categories) ?? filters?.category;
+  const condition = joinCsv(filters?.conditions) ?? filters?.condition;
+  const region = joinCsv(filters?.regions) ?? filters?.region;
+
   const response = await api.get('/listings', {
     params: {
       page,
       pageSize: limit, // Backend uses 'pageSize' not 'limit'
-      category: filters?.category,
+      category,
       minPrice: filters?.minPrice,
       maxPrice: filters?.maxPrice,
-      condition: filters?.condition,
-      region: filters?.region,
+      condition,
+      region,
     }
   });
 

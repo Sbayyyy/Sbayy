@@ -24,9 +24,9 @@ export const HOMEPAGE_CATEGORIES = CATEGORIES.filter(c =>
   ['cars', 'electronics', 'furniture', 'home', 'fashion', 'books', 'sports', 'other'].includes(c.id)
 );
 
-export const FILTER_CATEGORIES = CATEGORIES.filter(c =>
-  ['electronics', 'fashion', 'home', 'cars', 'real-estate'].includes(c.id)
-);
+export const FILTER_CATEGORIES = ['cars', 'electronics', 'real-estate', 'fashion', 'furniture', 'home', 'books', 'sports']
+  .map(id => CATEGORIES.find(c => c.id === id))
+  .filter((c): c is CategoryDefinition => Boolean(c));
 
 export const SELL_CATEGORIES = CATEGORIES.filter(c =>
   ['electronics', 'fashion', 'home', 'cars', 'real-estate', 'other'].includes(c.id)

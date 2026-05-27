@@ -19,10 +19,22 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [unreadTotal, setUnreadTotal] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
   const redirectParam = encodeURIComponent(router.asPath);
   const loginHref = `/auth/login?redirect=${redirectParam}`;
   const registerHref = `/auth/register?redirect=${redirectParam}`;
   const isAdmin = user?.role === 'admin';
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 16);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const detached = scrolled || mobileMenuOpen;
 
   const handleLogout = () => {
     logout();
@@ -87,7 +99,14 @@ export default function Header() {
   }, [isAuthenticated, user?.id]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 shadow-sm backdrop-blur-xl">
+    <header
+      data-detached={detached || undefined}
+      className={`sticky top-0 z-50 transition-all duration-300 ease-out ${
+        detached
+          ? 'header-detached border-b border-slate-200/70 bg-white/90 backdrop-blur-xl'
+          : 'border-b border-transparent bg-transparent'
+      }`}
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-8">

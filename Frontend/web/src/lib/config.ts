@@ -47,7 +47,7 @@ const getConfig = (): Config => {
     // API Configuration
     apiUrl: normalizeApiUrl(rawApiUrl),
     supportEmail: runtimeSupportEmail || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@syrian-bay.com',
-    logoUrl: runtimeLogoUrl || process.env.NEXT_PUBLIC_LOGO_URL || '/assets/sbaylogo.png',
+    logoUrl: runtimeLogoUrl || process.env.NEXT_PUBLIC_LOGO_URL || '/assets/sbaylogo2.png',
     apiTimeout: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000', 10),
     maxRetries: parseInt(process.env.NEXT_PUBLIC_MAX_RETRIES || '3', 10),
     

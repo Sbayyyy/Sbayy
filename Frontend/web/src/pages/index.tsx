@@ -7,10 +7,10 @@ import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ProductCardSkeleton from '@/components/ProductCardSkeleton';
-import { Check, ChevronDown, Search, MapPin, Package } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, MapPin, MessageCircle, Package, PlusCircle, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import { CITIES, HOMEPAGE_CATEGORIES, getCategoryName, getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
+import { CITIES, HOMEPAGE_CATEGORIES, getCategoryDescription, getCategoryName, getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 
 export default function Home() {
   const router = useRouter();
@@ -220,94 +220,214 @@ export default function Home() {
     router.push(`/search${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
+  const handleCommandBarMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty('--glow-x', `${event.clientX - rect.left}px`);
+    event.currentTarget.style.setProperty('--glow-y', `${event.clientY - rect.top}px`);
+  };
+
+  const heroTrustItems = [
+    { icon: Check, label: t('home.heroTrustFree') },
+    { icon: ShieldCheck, label: t('home.heroTrustProtection') },
+    { icon: MessageCircle, label: t('home.heroTrustMessaging') },
+  ];
+
+  const POPULAR_HERO_CATEGORY_IDS = ['cars', 'electronics', 'furniture', 'fashion'];
+  const heroChipCategories = POPULAR_HERO_CATEGORY_IDS
+    .map(id => HOMEPAGE_CATEGORIES.find(c => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c));
+
   return (
-    <Layout title={t('home.title')}>
-      <div className="app-page space-y-8 py-6">
-        <div className="container mx-auto px-4">
-          <div className="surface-card relative z-20 overflow-visible p-5 sm:p-6">
-            <div className="mx-auto max-w-4xl space-y-4">
-              <form onSubmit={handleSearch} className="grid gap-3 md:grid-cols-[1fr_15rem]">
-                <div className="relative">
-                  <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setSearchQuery(next);
-                      const validation = defaultTextInputValidator.validate(next);
-                      setSearchError(validation.isValid ? '' : validation.message ?? 'Input contains disallowed content');
-                    }}
-                    placeholder={t('home.searchPlaceholder')}
-                    className="input h-14 rounded-2xl pr-11"
-                  />
-                </div>
-                <div ref={regionMenuRef} className={`relative ${regionMenuOpen ? 'z-50' : 'z-0'}`}>
-                  <button
-                    ref={regionTriggerRef}
-                    type="button"
-                    onClick={() => (regionMenuOpen ? closeRegionMenu() : openRegionMenu())}
-                    onKeyDown={handleRegionTriggerKeyDown}
-                    className="input flex h-14 items-center justify-between rounded-2xl text-left"
-                    aria-expanded={regionMenuOpen}
-                    aria-haspopup="listbox"
-                    aria-controls="home-region-listbox"
-                    aria-label={t('home.regionSelect', 'Select region')}
+    <Layout title={t('home.title')} description={t('home.heroSubtitle')}>
+      <div className="app-page space-y-10 pb-8">
+        <section className="hero-section relative">
+          <div aria-hidden="true" className="hero-ambient pointer-events-none absolute inset-0" />
+
+          <div className="container relative mx-auto px-4 pb-14 pt-12 sm:pb-20 sm:pt-16 lg:pb-24 lg:pt-24">
+            <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+              <div
+                className="hero-fade-up inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur"
+                style={{ animationDelay: '0ms' }}
+              >
+                <span className="hero-eyebrow-dot" aria-hidden="true" />
+                <span>{t('home.heroEyebrow')}</span>
+              </div>
+
+              <h1
+                className="hero-headline hero-fade-up mt-6 text-5xl font-extrabold leading-[1.05] text-slate-950 sm:text-6xl lg:text-7xl"
+                style={{ animationDelay: '80ms' }}
+              >
+                {t('home.heroTitle')}
+              </h1>
+
+              <p
+                className="hero-fade-up mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8"
+                style={{ animationDelay: '160ms' }}
+              >
+                {t('home.heroSubtitle')}
+              </p>
+
+              <div
+                className="hero-fade-up mt-10 w-full"
+                style={{ animationDelay: '240ms' }}
+              >
+                <form onSubmit={handleSearch}>
+                  <div
+                    className="hero-command-bar mx-auto flex flex-col sm:flex-row sm:items-stretch"
+                    onMouseMove={handleCommandBarMouseMove}
                   >
-                    <span className="truncate">{selectedRegionLabel || t('home.allRegions', 'All regions')}</span>
-                    <ChevronDown className={`h-5 w-5 flex-shrink-0 text-slate-500 transition-transform ${regionMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {regionMenuOpen && (
-                    <div
-                      id="home-region-listbox"
-                      ref={regionListboxRef}
-                      role="listbox"
-                      tabIndex={-1}
-                      aria-activedescendant={activeRegionOptionId}
-                      onKeyDown={handleRegionListboxKeyDown}
-                      className="absolute left-0 right-0 top-full z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
-                    >
-                      {regionOptions.map((option, index) => {
-                        const selected = selectedRegion === option.value;
-                        const active = activeRegionIndex === index;
-
-                        return (
-                          <div
-                            key={option.value || 'all'}
-                            id={`home-region-option-${option.value || 'all'}`}
-                            role="option"
-                            aria-selected={selected}
-                            onClick={() => {
-                              setActiveRegionIndex(index);
-                              selectRegionOption(index);
-                            }}
-                            onMouseEnter={() => setActiveRegionIndex(index)}
-                            className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                              selected
-                                ? 'bg-primary-50 text-primary-700'
-                                : active
-                                  ? 'bg-slate-100 text-slate-950'
-                                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
-                            } ${active ? 'ring-2 ring-primary-200' : ''}`}
-                          >
-                            <span className="truncate">{option.label}</span>
-                            {selected && <Check className="h-4 w-4 flex-shrink-0" />}
-                          </div>
-                        );
-                      })}
+                    <div className="relative flex flex-1 items-center">
+                      <Search className="pointer-events-none absolute start-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                      <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setSearchQuery(next);
+                          const validation = defaultTextInputValidator.validate(next);
+                          setSearchError(validation.isValid ? '' : validation.message ?? 'Input contains disallowed content');
+                        }}
+                        placeholder={t('home.heroSearchPlaceholder')}
+                        className="hero-command-input ps-12"
+                        aria-label={t('home.heroSearchPlaceholder')}
+                      />
                     </div>
-                  )}
-                </div>
-              </form>
-              {searchError && <p className="text-sm font-medium text-red-600">{searchError}</p>}
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <MapPin className="h-4 w-4" />
-                <span>{selectedRegionLabel || t('home.allRegions', 'All regions')}</span>
+
+                    <div className="hero-command-divider hidden sm:block" aria-hidden="true" />
+
+                    <div
+                      ref={regionMenuRef}
+                      className={`relative flex items-center sm:w-56 ${regionMenuOpen ? 'z-50' : 'z-0'}`}
+                    >
+                      <button
+                        ref={regionTriggerRef}
+                        type="button"
+                        onClick={() => (regionMenuOpen ? closeRegionMenu() : openRegionMenu())}
+                        onKeyDown={handleRegionTriggerKeyDown}
+                        className="hero-command-region flex w-full items-center gap-2 text-start"
+                        aria-expanded={regionMenuOpen}
+                        aria-haspopup="listbox"
+                        aria-controls="home-region-listbox"
+                        aria-label={t('home.regionSelect', 'Select region')}
+                      >
+                        <MapPin className="h-4 w-4 flex-shrink-0 text-primary-600" aria-hidden="true" />
+                        <span className="flex-1 truncate text-sm font-medium text-slate-800">
+                          {selectedRegionLabel || t('home.allRegions', 'All regions')}
+                        </span>
+                        <ChevronDown className={`h-4 w-4 flex-shrink-0 text-slate-400 transition-transform ${regionMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                      </button>
+
+                      {regionMenuOpen && (
+                        <div
+                          id="home-region-listbox"
+                          ref={regionListboxRef}
+                          role="listbox"
+                          tabIndex={-1}
+                          aria-activedescendant={activeRegionOptionId}
+                          onKeyDown={handleRegionListboxKeyDown}
+                          className="hero-region-listbox"
+                        >
+                          {regionOptions.map((option, index) => {
+                            const selected = selectedRegion === option.value;
+                            const active = activeRegionIndex === index;
+
+                            return (
+                              <div
+                                key={option.value || 'all'}
+                                id={`home-region-option-${option.value || 'all'}`}
+                                role="option"
+                                aria-selected={selected}
+                                onClick={() => {
+                                  setActiveRegionIndex(index);
+                                  selectRegionOption(index);
+                                }}
+                                onMouseEnter={() => setActiveRegionIndex(index)}
+                                className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                                  selected
+                                    ? 'bg-primary-50 text-primary-700'
+                                    : active
+                                      ? 'bg-slate-100 text-slate-950'
+                                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                                }`}
+                              >
+                                <span className="truncate">{option.label}</span>
+                                {selected && <Check className="h-4 w-4 flex-shrink-0" aria-hidden="true" />}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <button type="submit" className="hero-command-submit justify-center sm:justify-start">
+                      <Search className="h-4 w-4" aria-hidden="true" />
+                      <span>{t('home.heroSearchCta')}</span>
+                    </button>
+                  </div>
+                </form>
+
+                {searchError && (
+                  <p className="mt-3 text-sm font-medium text-red-600" role="alert">{searchError}</p>
+                )}
+              </div>
+
+              <div
+                className="hero-fade-up mt-6 flex w-full items-center gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0"
+                style={{ animationDelay: '320ms' }}
+                aria-label={t('home.heroTrendingLabel')}
+              >
+                <span className="hidden items-center gap-1.5 pe-1 text-xs font-semibold uppercase tracking-wide text-slate-400 sm:inline-flex">
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                  {t('home.heroTrendingLabel')}
+                </span>
+                {heroChipCategories.map((category) => (
+                  <Link
+                    key={category.id}
+                    href={`/category/${category.slug}`}
+                    onClick={() => void trackInteraction(category.slug, 'category_click')}
+                    className="hero-chip"
+                  >
+                    <span className="hero-chip-icon" aria-hidden="true">{category.icon}</span>
+                    <span className="truncate">{getCategoryName(category, i18n.language)}</span>
+                  </Link>
+                ))}
+              </div>
+
+              <div
+                className="hero-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row sm:gap-5"
+                style={{ animationDelay: '400ms' }}
+              >
+                <Link href="/listing/sell" className="hero-cta-primary">
+                  <PlusCircle className="h-5 w-5" aria-hidden="true" />
+                  <span>{t('home.heroPostListing')}</span>
+                  <span className="hero-cta-free-badge">{t('home.heroPostFree')}</span>
+                </Link>
+                <Link href="/browse" className="hero-cta-secondary">
+                  <span>{t('home.heroBrowseListings')}</span>
+                  <ArrowRight className="hero-cta-arrow" aria-hidden="true" />
+                </Link>
+              </div>
+
+              <div
+                className="hero-fade-up hero-trust-row mt-9 flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
+                style={{ animationDelay: '480ms' }}
+              >
+                {heroTrustItems.map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <span key={item.label} className="inline-flex items-center gap-x-4">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>{item.label}</span>
+                      </span>
+                      {idx < heroTrustItems.length - 1 && <span className="hero-trust-dot" aria-hidden="true" />}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {recommendedProducts.length > 0 && (
           <div className="container mx-auto px-4">
@@ -323,21 +443,38 @@ export default function Home() {
         )}
 
         <div className="container mx-auto px-4">
-          <div className="surface-card p-5 sm:p-6">
-            <h3 className="mb-4 text-xl font-bold text-slate-950">{t('home.browseCategories')}</h3>
-            <div className="grid grid-cols-4 gap-3 md:grid-cols-8">
-              {HOMEPAGE_CATEGORIES.map((category) => (
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-950 sm:text-3xl">{t('home.categoriesHeading')}</h2>
+              <p className="mt-1 text-sm text-slate-600 sm:text-base">{t('home.categoriesSubtitle')}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {HOMEPAGE_CATEGORIES.map((category) => {
+              const description = getCategoryDescription(category, i18n.language);
+              return (
                 <Link
                   key={category.id}
                   href={`/category/${category.slug}`}
                   onClick={() => void trackInteraction(category.slug, 'category_click')}
-                  className="flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-2xl border border-transparent p-3 text-slate-700 transition-all hover:-translate-y-0.5 hover:border-primary-100 hover:bg-primary-50/60 hover:text-primary-700 hover:shadow-sm"
+                  className="category-card group flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md"
                 >
-                  <span className="text-2xl">{category.icon}</span>
-                  <span className="text-center text-xs font-semibold">{getCategoryName(category, i18n.language)}</span>
+                  <span className="category-card-icon flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-slate-50 text-2xl transition-colors group-hover:bg-primary-50">
+                    {category.icon}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-slate-950 group-hover:text-primary-700">
+                      {getCategoryName(category, i18n.language)}
+                    </span>
+                    {description && (
+                      <span className="mt-0.5 block truncate text-xs leading-5 text-slate-500">
+                        {description}
+                      </span>
+                    )}
+                  </span>
                 </Link>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
 

@@ -27,48 +27,45 @@ export default function AboutPage() {
         <meta name="description" content={t('about.subtitle')} />
       </Head>
 
-      <div className="min-h-screen py-10">
-        <div className="max-w-5xl mx-auto px-4 space-y-12">
-
-          {/* Hero Section */}
-          <section className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-gray-900">
+      <div className="info-page">
+        <div className="info-shell space-y-10">
+          <section className="info-hero">
+            <span className="info-kicker">{t('footer.aboutSbay')}</span>
+            <h1 className="info-title">
               {t('about.title')}
             </h1>
-            <p className="text-xl text-primary-600 font-medium">
+            <p className="mt-3 text-base font-semibold text-primary-700">
               {t('about.subtitle')}
             </p>
-            <p className="text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="info-subtitle">
               {t('about.description')}
             </p>
           </section>
 
-          {/* Mission Section */}
-          <section className="bg-white rounded-lg shadow p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <section className="info-panel">
+            <h2 className="section-heading mb-4">
               {t('about.mission.title')}
             </h2>
-            <p className="text-gray-600 leading-relaxed">
+            <p className="leading-7 text-slate-600">
               {t('about.mission.content')}
             </p>
           </section>
 
-          {/* Values Grid */}
           <section>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {VALUES.map(({ icon: Icon, titleKey, descKey }) => (
                 <div
                   key={titleKey}
-                  className="bg-white rounded-lg shadow p-6 flex items-start gap-4"
+                  className="info-card flex items-start gap-4"
                 >
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
-                    <Icon className="w-6 h-6 text-primary-600" />
+                  <div className="info-icon">
+                    <Icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    <h3 className="mb-1 text-lg font-semibold text-slate-950">
                       {t(titleKey)}
                     </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">
+                    <p className="text-sm leading-6 text-slate-600">
                       {t(descKey)}
                     </p>
                   </div>
@@ -77,13 +74,12 @@ export default function AboutPage() {
             </div>
           </section>
 
-          {/* Stats Bar */}
-          <section className="bg-primary-600 rounded-lg shadow p-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <section className="rounded-2xl bg-slate-950 p-6 sm:p-8">
+            <div className="grid grid-cols-2 gap-4 text-center md:grid-cols-4">
               {STATS.map(({ value, labelKey }) => (
-                <div key={labelKey}>
+                <div key={labelKey} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="text-3xl font-bold text-white">{value}</p>
-                  <p className="text-primary-100 text-sm mt-1">{t(labelKey)}</p>
+                  <p className="mt-1 text-sm text-slate-300">{t(labelKey)}</p>
                 </div>
               ))}
             </div>

@@ -250,12 +250,17 @@ export interface WeeklySales {
 }
 
 // Search & Filter Types
+export type ListingCondition = 'New' | 'Used' | 'Refurbished' | 'LikeNew';
+
 export interface SearchFilters {
   category?: string;
+  categories?: string[];
   minPrice?: number;
   maxPrice?: number;
-  condition?: 'New' | 'Used' | 'Refurbished' | 'LikeNew';
+  condition?: ListingCondition;
+  conditions?: ListingCondition[];
   region?: string;
+  regions?: string[];
   sortBy?: 'price' | 'date' | 'popular';
   sortOrder?: 'asc' | 'desc';
   page?: number;

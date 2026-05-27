@@ -38,18 +38,18 @@ function StepCard({ step, index }: { step: Step; index: number }) {
   const Icon = step.icon;
 
   return (
-    <div className="flex items-start gap-4 bg-white rounded-lg shadow p-5 border-l-4 border-primary-500">
-      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-lg">
+    <div className="info-card flex items-start gap-4">
+      <div className="info-step-number">
         {index + 1}
       </div>
       <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
-          <Icon className="w-5 h-5 text-primary-600" />
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="mb-1 flex items-center gap-2">
+          <Icon className="h-5 w-5 text-primary-600" />
+          <h3 className="text-lg font-semibold text-slate-950">
             {t(step.titleKey)}
           </h3>
         </div>
-        <p className="text-gray-600 text-sm leading-relaxed">
+        <p className="text-sm leading-6 text-slate-600">
           {t(step.descKey)}
         </p>
       </div>
@@ -66,25 +66,21 @@ export default function HowItWorksPage() {
         <meta name="description" content={t('howItWorks.subtitle')} />
       </Head>
 
-      <div className="min-h-screen py-10">
-        <div className="max-w-5xl mx-auto px-4 space-y-12">
-
-          {/* Header */}
-          <section className="text-center space-y-3">
-            <h1 className="text-4xl font-bold text-gray-900">
+      <div className="info-page">
+        <div className="info-shell space-y-10">
+          <section className="info-hero">
+            <span className="info-kicker">{t('footer.howItWorks')}</span>
+            <h1 className="info-title">
               {t('howItWorks.title')}
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="info-subtitle">
               {t('howItWorks.subtitle')}
             </p>
           </section>
 
-          {/* Buyer & Seller Columns */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-
-            {/* For Buyers */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center lg:text-start">
+              <h2 className="section-heading mb-5 text-center lg:text-start">
                 {t('howItWorks.forBuyers')}
               </h2>
               <div className="space-y-4">
@@ -94,9 +90,8 @@ export default function HowItWorksPage() {
               </div>
             </section>
 
-            {/* For Sellers */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center lg:text-start">
+              <h2 className="section-heading mb-5 text-center lg:text-start">
                 {t('howItWorks.forSellers')}
               </h2>
               <div className="space-y-4">

@@ -23,22 +23,27 @@ export default function Terms() {
         <title>{t('terms.pageTitle')}</title>
       </Head>
 
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-2">{t('terms.title')}</h1>
-        <p className="text-sm text-gray-500 mb-6">{t('terms.lastUpdated')}</p>
-        <p className="text-gray-700 mb-10 leading-relaxed">{t('terms.intro')}</p>
+      <div className="info-page">
+        <div className="info-shell max-w-4xl">
+          <section className="info-hero text-start">
+            <span className="info-kicker">{t('footer.termsAndConditions')}</span>
+            <h1 className="info-title">{t('terms.title')}</h1>
+            <p className="mt-3 text-sm font-semibold text-slate-500">{t('terms.lastUpdated')}</p>
+            <p className="info-subtitle mx-0">{t('terms.intro')}</p>
+          </section>
 
-        <div className="space-y-10">
-          {SECTIONS.map((key) => (
-            <section key={key}>
-              <h2 className="text-xl font-semibold mb-3">
-                {t(`terms.sections.${key}.title`)}
-              </h2>
-              <p className="text-gray-700 leading-relaxed">
-                {t(`terms.sections.${key}.content`)}
-              </p>
-            </section>
-          ))}
+          <div className="space-y-4">
+            {SECTIONS.map((key) => (
+              <section key={key} className="info-card">
+                <h2 className="mb-3 text-xl font-semibold text-slate-950">
+                  {t(`terms.sections.${key}.title`)}
+                </h2>
+                <p className="leading-7 text-slate-700">
+                  {t(`terms.sections.${key}.content`)}
+                </p>
+              </section>
+            ))}
+          </div>
         </div>
       </div>
     </Layout>
