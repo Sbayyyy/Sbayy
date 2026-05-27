@@ -207,7 +207,7 @@ export default function FilterSidebar(props: FilterSidebarProps) {
 
   if (!isMobile) {
     return (
-      <aside className="hidden w-64 flex-shrink-0 self-start lg:block">
+      <aside className="hidden w-64 flex-shrink-0 lg:block">
         <div className="surface-card sticky top-24 flex max-h-[calc(100vh-7rem)] flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-200/60 px-5 py-4">
             <h3 className="text-base font-bold text-slate-950">{t('filters.filterResults')}</h3>

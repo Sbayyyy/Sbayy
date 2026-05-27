@@ -268,7 +268,7 @@ export default function Home() {
               </p>
 
               <div
-                className="hero-fade-up mt-10 w-full"
+                className={`hero-fade-up mt-10 w-full ${regionMenuOpen ? 'relative z-[70]' : ''}`}
                 style={{ animationDelay: '240ms' }}
               >
                 <form onSubmit={handleSearch}>
@@ -297,7 +297,7 @@ export default function Home() {
 
                     <div
                       ref={regionMenuRef}
-                      className={`relative flex items-center sm:w-56 ${regionMenuOpen ? 'z-50' : 'z-0'}`}
+                      className={`relative flex items-center sm:w-56 ${regionMenuOpen ? 'z-[60]' : 'z-0'}`}
                     >
                       <button
                         ref={regionTriggerRef}

@@ -231,7 +231,7 @@ export default function SearchPage() {
 
               <div
                 ref={regionMenuRef}
-                className={`relative flex items-center sm:w-56 ${regionMenuOpen ? 'z-50' : 'z-0'}`}
+                className={`relative flex items-center sm:w-56 ${regionMenuOpen ? 'z-[60]' : 'z-0'}`}
               >
                 <button
                   type="button"
