@@ -459,6 +459,7 @@ body {
 
   .hero-section {
     position: relative;
+    overflow-x: clip;
   }
 
   .hero-ambient {
@@ -489,6 +490,8 @@ body {
     --glow-x: 50%;
     --glow-y: 50%;
     position: relative;
+    width: 100%;
+    max-width: 100%;
     border-radius: 28px;
     background: #ffffff;
     border: 1px solid rgba(15, 23, 42, 0.07);
@@ -525,6 +528,7 @@ body {
     background: transparent;
     border: none;
     outline: none;
+    min-width: 0;
     width: 100%;
     height: 64px;
     padding: 0 1.25rem;
@@ -552,6 +556,7 @@ body {
     margin: 4px;
     border-radius: 22px;
     padding: 0 1.5rem;
+    min-width: 0;
     font-weight: 600;
     font-size: 15px;
     background: #2563eb;
@@ -713,6 +718,7 @@ body {
 
   .hero-cta-primary {
     position: relative;
+    max-width: 100%;
     height: 52px;
     padding: 0 1.5rem 0 1.25rem;
     border-radius: 16px;
@@ -735,6 +741,7 @@ body {
 
   .hero-cta-free-badge {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     padding: 3px 8px;
     border-radius: 999px;
@@ -748,6 +755,7 @@ body {
 
   .hero-cta-secondary {
     display: inline-flex;
+    max-width: 100%;
     align-items: center;
     gap: 0.4rem;
     height: 52px;
@@ -883,15 +891,40 @@ body {
       display: none;
     }
 
+    .hero-headline {
+      text-wrap: pretty;
+    }
+
+    .hero-command-bar {
+      border-radius: 22px;
+    }
+
     .hero-command-input,
     .hero-command-region {
-      height: 56px;
+      height: 52px;
       font-size: 15.5px;
     }
 
     .hero-command-submit {
       height: 48px;
       margin: 4px;
+      width: calc(100% - 8px);
+      justify-content: center;
+    }
+
+    .hero-cta-primary,
+    .hero-cta-secondary {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .hero-cta-primary {
+      padding-inline: 1rem;
+    }
+
+    .hero-trust-row {
+      font-size: 12.5px;
+      gap: 0.5rem 0.875rem;
     }
   }
 }
