@@ -289,6 +289,7 @@
     "aboutSbay": "About SBay",
     "howItWorks": "How it works",
     "helpCenter": "Help center",
+    "buyerProtection": "Buyer protection",
     "contactUs": "Contact us",
     "privacyPolicy": "Privacy policy",
     "termsAndConditions": "Terms and conditions",
@@ -876,7 +877,7 @@
   },
   "layout": {
     "defaultTitle": "SBay - Syria's Online Marketplace",
-    "defaultDescription": "An e-commerce platform like eBay designed for Syria"
+    "defaultDescription": "SBay is Syria's online marketplace to buy and sell electronics, fashion, home goods, sports gear, toys, and local listings with secure chat."
   },
   "confirmDialog": {
     "confirm": "Confirm",
@@ -1313,6 +1314,39 @@
         "platform": "Use SBay's built-in messaging system",
         "meet": "Meet in public places for in-person delivery",
         "report": "Report suspicious behavior immediately"
+      }
+    }
+  },
+  "buyerProtection": {
+    "pageTitle": "Buyer Protection - SBay",
+    "title": "Buyer Protection",
+    "subtitle": "Shop local listings with confidence using SBay tools for safer conversations, clearer listings, and faster support.",
+    "sections": {
+      "verifiedListings": {
+        "title": "Clear Listing Information",
+        "content": "Listings include photos, price, condition, category, location, and seller details so you can compare items before contacting a seller."
+      },
+      "secureMessaging": {
+        "title": "Secure Messaging",
+        "content": "Keep conversations inside SBay to preserve message history, discuss item details, and avoid sharing personal contact information too early."
+      },
+      "fraudPrevention": {
+        "title": "Fraud Prevention",
+        "content": "Report suspicious listings, misleading item details, or unsafe buyer-seller behavior. Our team reviews reports and takes action against abuse."
+      },
+      "support": {
+        "title": "Support When You Need It",
+        "content": "If something feels wrong, contact support with the listing link, seller name, screenshots, and message details so we can help quickly."
+      }
+    },
+    "tips": {
+      "title": "Buying Safely on SBay",
+      "items": {
+        "profile": "Review the seller profile, rating, and listing history before making a decision",
+        "messages": "Ask for extra photos, serial numbers, receipts, or condition details through SBay messages",
+        "payment": "Avoid sending money before inspecting the item unless you fully trust the seller and payment method",
+        "meet": "Meet in a public place for local pickup and inspect the item before completing payment",
+        "report": "Report listings or messages that seem suspicious, misleading, or unsafe"
       }
     }
   },

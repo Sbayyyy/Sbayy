@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://syrian-bay.com/sitemap.xml
