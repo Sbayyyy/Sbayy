@@ -220,6 +220,11 @@ export default function Home() {
     router.push(`/search${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
+  const scrollToNextSection = () => {
+    if (typeof window === 'undefined') return;
+    window.scrollBy({ top: window.innerHeight * 0.9, behavior: 'smooth' });
+  };
+
   const handleCommandBarMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     event.currentTarget.style.setProperty('--glow-x', `${event.clientX - rect.left}px`);
@@ -243,7 +248,7 @@ export default function Home() {
         <section className="hero-section relative">
           <div aria-hidden="true" className="hero-ambient pointer-events-none absolute inset-0" />
 
-          <div className="container relative mx-auto px-4 pb-14 pt-12 sm:pb-20 sm:pt-16 lg:pb-24 lg:pt-24">
+          <div className="container relative mx-auto flex min-h-[calc(100vh-4rem)] flex-col justify-center px-4 pb-14 pt-12 sm:pb-16 sm:pt-16 lg:pb-20 lg:pt-20">
             <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
               <div
                 className="hero-fade-up inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur"
@@ -427,6 +432,15 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={scrollToNextSection}
+            className="hero-scroll-hint"
+            aria-label={t('home.heroScrollHint', 'Scroll to explore')}
+          >
+            <ChevronDown className="h-5 w-5" aria-hidden="true" />
+          </button>
         </section>
 
         {recommendedProducts.length > 0 && (
