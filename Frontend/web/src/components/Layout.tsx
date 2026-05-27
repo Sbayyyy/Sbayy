@@ -1,36 +1,71 @@
 import { ReactNode } from 'react';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Header from './Header';
 import Footer from './Footer';
 import VerifyEmailPrompt from './VerifyEmailPrompt';
 import BugReportButton from './BugReportButton';
+import SeoHead from './seo/SeoHead';
 import { useTranslation } from 'next-i18next';
 import { config } from '@/lib/config';
+import { absoluteUrl, type SeoLocale } from '@/lib/seo';
+
+interface LayoutSeoOverrides {
+  title?: string;
+  description?: string;
+  image?: string;
+  imageAlt?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  type?: 'website' | 'article' | 'product';
+  noindex?: boolean;
+  jsonLd?: Array<Record<string, unknown> | null | undefined>;
+  /** Override the canonical path. Defaults to router.asPath (stripped of query/hash). */
+  path?: string;
+}
 
 interface LayoutProps {
   children: ReactNode;
+  /** Convenience for pages that just need a title (back-compat). */
   title?: string;
+  /** Convenience for pages that just need a description (back-compat). */
   description?: string;
   hideHeader?: boolean;
   hideFooter?: boolean;
+  /** Full SEO override — when present, replaces title/description/etc with rich metadata. */
+  seo?: LayoutSeoOverrides;
 }
 
+/**
+ * App layout with header/footer + a single, centralized SEO head.
+ *
+ * SEO precedence:
+ *   1. `seo.title` / `seo.description` / etc. (rich overrides from a page)
+ *   2. `title` / `description` props (legacy convenience)
+ *   3. i18n defaults (`layout.defaultTitle`, `layout.defaultDescription`)
+ *
+ * Canonical URL is derived from the router path unless overridden via `seo.path`.
+ * Pages that need to redirect /listing/{uuid} → /listing/{slug}-{uuid} should
+ * use `getServerSideProps`'s `redirect` rather than do it client-side.
+ */
 export default function Layout({
   children,
   title,
   description,
   hideHeader = false,
   hideFooter = false,
+  seo,
 }: LayoutProps) {
   const { t, i18n } = useTranslation('common');
   const router = useRouter();
 
-  const resolvedTitle = title || t('layout.defaultTitle');
-  const resolvedDescription = description || t('layout.defaultDescription');
+  const locale = ((router.locale || i18n?.language || 'ar').startsWith('ar') ? 'ar' : 'en') as SeoLocale;
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://syrian-bay.com').replace(/\/+$/, '');
-  const cleanPath = (router.asPath || '/').split('#')[0].split('?')[0] || '/';
-  const shouldNoIndex = [
+
+  // Strip query + hash so the canonical URL stays clean.
+  const cleanPath = seo?.path ?? (router.asPath || '/').split('#')[0].split('?')[0] || '/';
+
+  // Robots: noindex is automatic for these private routes; pages can override via seo.noindex.
+  const privatePrefixes = [
     '/auth',
     '/cart',
     '/checkout',
@@ -43,86 +78,76 @@ export default function Layout({
     '/seller/dashboard',
     '/seller/my-listings',
     '/user/dashboard',
-  ].some((path) => cleanPath === path || cleanPath.startsWith(`${path}/`));
-  const localizedPath = router.locale && router.locale !== 'ar'
-    ? `/${router.locale}${cleanPath === '/' ? '' : cleanPath}`
-    : cleanPath;
-  const canonicalUrl = `${siteUrl}${localizedPath === '/' ? '' : localizedPath}`;
-  const arUrl = `${siteUrl}${cleanPath === '/' ? '' : cleanPath}`;
-  const enUrl = `${siteUrl}/en${cleanPath === '/' ? '' : cleanPath}`;
+  ];
+  const isPrivate = privatePrefixes.some((p) => cleanPath === p || cleanPath.startsWith(`${p}/`));
+  const noindex = seo?.noindex ?? isPrivate;
+
+  const resolvedTitle = seo?.title || title || t('layout.defaultTitle');
+  const resolvedDescription = seo?.description || description || t('layout.defaultDescription');
+
   const logoUrl = config.logoUrl.startsWith('http')
     ? config.logoUrl
-    : `${siteUrl}${config.logoUrl.startsWith('/') ? config.logoUrl : `/${config.logoUrl}`}`;
-  const currentLocale = i18n?.language || router.locale || 'ar';
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${siteUrl}/#organization`,
-        name: 'SBay',
-        url: siteUrl,
-        logo: logoUrl,
-        contactPoint: {
-          '@type': 'ContactPoint',
-          email: config.supportEmail,
-          contactType: 'customer support',
-          availableLanguage: ['Arabic', 'English'],
+    : absoluteUrl(siteUrl, config.logoUrl);
+
+  // Build the default JSON-LD nodes (Organization + WebSite + SearchAction).
+  // Pages can pass additional structured data via `seo.jsonLd`.
+  const defaultJsonLd: Array<Record<string, unknown>> = [
+    {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Organization',
+          '@id': `${siteUrl}/#organization`,
+          name: 'SBay',
+          url: siteUrl,
+          logo: logoUrl,
+          contactPoint: {
+            '@type': 'ContactPoint',
+            email: config.supportEmail,
+            contactType: 'customer support',
+            availableLanguage: ['Arabic', 'English'],
+          },
         },
-      },
-      {
-        '@type': 'WebSite',
-        '@id': `${siteUrl}/#website`,
-        name: 'SBay',
-        url: siteUrl,
-        inLanguage: ['ar', 'en'],
-        publisher: { '@id': `${siteUrl}/#organization` },
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: `${siteUrl}/browse?q={search_term_string}`,
-          'query-input': 'required name=search_term_string',
+        {
+          '@type': 'WebSite',
+          '@id': `${siteUrl}/#website`,
+          name: 'SBay',
+          url: siteUrl,
+          inLanguage: ['ar', 'en'],
+          publisher: { '@id': `${siteUrl}/#organization` },
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${siteUrl}/browse?q={search_term_string}`,
+            'query-input': 'required name=search_term_string',
+          },
         },
-      },
-    ],
-  };
+      ],
+    },
+  ];
+
+  const allJsonLd = [...defaultJsonLd, ...(seo?.jsonLd ?? [])];
 
   return (
     <>
-      <Head>
-        <title>{resolvedTitle}</title>
-        <meta name="description" content={resolvedDescription} />
-        <meta name="robots" content={shouldNoIndex ? 'noindex,nofollow' : 'index,follow'} />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="canonical" href={canonicalUrl} />
-        <link rel="alternate" hrefLang="ar" href={arUrl} />
-        <link rel="alternate" hrefLang="en" href={enUrl} />
-        <link rel="alternate" hrefLang="x-default" href={arUrl} />
-        <meta property="og:site_name" content="SBay" />
-        <meta property="og:type" content="website" />
-        <meta property="og:locale" content={currentLocale === 'ar' ? 'ar_SY' : 'en_US'} />
-        <meta property="og:title" content={resolvedTitle} />
-        <meta property="og:description" content={resolvedDescription} />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:image" content={logoUrl} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={resolvedTitle} />
-        <meta name="twitter:description" content={resolvedDescription} />
-        <meta name="twitter:image" content={logoUrl} />
-        <meta name="theme-color" content="#2563eb" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
-        <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-      </Head>
+      <SeoHead
+        title={resolvedTitle}
+        description={resolvedDescription}
+        path={cleanPath}
+        image={seo?.image}
+        imageAlt={seo?.imageAlt}
+        imageWidth={seo?.imageWidth}
+        imageHeight={seo?.imageHeight}
+        locale={locale}
+        type={seo?.type ?? 'website'}
+        noindex={noindex}
+        jsonLd={allJsonLd}
+        siteUrl={siteUrl}
+      />
 
-      <div className="flex flex-col min-h-screen">
+      <div className="flex min-h-screen flex-col">
         {!hideHeader && <Header />}
         {!hideHeader && <VerifyEmailPrompt />}
-        <main className="flex-1 min-h-0">
-          {children}
-        </main>
+        <main className="min-h-0 flex-1">{children}</main>
         {!hideHeader && <BugReportButton />}
         {!hideFooter && <Footer />}
       </div>
