@@ -65,22 +65,27 @@ const joinCsv = (values?: string[]) => {
 export const getAllListings = async (
   page = 1,
   limit = 20,
-  filters?: SearchFilters
+  filters?: SearchFilters,
+  text?: string,
+  signal?: AbortSignal
 ): Promise<SearchResponse> => {
   const category = joinCsv(filters?.categories) ?? filters?.category;
   const condition = joinCsv(filters?.conditions) ?? filters?.condition;
   const region = joinCsv(filters?.regions) ?? filters?.region;
+  const trimmedText = text?.trim() || undefined;
 
   const response = await api.get('/listings', {
     params: {
       page,
       pageSize: limit, // Backend uses 'pageSize' not 'limit'
+      text: trimmedText,
       category,
       minPrice: filters?.minPrice,
       maxPrice: filters?.maxPrice,
       condition,
       region,
-    }
+    },
+    signal,
   });
 
   return normalizeListingsResponse(response.data, page, limit);
