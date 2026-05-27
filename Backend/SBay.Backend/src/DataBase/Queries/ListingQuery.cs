@@ -31,15 +31,28 @@
                 throw new ArgumentException("MinPrice must be <= MaxPrice.", nameof(MinPrice));
             if (Text != null && Text.Length > MaxTextLength)
                 throw new ArgumentException($"Text length must be <= {MaxTextLength}.", nameof(Text));
-            if (Category != null && Category.Length > MaxCategoryLength)
-                throw new ArgumentException($"Category length must be <= {MaxCategoryLength}.", nameof(Category));
-            if (Region != null && Region.Length > MaxRegionLength)
-                throw new ArgumentException($"Region length must be <= {MaxRegionLength}.", nameof(Region));
+
+            ValidateCsv(Category, MaxCategoryLength, nameof(Category));
+            ValidateCsv(Region, MaxRegionLength, nameof(Region));
+
             if (!string.IsNullOrWhiteSpace(Condition))
             {
-                var parsed = ItemConditionExtensions.FromString(Condition);
-                if (parsed == ItemCondition.Unknown && !string.Equals(Condition.Trim(), "unknown", StringComparison.OrdinalIgnoreCase))
-                    throw new ArgumentException("Condition must be one of: New, Used, LikeNew, Refurbished, ForParts, Damaged, Unknown.", nameof(Condition));
+                foreach (var part in Condition.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    var parsed = ItemConditionExtensions.FromString(part);
+                    if (parsed == ItemCondition.Unknown && !string.Equals(part, "unknown", StringComparison.OrdinalIgnoreCase))
+                        throw new ArgumentOutOfRangeException(nameof(Condition), $"Condition value '{part}' is invalid. Allowed: New, Used, LikeNew, Refurbished, ForParts, Damaged, Unknown.");
+                }
+            }
+        }
+
+        private static void ValidateCsv(string? value, int maxLengthPerValue, string paramName)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return;
+            foreach (var part in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (part.Length > maxLengthPerValue)
+                    throw new ArgumentOutOfRangeException(paramName, $"{paramName} value length must be <= {maxLengthPerValue}.");
             }
         }
     }

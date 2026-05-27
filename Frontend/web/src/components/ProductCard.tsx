@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Heart, MapPin, Package, Zap } from 'lucide-react';
+import { CalendarDays, Heart, MapPin, Package, Star, Zap } from 'lucide-react';
 import { Product } from '@sbay/shared';
 import { addFavorite, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store';
@@ -65,6 +65,15 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
       : getCityLabel(product.region, i18n.language)
     : '';
   const locationLabel = [regionLabel, product.specificLocation].filter(Boolean).join(' - ');
+  const sellerReviewCount = product.seller?.reviewCount ?? 0;
+  const sellerRating = product.seller?.rating ?? 0;
+  const showSellerRating = sellerReviewCount >= 3 && sellerRating > 0;
+  const sellerMemberSince = product.seller?.createdAt
+    ? new Intl.DateTimeFormat(i18n.language === 'ar' ? 'ar' : 'en', {
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(product.seller.createdAt))
+    : null;
 
   return (
     <article className="surface-card surface-card-hover group h-full overflow-hidden">
@@ -72,13 +81,13 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
         <Link href={`/listing/${product.id}`} className="block">
           <div className="relative aspect-square flex-shrink-0 overflow-hidden bg-slate-100">
           {imageUrl ? (
-            <img 
-              src={imageUrl} 
+            <img
+              src={imageUrl}
               alt={product.title}
               loading="lazy"
               decoding="async"
               sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.04]"
             />
           ) : (
             <div className="flex h-full items-center justify-center">
@@ -87,20 +96,20 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
           )}
 
           {product.condition && (
-            <span className="status-pill absolute left-3 top-3 border-white/70 bg-white/95 text-slate-700 shadow-sm backdrop-blur">
+            <span className="product-pill absolute start-3 top-3">
               {t(CONDITION_I18N_MAP[product.condition])}
             </span>
           )}
 
           {product.isBoosted && (
-            <span className="status-pill absolute right-3 bottom-3 border-amber-200 bg-amber-50 text-amber-700 shadow-sm">
-              <Zap size={13} />
-              Boosted
+            <span className="product-pill product-pill-boosted absolute end-3 bottom-3">
+              <Zap size={12} />
+              {t('productCard.boosted')}
             </span>
           )}
 
           {!isAvailable && (
-            <span className="status-pill absolute bottom-3 left-3 border-red-200 bg-red-500 text-white shadow-sm">
+            <span className="product-pill product-pill-unavailable absolute bottom-3 start-3">
               {t('productCard.unavailable')}
             </span>
           )}
@@ -110,14 +119,14 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
           <button
             onClick={handleFavoriteClick}
             disabled={isTogglingFavorite}
-            className="icon-button absolute right-3 top-3 bg-white/95 backdrop-blur sm:opacity-0 sm:group-hover:opacity-100"
+            className="icon-button absolute end-3 top-3 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
             title={isLiked ? t('productCard.removeFromFavorites') : t('productCard.addToFavorites')}
             aria-label={isLiked ? t('productCard.removeFromFavorites') : t('productCard.addToFavorites')}
           >
-            <Heart 
-              size={20} 
+            <Heart
+              size={18}
               className={`transition-colors ${
-                isLiked ? 'text-red-500 fill-red-500' : 'text-gray-600'
+                isLiked ? 'text-red-500 fill-red-500' : 'text-slate-600'
               } ${isTogglingFavorite ? 'animate-pulse' : ''}`}
             />
           </button>
@@ -125,25 +134,48 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
 
       <div className="flex flex-1 flex-col p-4">
         <Link href={`/listing/${product.id}`} className="group/title">
-          <h3 className="mb-2 line-clamp-2 min-h-[3rem] font-semibold leading-6 text-slate-950 transition-colors group-hover/title:text-primary-700">
+          <h3 className="mb-2 line-clamp-2 min-h-[3rem] text-[15px] font-semibold leading-6 text-slate-950 transition-colors group-hover/title:text-primary-700">
             {product.title}
           </h3>
         </Link>
 
-          <div className="mb-3 flex h-5 items-center gap-1 text-sm text-slate-500">
+          <div className="mb-3 flex h-5 items-center gap-1 text-xs text-slate-500">
             {locationLabel && (
               <>
-                <MapPin size={14} />
+                <MapPin size={12} className="flex-shrink-0" />
                 <span className="truncate">{locationLabel}</span>
               </>
             )}
           </div>
 
+          {(showSellerRating || sellerMemberSince) && (
+            <div className="mb-3 flex min-h-5 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+              {showSellerRating && (
+                <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                  {t('productCard.sellerRating', {
+                    rating: sellerRating.toFixed(1),
+                    count: sellerReviewCount,
+                  })}
+                </span>
+              )}
+              {sellerMemberSince && (
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays size={13} className="text-slate-400" />
+                  {t('productCard.memberSince', { date: sellerMemberSince })}
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="mt-auto flex items-end justify-between gap-3">
-            <span className="text-xl font-bold text-primary-700 sm:text-2xl">
+            <span className="text-xl font-bold tracking-tight text-slate-950 sm:text-[22px]">
               {formatPrice(product.priceAmount, i18n.language, product.priceCurrency)}
             </span>
-            <Link href={`/listing/${product.id}`} className="btn btn-outline px-3 py-2 text-xs opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+            <Link
+              href={`/listing/${product.id}`}
+              className="product-view-link"
+            >
               {t('productCard.view')}
             </Link>
           </div>

@@ -147,10 +147,10 @@ export default function ResetPassword() {
 
   if (router.isReady && token === undefined) {
     return (
-      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm text-center">
-          <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
-          <p className="mt-10 text-sm text-gray-600">
+      <div className="auth-page">
+        <div className="auth-card text-center">
+          <img alt={t('header.logoAlt')} src={config.logoUrl} className="auth-logo" />
+          <p className="mt-8 text-sm text-slate-600">
             {t('resetPassword.loading', 'Loading reset link...')}
           </p>
         </div>
@@ -160,19 +160,19 @@ export default function ResetPassword() {
 
   if (router.isReady && token !== undefined && !token) {
     return (
-      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
-          <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
+      <div className="auth-page">
+        <div className="auth-card">
+          <img alt={t('header.logoAlt')} src={config.logoUrl} className="auth-logo" />
+          <h2 className="auth-title">
             {t('resetPassword.invalidToken')}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="auth-subtitle">
             {t('resetPassword.invalidTokenDescription')}
           </p>
           <div className="mt-6 text-center">
             <Link
               href="/auth/forgetPassword"
-              className="text-sm font-semibold text-primary-500 hover:text-primary-400"
+              className="auth-link"
             >
               {t('resetPassword.requestNewLink')}
             </Link>
@@ -184,19 +184,19 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
-          <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
+      <div className="auth-page">
+        <div className="auth-card">
+          <img alt={t('header.logoAlt')} src={config.logoUrl} className="auth-logo" />
+          <h2 className="auth-title">
             {t('resetPassword.success')}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="auth-subtitle">
             {t('resetPassword.successDescription')}
           </p>
           <div className="mt-6 text-center">
             <Link
               href="/auth/login"
-              className="flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+              className="btn btn-primary w-full"
             >
               {t('resetPassword.backToLogin')}
             </Link>
@@ -207,27 +207,26 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <img alt={t('header.logoAlt')} src={config.logoUrl} className="mx-auto h-14 w-14 rounded-2xl object-contain" />
-        <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
+    <div className="auth-page">
+      <div className="auth-card">
+        <img alt={t('header.logoAlt')} src={config.logoUrl} className="auth-logo" />
+        <h2 className="auth-title">
           {t('resetPassword.title')}
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="auth-subtitle">
           {t('resetPassword.description')}
         </p>
-      </div>
 
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+      <div className="mt-8">
         {apiError && (
-          <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <div className="auth-alert-error">
             <span className="block sm:inline">{apiError}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div>
-            <label htmlFor="password" className="block text-sm/6 font-medium text-black-100">
+            <label htmlFor="password" className="auth-label">
               {t('resetPassword.passwordLabel')}
             </label>
             <div className="mt-2">
@@ -240,18 +239,18 @@ export default function ResetPassword() {
                 disabled={isLoading}
                 required
                 autoComplete="new-password"
-                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
-                  errors.password ? 'border-2 border-red-500' : ''
+                className={`input ${
+                  errors.password ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                 }`}
               />
               {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                <p className="mt-1 text-sm font-medium text-red-600">{errors.password}</p>
               )}
             </div>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm/6 font-medium text-black-100">
+            <label htmlFor="confirmPassword" className="auth-label">
               {t('resetPassword.confirmLabel')}
             </label>
             <div className="mt-2">
@@ -264,12 +263,12 @@ export default function ResetPassword() {
                 disabled={isLoading}
                 required
                 autoComplete="new-password"
-                className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
-                  errors.confirmPassword ? 'border-2 border-red-500' : ''
+                className={`input ${
+                  errors.confirmPassword ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                 }`}
               />
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>
+                <p className="mt-1 text-sm font-medium text-red-600">{errors.confirmPassword}</p>
               )}
             </div>
           </div>
@@ -278,7 +277,7 @@ export default function ResetPassword() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${
+              className={`btn btn-primary w-full ${
                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -290,11 +289,12 @@ export default function ResetPassword() {
         <div className="mt-6 text-center">
           <Link
             href="/auth/login"
-            className="text-sm font-semibold text-primary-500 hover:text-primary-400"
+            className="auth-link"
           >
             {t('resetPassword.backToLogin')}
           </Link>
         </div>
+      </div>
       </div>
     </div>
   );

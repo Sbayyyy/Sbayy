@@ -31,155 +31,120 @@ export default function Footer() {
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
   };
 
+  const columnHeadingClass = 'mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500';
+  const columnLinkClass = 'text-sm text-slate-600 transition-colors hover:text-primary-700';
+
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* About */}
-          <div>
-            <div className="mb-4 flex items-center gap-2">
+    <footer className="footer-surface mt-16 border-t border-slate-200/60">
+      <div className="container mx-auto px-4 pb-10 pt-14 sm:pt-16">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-8">
+          <div className="md:col-span-4">
+            <Link href="/" className="inline-flex items-center gap-2.5">
               <img
                 src={config.logoUrl}
                 alt=""
-                className="h-10 w-auto max-w-[6.5rem] object-contain"
+                className="h-9 w-9 rounded-xl object-contain"
                 loading="lazy"
               />
-              <h4 className="text-xl font-bold">{t('footer.brandName')}</h4>
-            </div>
-            <p className="text-gray-400 text-sm leading-relaxed">
+              <span className="text-xl font-extrabold tracking-tight text-slate-950">
+                {t('footer.brandName')}
+              </span>
+            </Link>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-600">
               {t('footer.about')}
             </p>
-            <div className="flex gap-3 mt-4">
-              <a href="#" className="p-2 bg-gray-800 hover:bg-primary-600 rounded-lg transition-colors">
-                <Facebook size={20} />
-              </a>
-              <a href="#" className="p-2 bg-gray-800 hover:bg-primary-600 rounded-lg transition-colors">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="p-2 bg-gray-800 hover:bg-primary-600 rounded-lg transition-colors">
-                <Twitter size={20} />
+            <div className="mt-5 flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Facebook"
+                aria-disabled="true"
+                className="footer-social"
+                onClick={e => e.preventDefault()}
+              >
+                <Facebook size={16} />
+              </button>
+              <button
+                type="button"
+                aria-label="Instagram"
+                aria-disabled="true"
+                className="footer-social"
+                onClick={e => e.preventDefault()}
+              >
+                <Instagram size={16} />
+              </button>
+              <button
+                type="button"
+                aria-label="Twitter"
+                aria-disabled="true"
+                className="footer-social"
+                onClick={e => e.preventDefault()}
+              >
+                <Twitter size={16} />
+              </button>
+              <a href={`mailto:${supportEmail}`} aria-label="Email" className="footer-social">
+                <Mail size={16} />
               </a>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h5 className="font-semibold mb-4">{t('footer.quickLinks')}</h5>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.aboutSbay')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/how-it-works" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.howItWorks')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/help" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.helpCenter')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/buyer-protection" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.buyerProtection')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.contactUs')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.privacyPolicy')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.termsAndConditions')}
-                </Link>
-              </li>
+          <div className="md:col-span-3">
+            <h5 className={columnHeadingClass}>{t('footer.quickLinks')}</h5>
+            <ul className="space-y-2.5">
+              <li><Link href="/about" className={columnLinkClass}>{t('footer.aboutSbay')}</Link></li>
+              <li><Link href="/how-it-works" className={columnLinkClass}>{t('footer.howItWorks')}</Link></li>
+              <li><Link href="/help" className={columnLinkClass}>{t('footer.helpCenter')}</Link></li>
+              <li><Link href="/buyer-protection" className={columnLinkClass}>{t('footer.buyerProtection')}</Link></li>
+              <li><Link href="/contact" className={columnLinkClass}>{t('footer.contactUs')}</Link></li>
+              <li><Link href="/privacy-policy" className={columnLinkClass}>{t('footer.privacyPolicy')}</Link></li>
+              <li><Link href="/terms" className={columnLinkClass}>{t('footer.termsAndConditions')}</Link></li>
             </ul>
           </div>
 
-          {/* For Sellers */}
-          <div>
-            <h5 className="font-semibold mb-4">{t('footer.forSellers')}</h5>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/listing/sell" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.startSelling')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/seller-guide" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.sellerGuide')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/fees" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.feesAndCommissions')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/seller-protection" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.sellerProtection')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/seller-tips" className="text-gray-400 hover:text-white transition-colors">
-                  {t('footer.sellingTips')}
-                </Link>
-              </li>
+          <div className="md:col-span-3">
+            <h5 className={columnHeadingClass}>{t('footer.forSellers')}</h5>
+            <ul className="space-y-2.5">
+              <li><Link href="/listing/sell" className={columnLinkClass}>{t('footer.startSelling')}</Link></li>
+              <li><Link href="/seller-guide" className={columnLinkClass}>{t('footer.sellerGuide')}</Link></li>
+              <li><Link href="/fees" className={columnLinkClass}>{t('footer.feesAndCommissions')}</Link></li>
+              <li><Link href="/seller-protection" className={columnLinkClass}>{t('footer.sellerProtection')}</Link></li>
+              <li><Link href="/seller-tips" className={columnLinkClass}>{t('footer.sellingTips')}</Link></li>
             </ul>
           </div>
 
-          {/* Contact */}
-          <div>
-            <h5 className="font-semibold mb-4">{t('footer.contactHeading')}</h5>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-center gap-2 text-gray-400">
-                <Mail size={16} />
-                <a href={`mailto:${supportEmail}`} className="hover:text-white transition-colors">
-                  {supportEmail}
+          <div className="md:col-span-2">
+            <h5 className={columnHeadingClass}>{t('footer.contactHeading')}</h5>
+            <ul className="space-y-2.5">
+              <li>
+                <a href={`mailto:${supportEmail}`} className={`${columnLinkClass} inline-flex items-center gap-2`}>
+                  <Mail size={14} className="text-slate-400" />
+                  <span className="truncate">{supportEmail}</span>
                 </a>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-400 text-sm text-center md:text-right">
-            {t('footer.copyright', { year: new Date().getFullYear() })}
-          </p>
-          <div className="flex flex-col md:flex-row items-center gap-4 text-sm">
-            <div className="flex gap-6">
-              <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
-                {t('footer.privacy')}
-              </Link>
-              <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
-                {t('footer.terms')}
-              </Link>
-              <Link href="/sitemap.xml" className="text-gray-400 hover:text-white transition-colors">
-                {t('footer.sitemap')}
-              </Link>
+        <div className="mt-12 flex flex-col gap-4 border-t border-slate-200/60 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+            <div className="flex items-center gap-5">
+              <Link href="/privacy-policy" className="hover:text-primary-700">{t('footer.privacy')}</Link>
+              <Link href="/terms" className="hover:text-primary-700">{t('footer.terms')}</Link>
+              <Link href="/sitemap.xml" className="hover:text-primary-700">{t('footer.sitemap')}</Link>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="footer-locale-switch inline-flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={() => handleLocaleChange('en')}
-                className={currentLocale === 'en' ? 'text-white' : 'hover:text-white transition-colors'}
+                className={`footer-locale-btn ${currentLocale === 'en' ? 'footer-locale-btn-active' : ''}`}
               >
                 EN
               </button>
-              <span className="text-gray-500">|</span>
               <button
                 type="button"
                 onClick={() => handleLocaleChange('ar')}
-                className={currentLocale === 'ar' ? 'text-white' : 'hover:text-white transition-colors'}
+                className={`footer-locale-btn ${currentLocale === 'ar' ? 'footer-locale-btn-active' : ''}`}
               >
                 AR
               </button>

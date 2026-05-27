@@ -16,24 +16,26 @@ export default function Fees() {
         <title>{t('fees.pageTitle')}</title>
       </Head>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="info-page">
+        <div className="info-shell max-w-4xl">
+          <section className="info-hero">
+            <span className="info-kicker">{t('footer.feesAndCommissions')}</span>
+            <h1 className="info-title">
             {t('fees.title')}
           </h1>
-          <p className="text-gray-600 mb-8">{t('fees.subtitle')}</p>
+            <p className="info-subtitle">{t('fees.subtitle')}</p>
+          </section>
 
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Free Services Card */}
-            <div className="border-2 border-green-200 rounded-lg p-6 bg-green-50">
-              <h2 className="text-xl font-semibold text-green-800 mb-4">
+          <div className="mb-8 grid gap-5 md:grid-cols-2">
+            <div className="surface-card border-emerald-200 bg-emerald-50/60 p-6">
+              <h2 className="mb-4 text-xl font-semibold text-emerald-800">
                 {t('fees.free.title')}
               </h2>
               <ul className="space-y-3">
                 {FREE_ITEMS.map((item) => (
                   <li key={item} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">
+                    <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
+                    <span className="leading-6 text-slate-700">
                       {t(`fees.free.items.${item}`)}
                     </span>
                   </li>
@@ -41,19 +43,18 @@ export default function Fees() {
               </ul>
             </div>
 
-            {/* Premium Card */}
-            <div className="border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
-              <h2 className="text-xl font-semibold text-blue-800 mb-2">
+            <div className="surface-card border-primary-200 bg-primary-50/60 p-6">
+              <h2 className="mb-2 text-xl font-semibold text-primary-800">
                 {t('fees.premium.title')}
               </h2>
-              <p className="text-gray-600 text-sm mb-4">
+              <p className="mb-4 text-sm leading-6 text-slate-600">
                 {t('fees.premium.description')}
               </p>
               <ul className="space-y-3">
                 {PREMIUM_ITEMS.map((item) => (
                   <li key={item} className="flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">
+                    <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-600" />
+                    <span className="leading-6 text-slate-700">
                       {t(`fees.premium.items.${item}`)}
                     </span>
                   </li>
@@ -62,8 +63,7 @@ export default function Fees() {
             </div>
           </div>
 
-          {/* Note */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
+          <div className="info-muted-panel text-sm leading-6 text-slate-600">
             {t('fees.note')}
           </div>
         </div>

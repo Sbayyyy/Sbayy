@@ -248,13 +248,13 @@ export default function Register() {
     };
 
     return (
-      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <div className="flex justify-end text-xs text-gray-500 mb-4">
+      <div className="auth-page">
+        <div className="auth-card max-w-lg">
+          <div className="mb-4 flex justify-end text-xs text-slate-500">
             <button
               type="button"
               onClick={() => handleLocaleChange('en')}
-              className={currentLocale === 'en' ? 'text-gray-900' : 'hover:text-gray-700'}
+              className={currentLocale === 'en' ? 'font-bold text-slate-950' : 'hover:text-slate-700'}
             >
               EN
             </button>
@@ -262,7 +262,7 @@ export default function Register() {
             <button
               type="button"
               onClick={() => handleLocaleChange('ar')}
-              className={currentLocale === 'ar' ? 'text-gray-900' : 'hover:text-gray-700'}
+              className={currentLocale === 'ar' ? 'font-bold text-slate-950' : 'hover:text-slate-700'}
             >
               AR
             </button>
@@ -271,24 +271,23 @@ export default function Register() {
           <img
             alt={t('header.logoAlt')}
             src={config.logoUrl}
-            className="mx-auto h-14 w-14 rounded-2xl object-contain"
+            className="auth-logo"
           />
 
-          <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-black">
+          <h2 className="auth-title">
             {t('auth.register.title')}
           </h2>
-        </div>
 
-        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <div className="mt-8">
           {apiError && (
-            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+            <div className="auth-alert-error">
               <span className="block sm:inline">{apiError}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <div>
-              <label htmlFor="username" className="block text-sm/6 font-medium text-black-100">
+              <label htmlFor="username" className="auth-label">
                 {t('auth.register.usernameLabel')}
               </label>
               <div className="mt-2">
@@ -301,18 +300,18 @@ export default function Register() {
                   disabled={isLoading}
                   required
                   autoComplete="username"
-                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
-                    errors.username ? 'border-2 border-red-500' : ''
+                  className={`input ${
+                    errors.username ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                   }`}
                 />
                 {errors.username && (
-                  <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+                  <p className="mt-1 text-sm font-medium text-red-600">{errors.username}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm/6 font-medium text-black-100">
+              <label htmlFor="email" className="auth-label">
                 {t('auth.register.emailLabel')}
               </label>
               <div className="mt-2">
@@ -325,18 +324,18 @@ export default function Register() {
                   disabled={isLoading}
                   required
                   autoComplete="email"
-                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
-                    errors.email ? 'border-2 border-red-500' : ''
+                  className={`input ${
+                    errors.email ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                   }`}
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                  <p className="mt-1 text-sm font-medium text-red-600">{errors.email}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm/6 font-medium text-black-100">
+              <label htmlFor="phone" className="auth-label">
                 {t('auth.register.phoneLabel')}
               </label>
               <div className="mt-2">
@@ -349,18 +348,18 @@ export default function Register() {
                   disabled={isLoading}
                   autoComplete="tel"
                   placeholder={t('auth.register.phonePlaceholder')}
-                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
-                    errors.phone ? 'border-2 border-red-500' : ''
+                  className={`input ${
+                    errors.phone ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                   }`}
                 />
                 {errors.phone && (
-                  <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+                  <p className="mt-1 text-sm font-medium text-red-600">{errors.phone}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="city" className="block text-sm/6 font-medium text-black-100">
+              <label htmlFor="city" className="auth-label">
                 {t('auth.register.cityLabel')}
               </label>
               <div className="mt-2">
@@ -380,13 +379,13 @@ export default function Register() {
                   ))}
                 </Select>
                 {errors.city && (
-                  <p className="mt-1 text-sm text-red-500">{errors.city}</p>
+                  <p className="mt-1 text-sm font-medium text-red-600">{errors.city}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm/6 font-medium text-black-100">
+              <label htmlFor="password" className="auth-label">
                 {t('auth.register.passwordLabel')}
               </label>
               <div className="mt-2">
@@ -399,18 +398,18 @@ export default function Register() {
                   disabled={isLoading}
                   required
                   autoComplete="new-password"
-                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
-                    errors.password ? 'border-2 border-red-500' : ''
+                  className={`input ${
+                    errors.password ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                   }`}
                 />
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                  <p className="mt-1 text-sm font-medium text-red-600">{errors.password}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm/6 font-medium text-black-100">
+              <label htmlFor="confirmPassword" className="auth-label">
                 {t('auth.register.confirmLabel')}
               </label>
               <div className="mt-2">
@@ -423,12 +422,12 @@ export default function Register() {
                   disabled={isLoading}
                   required
                   autoComplete="new-password"
-                  className={`block w-full rounded-md bg-black/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-500 sm:text-sm/6 ${
-                    errors.confirmPassword ? 'border-2 border-red-500' : ''
+                  className={`input ${
+                    errors.confirmPassword ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                   }`}
                 />
                 {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>
+                  <p className="mt-1 text-sm font-medium text-red-600">{errors.confirmPassword}</p>
                 )}
               </div>
             </div>
@@ -437,7 +436,7 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${
+                className={`btn btn-primary w-full ${
                   isLoading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -449,10 +448,11 @@ export default function Register() {
           </form>
 
           <div className="mt-4 text-center text-sm">
-            <a href={loginHref} className="font-semibold text-primary-500 hover:text-primary-400">
+            <a href={loginHref} className="auth-link">
               {t('auth.register.loginLink')}
             </a>
           </div>
+        </div>
         </div>
       </div>
     );

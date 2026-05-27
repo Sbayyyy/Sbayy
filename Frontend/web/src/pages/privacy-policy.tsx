@@ -27,22 +27,27 @@ export default function Privacy() {
         <meta name="description" content={t('privacy.intro')} />
       </Head>
 
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-2">{t('privacy.title')}</h1>
-        <p className="text-sm text-gray-500 mb-6">{t('privacy.lastUpdated')}</p>
-        <p className="text-gray-700 mb-10 leading-relaxed">{t('privacy.intro')}</p>
+      <div className="info-page">
+        <div className="info-shell max-w-4xl">
+          <section className="info-hero text-start">
+            <span className="info-kicker">{t('footer.privacyPolicy')}</span>
+            <h1 className="info-title">{t('privacy.title')}</h1>
+            <p className="mt-3 text-sm font-semibold text-slate-500">{t('privacy.lastUpdated')}</p>
+            <p className="info-subtitle mx-0">{t('privacy.intro')}</p>
+          </section>
 
-        <div className="space-y-10">
-          {SECTIONS.map((key) => (
-            <section key={key}>
-              <h2 className="text-xl font-semibold mb-3">
-                {t(`privacy.sections.${key}.title`)}
-              </h2>
-              <p className="text-gray-700 leading-relaxed">
-                {t(`privacy.sections.${key}.content`)}
-              </p>
-            </section>
-          ))}
+          <div className="space-y-4">
+            {SECTIONS.map((key) => (
+              <section key={key} className="info-card">
+                <h2 className="mb-3 text-xl font-semibold text-slate-950">
+                  {t(`privacy.sections.${key}.title`)}
+                </h2>
+                <p className="leading-7 text-slate-700">
+                  {t(`privacy.sections.${key}.content`)}
+                </p>
+              </section>
+            ))}
+          </div>
         </div>
       </div>
     </Layout>

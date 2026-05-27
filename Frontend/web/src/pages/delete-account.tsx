@@ -55,43 +55,47 @@ export default function DeleteAccountPage() {
         <meta name="description" content={t('deleteAccount.intro')} />
       </Head>
 
-      <main className="min-h-screen bg-slate-50 px-6 py-12 text-slate-900">
-        <section className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow-sm">
-          <h1 className="text-3xl font-bold">{t('deleteAccount.title')}</h1>
+      <main className="info-page">
+        <section className="info-shell max-w-3xl">
+          <div className="info-panel">
+          <span className="info-kicker">{t('deleteAccount.title')}</span>
+          <h1 className="info-title">{t('deleteAccount.title')}</h1>
 
-          <p className="mt-6">{t('deleteAccount.intro')}</p>
+          <p className="mt-6 leading-7 text-slate-700">{t('deleteAccount.intro')}</p>
 
           <p className="mt-4 text-lg font-semibold">
             <a
               href="mailto:support@syrian-bay.com"
-              className="text-blue-700 underline"
+              className="text-primary-700 underline"
             >
               support@syrian-bay.com
             </a>
           </p>
 
-          <p className="mt-6">{t('deleteAccount.verification')}</p>
+          <p className="mt-6 leading-7 text-slate-700">{t('deleteAccount.verification')}</p>
 
-          <h2 className="mt-8 text-xl font-semibold">
+          <h2 className="mt-8 text-xl font-semibold text-slate-950">
             {t('deleteAccount.dataTitle')}
           </h2>
 
-          <ul className="mt-4 list-disc space-y-2 pl-6">
+          <ul className="mt-4 space-y-2">
             {DATA_ITEMS.map((key) => (
-              <li key={key}>{t(`deleteAccount.data.${key}`)}</li>
+              <li key={key} className="rounded-2xl border border-slate-200/70 bg-slate-50/70 px-4 py-3 text-slate-700">
+                {t(`deleteAccount.data.${key}`)}
+              </li>
             ))}
           </ul>
 
-          <h2 className="mt-8 text-xl font-semibold">
+          <h2 className="mt-8 text-xl font-semibold text-slate-950">
             {t('deleteAccount.retentionTitle')}
           </h2>
 
-          <p className="mt-4">{t('deleteAccount.retention')}</p>
+          <p className="mt-4 leading-7 text-slate-700">{t('deleteAccount.retention')}</p>
 
-          <p className="mt-6">{t('deleteAccount.processingTime')}</p>
+          <p className="mt-6 leading-7 text-slate-700">{t('deleteAccount.processingTime')}</p>
 
           <div className="mt-8 border-t border-slate-200 pt-6">
-            <label htmlFor="deletionReason" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="deletionReason" className="block text-sm font-semibold text-slate-700">
               {t('deleteAccount.reasonLabel', 'Reason for deletion (optional)')}
             </label>
             <textarea
@@ -99,20 +103,21 @@ export default function DeleteAccountPage() {
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               maxLength={500}
-              className="mt-2 min-h-24 w-full rounded-md border border-slate-300 p-3 text-sm"
+              className="input mt-2 min-h-24 resize-none text-sm"
               placeholder={t('deleteAccount.reasonPlaceholder', 'Tell us why you are deleting your account')}
             />
             <div className="mt-4 flex justify-end">
               <button
                 onClick={handleRequestDeletion}
                 disabled={isSubmitting}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+                className="btn btn-danger"
               >
                 {isSubmitting
                   ? t('deleteAccount.requesting', 'Requesting...')
                   : t('deleteAccount.requestButton', 'Request account deletion')}
               </button>
             </div>
+          </div>
           </div>
         </section>
       </main>

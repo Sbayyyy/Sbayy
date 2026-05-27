@@ -15,6 +15,7 @@ public sealed class RecommendationsController : ControllerBase
     private readonly IUserInteractionRepository _interactions;
     private readonly IListingRepository _listings;
     private readonly ICurrentUserResolver _resolver;
+    private readonly IUserRepository _users;
 
     private static readonly IReadOnlyDictionary<string, double> Weights = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
     {
@@ -27,11 +28,13 @@ public sealed class RecommendationsController : ControllerBase
     public RecommendationsController(
         IUserInteractionRepository interactions,
         IListingRepository listings,
-        ICurrentUserResolver resolver)
+        ICurrentUserResolver resolver,
+        IUserRepository users)
     {
         _interactions = interactions;
         _listings = listings;
         _resolver = resolver;
+        _users = users;
     }
 
     [HttpPost("track")]
@@ -78,11 +81,26 @@ public sealed class RecommendationsController : ControllerBase
         }
 
         var now = DateTime.UtcNow;
-        var ordered = byId.Values
+        var orderedListings = byId.Values
             .OrderByDescending(l => l.BoostedUntil.HasValue && l.BoostedUntil.Value > now)
             .ThenByDescending(l => l.CreatedAt)
             .Take(size)
-            .Select(l => ToResponse(l))
+            .ToList();
+
+        var sellerById = new Dictionary<Guid, User>();
+        foreach (var sellerId in orderedListings.Select(l => l.SellerId).Distinct())
+        {
+            var seller = await _users.GetByIdAsync(sellerId, ct);
+            if (seller != null)
+                sellerById[sellerId] = seller;
+        }
+
+        var ordered = orderedListings
+            .Select(l =>
+            {
+                sellerById.TryGetValue(l.SellerId, out var seller);
+                return ToResponse(l, seller);
+            })
             .ToList();
 
         return Ok(ordered);
@@ -96,7 +114,7 @@ public sealed class RecommendationsController : ControllerBase
         return top.Length > ListingQuery.MaxCategoryLength ? top[..ListingQuery.MaxCategoryLength] : top;
     }
 
-    private static ListingResponse ToResponse(Listing l)
+    private static ListingResponse ToResponse(Listing l, User? seller = null)
     {
         var images = l.Images
             .OrderBy(i => i.Position)
@@ -109,6 +127,20 @@ public sealed class RecommendationsController : ControllerBase
                 Height = i.Height
             })
             .ToList();
+
+        SellerSummaryDto? sellerDto = null;
+        if (seller != null)
+        {
+            sellerDto = new SellerSummaryDto(
+                seller.Id,
+                seller.DisplayName ?? seller.Email,
+                seller.AvatarUrl,
+                seller.Rating,
+                seller.ReviewCount,
+                seller.City,
+                seller.CreatedAt
+            );
+        }
 
         return new ListingResponse
         {
@@ -131,7 +163,7 @@ public sealed class RecommendationsController : ControllerBase
             ThumbnailUrl = l.ThumbnailUrl,
             Images = images,
             ImageUrls = images.Select(i => i.Url).ToList(),
-            Seller = null
+            Seller = sellerDto
         };
     }
 }

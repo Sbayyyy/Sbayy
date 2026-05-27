@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { MapPin, Star } from 'lucide-react';
+import { CalendarDays, MapPin, Star } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 
@@ -10,6 +10,7 @@ interface SellerInfo {
   rating?: number;
   reviewCount?: number;
   city?: string;
+  createdAt?: string;
 }
 
 interface SellerCardProps {
@@ -45,18 +46,32 @@ function SellerDetails({ seller, reviewsLabel }: { seller: SellerInfo; reviewsLa
       ? t(cityI18nKey, getCityLabel(seller.city, i18n.language))
       : getCityLabel(seller.city, i18n.language)
     : '';
+  const reviewCount = seller.reviewCount ?? 0;
+  const showRating = reviewCount >= 3 && (seller.rating ?? 0) > 0;
+  const memberSince = seller.createdAt
+    ? new Intl.DateTimeFormat(i18n.language === 'ar' ? 'ar' : 'en', {
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(seller.createdAt))
+    : null;
 
   return (
     <div>
       <p className="font-semibold text-slate-950">{seller.name}</p>
-      {seller.rating !== undefined && (
+      {showRating && (
         <div className="flex items-center gap-1 text-sm">
           <Star size={14} className="text-yellow-400 fill-yellow-400" />
-          <span className="text-slate-600">{seller.rating.toFixed(1)}</span>
+          <span className="text-slate-600">{seller.rating?.toFixed(1)}</span>
         </div>
       )}
-      {seller.reviewCount !== undefined && (
-        <p className="text-xs text-slate-500">{reviewsLabel(seller.reviewCount)}</p>
+      {showRating && (
+        <p className="text-xs text-slate-500">{reviewsLabel(reviewCount)}</p>
+      )}
+      {memberSince && (
+        <p className="text-xs text-slate-500 flex items-center gap-1">
+          <CalendarDays size={12} />
+          {t('productCard.memberSince', { date: memberSince })}
+        </p>
       )}
       {cityLabel && (
         <p className="text-xs text-slate-500 flex items-center gap-1">

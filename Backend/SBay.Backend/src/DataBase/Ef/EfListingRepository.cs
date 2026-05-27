@@ -73,114 +73,148 @@ namespace SBay.Domain.Database
                 .ToListAsync(ct);
         }
 
-public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, CancellationToken ct)
-{
-    q ??= new();
-    var text = (q.Text ?? string.Empty).Trim();
-    var normalizedText = text.ToLowerInvariant();
-    var page = q.Page <= 0 ? 1 : q.Page;
-    var size = q.PageSize is < 1 or > 100 ? 24 : q.PageSize;
-    var skip = (page - 1) * size;
-
-    IQueryable<Listing> query = _db.Listings
-        .AsNoTracking()
-        .Where(l =>
-            l.Status == "active" &&
-            l.StockQuantity > 0 &&
-            _db.Users.Any(u => u.Id == l.SellerId && u.Status == "active"));
-    var isPostgres = _isPostgres;
-
-    if (!string.IsNullOrWhiteSpace(q.Category))
-        query = WhereCategoryPathMatches(query, CategorySearchAliases.ResolveStoragePrefixes(q.Category));
-
-    if (q.MinPrice.HasValue)
-        query = query.Where(l => l.Price.Amount >= q.MinPrice.Value);
-
-    if (q.MaxPrice.HasValue)
-        query = query.Where(l => l.Price.Amount <= q.MaxPrice.Value);
-
-    if (!string.IsNullOrEmpty(q.Region))
-        query = query.Where(l => l.Region == q.Region);
-
-    if (!string.IsNullOrWhiteSpace(q.Condition))
-    {
-        var parsedCondition = ItemConditionExtensions.FromString(q.Condition);
-        if (parsedCondition != ItemCondition.Unknown)
-            query = query.Where(l => l.Condition == parsedCondition);
-    }
-
-    if (q.Featured)
-    {
-        var now = DateTime.UtcNow;
-        query = query.Where(l => l.BoostedUntil != null && l.BoostedUntil > now);
-    }
-
-    var textCategoryPrefixes = string.IsNullOrWhiteSpace(q.Category)
-        ? CategorySearchAliases.ResolveCategoryPrefixes(text)
-            .SelectMany(CategorySearchAliases.ResolveStoragePrefixes)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray()
-        : Array.Empty<string>();
-    var textMatchedCategory = textCategoryPrefixes.Length > 0;
-
-    if (textMatchedCategory)
-        query = WhereCategoryPathMatches(query, textCategoryPrefixes);
-
-    if (!string.IsNullOrWhiteSpace(text) && !textMatchedCategory)
-    {
-        if (isPostgres)
+        public async Task<IReadOnlyList<Listing>> SearchAsync(ListingQuery q, CancellationToken ct)
         {
-            var escaped = EscapeLike(text);
-            var patternContains = "%" + escaped + "%";
-            var patternStarts   = escaped + "%";
+            q ??= new();
+            var text = (q.Text ?? string.Empty).Trim();
+            var normalizedText = text.ToLowerInvariant();
+            var page = q.Page <= 0 ? 1 : q.Page;
+            var size = q.PageSize is < 1 or > 100 ? 24 : q.PageSize;
+            var skip = (page - 1) * size;
 
-            query = query
+            IQueryable<Listing> query = _db.Listings
+                .AsNoTracking()
                 .Where(l =>
-                    EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
-                        .Matches(EF.Functions.PlainToTsQuery("simple", text))
-                    || EF.Functions.ILike(l.Title, patternContains, @"\")
-                    || EF.Functions.ILike(l.Description, patternContains, @"\"))
-                .OrderByDescending(l => EF.Functions.ILike(l.Title, patternStarts, @"\"))
-                .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, @"\"))
-                .ThenBy(l => l.Title.ToLower().IndexOf(normalizedText))
-                .ThenByDescending(l =>
-                    EF.Property<NpgsqlTypes.NpgsqlTsVector>(l, "SearchVec")
-                        .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
-                .ThenByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
-                .ThenByDescending(l => l.CreatedAt);
-        }
-        else
-        {
-            var escaped = EscapeLike(text);
-            var pattern = "%" + escaped.ToLowerInvariant() + "%";
-            var startsPattern = escaped.ToLowerInvariant() + "%";
-            query = query
-                .Where(l =>
-                    EF.Functions.Like(l.Title.ToLower(), pattern, @"\")
-                    || EF.Functions.Like((l.Description ?? string.Empty).ToLower(), pattern, @"\"))
-                .OrderByDescending(l => EF.Functions.Like(l.Title.ToLower(), startsPattern, @"\"))
-                .ThenByDescending(l => EF.Functions.Like(l.Title.ToLower(), pattern, @"\"))
-                .ThenBy(l => l.Title.ToLower().IndexOf(normalizedText))
-                .ThenByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
-                .ThenByDescending(l => l.CreatedAt);
-        }
-    }
-    else
-    {
-        query = query
-            .OrderByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
-            .ThenByDescending(l => l.CreatedAt);
-    }
- 
+                    l.Status == "active" &&
+                    l.StockQuantity > 0 &&
+                    _db.Users.Any(u => u.Id == l.SellerId && u.Status == "active"));
+            var isPostgres = _isPostgres;
 
-    return await query.Skip(skip).Take(size).ToListAsync(ct);
-}
+            var categoryPrefixes = SplitCsv(q.Category)
+                .SelectMany(CategorySearchAliases.ResolveStoragePrefixes)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (categoryPrefixes.Length > 0)
+                query = WhereCategoryPathMatches(query, categoryPrefixes);
+
+            if (q.MinPrice.HasValue)
+                query = query.Where(l => l.Price.Amount >= q.MinPrice.Value);
+
+            if (q.MaxPrice.HasValue)
+                query = query.Where(l => l.Price.Amount <= q.MaxPrice.Value);
+
+            var regions = SplitCsv(q.Region);
+            if (regions.Length == 1)
+            {
+                var only = regions[0];
+                query = query.Where(l => l.Region == only);
+            }
+            else if (regions.Length > 1)
+            {
+                query = query.Where(l => l.Region != null && regions.Contains(l.Region));
+            }
+
+            var conditions = SplitCsv(q.Condition)
+                .Select(token => new
+                {
+                    Token = token,
+                    Parsed = ItemConditionExtensions.FromString(token)
+                })
+                .Where(x => x.Parsed != ItemCondition.Unknown
+                            || string.Equals(x.Token, "unknown", StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.Parsed)
+                .Distinct()
+                .ToArray();
+            if (conditions.Length == 1)
+            {
+                var only = conditions[0];
+                query = query.Where(l => l.Condition == only);
+            }
+            else if (conditions.Length > 1)
+            {
+                query = query.Where(l => conditions.Contains(l.Condition));
+            }
+
+            if (q.Featured)
+            {
+                var now = DateTime.UtcNow;
+                query = query.Where(l => l.BoostedUntil != null && l.BoostedUntil > now);
+            }
+
+            var textCategoryPrefixes = string.IsNullOrWhiteSpace(q.Category)
+                ? CategorySearchAliases.ResolveCategoryPrefixes(text)
+                    .SelectMany(CategorySearchAliases.ResolveStoragePrefixes)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray()
+                : Array.Empty<string>();
+            var textMatchedCategory = textCategoryPrefixes.Length > 0;
+
+            if (textMatchedCategory)
+                query = WhereCategoryPathMatches(query, textCategoryPrefixes);
+
+            if (!string.IsNullOrWhiteSpace(text) && !textMatchedCategory)
+            {
+                if (isPostgres)
+                {
+                    var escaped = EscapeLike(text);
+                    var patternContains = "%" + escaped + "%";
+                    var patternStarts = escaped + "%";
+
+                    query = query
+                        .Where(l =>
+                            EF.Property<NpgsqlTsVector>(l, "SearchVec")
+                                .Matches(EF.Functions.PlainToTsQuery("simple", text))
+                            || EF.Functions.ILike(l.Title, patternContains, @"\")
+                            || EF.Functions.ILike(l.Description, patternContains, @"\"))
+                        .OrderByDescending(l => EF.Functions.ILike(l.Title, patternStarts, @"\"))
+                        .ThenByDescending(l => EF.Functions.ILike(l.Title, patternContains, @"\"))
+                        .ThenBy(l => l.Title.ToLower().IndexOf(normalizedText))
+                        .ThenByDescending(l =>
+                            EF.Property<NpgsqlTsVector>(l, "SearchVec")
+                                .RankCoverDensity(EF.Functions.PlainToTsQuery("simple", text)))
+                        .ThenByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
+                        .ThenByDescending(l => l.CreatedAt);
+                }
+                else
+                {
+                    var escaped = EscapeLike(text);
+                    var pattern = "%" + escaped.ToLowerInvariant() + "%";
+                    var startsPattern = escaped.ToLowerInvariant() + "%";
+                    query = query
+                        .Where(l =>
+                            EF.Functions.Like(l.Title.ToLower(), pattern, @"\")
+                            || EF.Functions.Like((l.Description ?? string.Empty).ToLower(), pattern, @"\"))
+                        .OrderByDescending(l => EF.Functions.Like(l.Title.ToLower(), startsPattern, @"\"))
+                        .ThenByDescending(l => EF.Functions.Like(l.Title.ToLower(), pattern, @"\"))
+                        .ThenBy(l => l.Title.ToLower().IndexOf(normalizedText))
+                        .ThenByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
+                        .ThenByDescending(l => l.CreatedAt);
+                }
+            }
+            else
+            {
+                query = query
+                    .OrderByDescending(l => l.BoostedUntil != null && l.BoostedUntil > DateTime.UtcNow)
+                    .ThenByDescending(l => l.CreatedAt);
+            }
+
+            return await query.Skip(skip).Take(size).ToListAsync(ct);
+        }
 
         private static string EscapeLike(string input)
         {
             return input.Replace(@"\", @"\\")
                 .Replace("%", @"\%")
                 .Replace("_", @"\_");
+        }
+
+        private static string[] SplitCsv(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return Array.Empty<string>();
+            return value
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct()
+                .ToArray();
         }
 
         private static IQueryable<Listing> WhereCategoryPathMatches(
