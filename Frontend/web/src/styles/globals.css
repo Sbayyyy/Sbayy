@@ -790,7 +790,7 @@ body {
 
   .hero-region-listbox {
     position: absolute;
-    z-index: 50;
+    z-index: 60;
     inset-inline-start: 0;
     inset-inline-end: 0;
     top: calc(100% + 8px);
