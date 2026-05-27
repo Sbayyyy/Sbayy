@@ -130,3 +130,54 @@ export function buildProductSchema({
 
   return product;
 }
+
+interface CollectionPageSchemaInput {
+  siteUrl: string;
+  path: string;
+  name: string;
+  description: string;
+  locale: SeoLocale;
+}
+
+export function buildCollectionPageSchema({
+  siteUrl,
+  path,
+  name,
+  description,
+  locale,
+}: CollectionPageSchemaInput) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name,
+    description,
+    url: absoluteUrl(siteUrl, path),
+    inLanguage: locale === 'ar' ? 'ar-SY' : 'en',
+    isPartOf: {
+      '@type': 'WebSite',
+      '@id': `${siteUrl.replace(/\/+$/, '')}/#website`,
+    },
+  };
+}
+
+interface ItemListEntry {
+  name: string;
+  url: string;
+  image?: string | null;
+}
+
+export function buildItemListSchema(items: ItemListEntry[]) {
+  if (items.length === 0) return null;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: items.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      url: item.url,
+      name: item.name,
+      ...(item.image ? { image: item.image } : {}),
+    })),
+  };
+}

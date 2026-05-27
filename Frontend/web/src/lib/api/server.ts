@@ -51,9 +51,13 @@ export async function fetchListingByIdSSR(id: string): Promise<Product | null> {
  * Falls back to an empty page when the backend is unreachable so the build
  * doesn't fail just because the API is briefly offline.
  */
-export async function fetchListingsPageSSR(page: number, pageSize: number): Promise<SearchResponse | null> {
+export async function fetchListingsPageSSR(
+  page: number,
+  pageSize: number,
+  filters: Record<string, string | number | boolean | undefined> = {}
+): Promise<SearchResponse | null> {
   try {
-    const response = await serverApi.get('/listings', { params: { page, pageSize } });
+    const response = await serverApi.get('/listings', { params: { page, pageSize, ...filters } });
     return normalizeListingsResponse(response.data, page, pageSize);
   } catch (err) {
     console.error('[ssr] failed to fetch listings page', page, err);

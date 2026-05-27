@@ -1,4 +1,17 @@
 User-agent: *
 Allow: /
+Disallow: /auth/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /dashboard/
+Disallow: /favorites
+Disallow: /manager/
+Disallow: /messages/
+Disallow: /order-confirmation
+Disallow: /profile
+Disallow: /seller/dashboard
+Disallow: /seller/my-listings
+Disallow: /user/dashboard
+Disallow: /api/
 
 Sitemap: https://syrian-bay.com/sitemap.xml
