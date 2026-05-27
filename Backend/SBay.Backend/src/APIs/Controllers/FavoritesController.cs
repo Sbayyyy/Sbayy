@@ -127,7 +127,8 @@ public sealed class FavoritesController : ControllerBase
                 seller.AvatarUrl,
                 seller.Rating,
                 seller.ReviewCount,
-                seller.City
+                seller.City,
+                seller.CreatedAt
             );
         }
 

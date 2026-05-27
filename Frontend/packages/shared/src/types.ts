@@ -62,6 +62,7 @@ export interface Product {
     rating?: number;
     reviewCount?: number;
     city?: string;
+    createdAt?: string;
   };
   status?: 'active' | 'sold' | 'inactive' | 'hidden' | 'deleted';
   views?: number;

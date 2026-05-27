@@ -6,5 +6,6 @@ public sealed record SellerSummaryDto(
     string? Avatar,
     decimal Rating,
     int ReviewCount,
-    string? City
+    string? City,
+    DateTime CreatedAt
 );

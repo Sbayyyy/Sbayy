@@ -662,6 +662,8 @@
     "addToFavorites": "إضافة للمفضلة",
     "removeFromFavorites": "إزالة من المفضلة",
     "unavailable": "غير متوفر",
+    "sellerRating": "تقييم البائع {{rating}}/5",
+    "memberSince": "عضو منذ {{date}}",
     "view": "عرض"
   },
   "sellerDashboard": {

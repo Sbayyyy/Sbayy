@@ -662,6 +662,8 @@
     "addToFavorites": "Add to favorites",
     "removeFromFavorites": "Remove from favorites",
     "unavailable": "Unavailable",
+    "sellerRating": "{{rating}}/5 seller rating",
+    "memberSince": "Member since {{date}}",
     "view": "View"
   },
   "sellerDashboard": {

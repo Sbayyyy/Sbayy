@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Heart, MapPin, Package, Zap } from 'lucide-react';
+import { CalendarDays, Heart, MapPin, Package, Star, Zap } from 'lucide-react';
 import { Product } from '@sbay/shared';
 import { addFavorite, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store';
@@ -65,6 +65,15 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
       : getCityLabel(product.region, i18n.language)
     : '';
   const locationLabel = [regionLabel, product.specificLocation].filter(Boolean).join(' - ');
+  const sellerReviewCount = product.seller?.reviewCount ?? 0;
+  const sellerRating = product.seller?.rating ?? 0;
+  const showSellerRating = sellerReviewCount >= 3 && sellerRating > 0;
+  const sellerMemberSince = product.seller?.createdAt
+    ? new Intl.DateTimeFormat(i18n.language === 'ar' ? 'ar' : 'en', {
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(product.seller.createdAt))
+    : null;
 
   return (
     <article className="surface-card surface-card-hover group h-full overflow-hidden">
@@ -138,6 +147,26 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
               </>
             )}
           </div>
+
+          {(showSellerRating || sellerMemberSince) && (
+            <div className="mb-3 flex min-h-5 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+              {showSellerRating && (
+                <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                  {t('productCard.sellerRating', {
+                    rating: sellerRating.toFixed(1),
+                    count: sellerReviewCount,
+                  })}
+                </span>
+              )}
+              {sellerMemberSince && (
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays size={13} className="text-slate-400" />
+                  {t('productCard.memberSince', { date: sellerMemberSince })}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="mt-auto flex items-end justify-between gap-3">
             <span className="text-xl font-bold tracking-tight text-slate-950 sm:text-[22px]">

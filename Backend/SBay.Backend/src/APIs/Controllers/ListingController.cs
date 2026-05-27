@@ -54,7 +54,8 @@ public sealed class ListingsController : ControllerBase
                 seller.AvatarUrl,
                 seller.Rating,
                 seller.ReviewCount,
-                seller.City
+                seller.City,
+                seller.CreatedAt
             );
         }
 
@@ -175,14 +176,16 @@ public sealed class ListingsController : ControllerBase
         if (!me.HasValue || me.Value == Guid.Empty) return Unauthorized();
 
         var items = await _repo.GetBySellerForManagementAsync(me.Value, ct);
-        return items.Select(l => ToResponse(l, null)).ToList();
+        var seller = await _users.GetByIdAsync(me.Value, ct);
+        return items.Select(l => ToResponse(l, seller)).ToList();
     }
 
     [HttpGet("seller/{sellerId:guid}")]
     public async Task<ActionResult<IReadOnlyList<ListingResponse>>> GetBySeller(Guid sellerId, CancellationToken ct)
     {
         var items = await _repo.GetBySellerAsync(sellerId, ct);
-        return items.Select(l => ToResponse(l, null)).ToList();
+        var seller = await _users.GetByIdAsync(sellerId, ct);
+        return items.Select(l => ToResponse(l, seller)).ToList();
     }
 
     [HttpGet("{id:guid}")]
@@ -317,6 +320,19 @@ public sealed class ListingsController : ControllerBase
         Response.Headers["X-Page"] = page.ToString();
         Response.Headers["X-Limit"] = limit.ToString();
         Response.Headers["X-Count"] = items.Count.ToString();
-        return items.Select(l => ToResponse(l, null)).ToList();
+
+        var sellerById = new Dictionary<Guid, User>();
+        foreach (var sellerId in items.Select(l => l.SellerId).Distinct())
+        {
+            var seller = await _users.GetByIdAsync(sellerId, ct);
+            if (seller != null)
+                sellerById[sellerId] = seller;
+        }
+
+        return items.Select(l =>
+        {
+            sellerById.TryGetValue(l.SellerId, out var seller);
+            return ToResponse(l, seller);
+        }).ToList();
     }
 }
