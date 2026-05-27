@@ -268,7 +268,7 @@ export default function Home() {
               </p>
 
               <div
-                className="hero-fade-up mt-10 w-full"
+                className={`hero-fade-up mt-10 w-full ${regionMenuOpen ? 'relative z-[70]' : ''}`}
                 style={{ animationDelay: '240ms' }}
               >
                 <form onSubmit={handleSearch}>
