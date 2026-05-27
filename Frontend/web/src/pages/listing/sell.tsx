@@ -11,7 +11,7 @@ import {
 import type { ProductCreate } from '@sbay/shared';
 import { requestEmailVerification } from '@/lib/api/auth';
 import { createListing } from '../../lib/api/listings';
-import { createBoostPayment, getBoostOptions, type BoostOption } from '@/lib/api/monetization';
+import { getBoostOptions, type BoostOption } from '@/lib/api/monetization';
 import { getCurrentUser } from '@/lib/api/users';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '../../lib/store';
@@ -62,7 +62,6 @@ export default function SellPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [boostOptions, setBoostOptions] = useState<BoostOption[]>([]);
-  const [selectedBoostOption, setSelectedBoostOption] = useState('none');
 
   const textInputValidator = useMemo(
     () =>
@@ -332,19 +331,6 @@ export default function SellPage() {
       };
 
       const response = await createListing(submitData);
-      const returnUrl =
-        typeof window === 'undefined'
-          ? undefined
-          : `${window.location.origin}/listing/${response.id}`;
-
-      if (selectedBoostOption !== 'none') {
-        const payment = await createBoostPayment(response.id, selectedBoostOption, returnUrl);
-
-        if (payment.checkoutUrl) {
-          window.location.href = payment.checkoutUrl;
-          return;
-        }
-      }
 
       if (isAuthenticated) {
         try {
@@ -564,7 +550,10 @@ export default function SellPage() {
                 )}
               </div>
 
-              <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+              <section
+                className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 p-5"
+                aria-disabled="true"
+              >
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-wide text-primary-700">
@@ -583,13 +572,8 @@ export default function SellPage() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <button
                     type="button"
-                    onClick={() => setSelectedBoostOption('none')}
-                    disabled={isLoading}
-                    className={`rounded-xl border p-4 text-left transition ${
-                      selectedBoostOption === 'none'
-                        ? 'border-primary-600 bg-white shadow-sm ring-2 ring-primary-100'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
-                    }`}
+                    disabled
+                    className="rounded-xl border border-primary-600 bg-white p-4 text-left opacity-75 shadow-sm ring-2 ring-primary-100"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -600,11 +584,9 @@ export default function SellPage() {
                           {t('sell.boost.freeDescription', 'Standard feed placement')}
                         </p>
                       </div>
-                      {selectedBoostOption === 'none' ? (
-                        <span className="rounded-full bg-primary-600 p-1 text-white">
-                          <Check size={14} />
-                        </span>
-                      ) : null}
+                      <span className="rounded-full bg-primary-600 p-1 text-white">
+                        <Check size={14} />
+                      </span>
                     </div>
                     <p className="mt-4 text-lg font-bold text-slate-950">
                       {t('sell.boost.freePrice', 'Free')}
@@ -612,19 +594,12 @@ export default function SellPage() {
                   </button>
 
                   {boostOptions.map(option => {
-                    const isSelected = selectedBoostOption === option.id;
-
                     return (
                       <button
                         key={option.id}
                         type="button"
-                        onClick={() => setSelectedBoostOption(option.id)}
-                        disabled={isLoading}
-                        className={`rounded-xl border p-4 text-left transition ${
-                          isSelected
-                            ? 'border-primary-600 bg-white shadow-sm ring-2 ring-primary-100'
-                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
-                        }`}
+                        disabled
+                        className="rounded-xl border border-slate-200 bg-white p-4 text-left opacity-60"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -635,11 +610,6 @@ export default function SellPage() {
                               {option.name}
                             </p>
                           </div>
-                          {isSelected ? (
-                            <span className="rounded-full bg-primary-600 p-1 text-white">
-                              <Check size={14} />
-                            </span>
-                          ) : null}
                         </div>
                         <p className="mt-4 text-lg font-bold text-slate-950">
                           {formatBoostPrice(option)}
@@ -647,6 +617,18 @@ export default function SellPage() {
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="absolute inset-0 flex items-center justify-center bg-white/75 px-6 text-center backdrop-blur-[2px]">
+                  <div className="rounded-xl border border-amber-200 bg-white px-5 py-4 shadow-sm">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
+                      <Sparkles className="h-4 w-4" />
+                      {t('sell.boost.comingSoon', 'Coming soon')}
+                    </span>
+                    <p className="mt-2 text-sm text-slate-600">
+                      {t('sell.boost.comingSoonDescription', 'Boost options are being prepared and cannot be selected yet.')}
+                    </p>
+                  </div>
                 </div>
               </section>
 
@@ -663,10 +645,8 @@ export default function SellPage() {
                       <Loader2 className="h-4 w-4 animate-spin" />
                       {t('sell.submitting')}
                     </span>
-                  ) : selectedBoostOption === 'none' ? (
-                    t('sell.submit')
                   ) : (
-                    t('sell.boost.submit', 'Create listing and continue to payment')
+                    t('sell.submit')
                   )}
                 </button>
                 <button

@@ -509,6 +509,8 @@
       "freeTitle": "Free listing",
       "freeDescription": "Standard feed placement",
       "freePrice": "Free",
+      "comingSoon": "Coming soon",
+      "comingSoonDescription": "Boost options are being prepared and cannot be selected yet.",
       "days": "days",
       "submit": "Create listing and continue to payment"
     },
@@ -1120,7 +1122,7 @@
   "about": {
     "pageTitle": "About SBay - SBay",
     "title": "About SBay",
-    "subtitle": "Syria's Leading E-Commerce Platform",
+    "subtitle": "A marketplace built for buying and selling in Syria",
     "description": "SBay is an e-commerce platform designed specifically for the Syrian market, aimed at facilitating online buying and selling in a safe and reliable way.",
     "mission": {
       "title": "Our Mission",

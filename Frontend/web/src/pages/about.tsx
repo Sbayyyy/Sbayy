@@ -1,8 +1,10 @@
+import { useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/Layout';
 import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { Shield, Zap, Users, Lightbulb } from 'lucide-react';
+import { getPlatformStats, type PlatformStats } from '@/lib/api/platform';
 
 const VALUES = [
   { icon: Shield, titleKey: 'about.values.trust', descKey: 'about.values.trustDesc' },
@@ -11,15 +13,38 @@ const VALUES = [
   { icon: Lightbulb, titleKey: 'about.values.innovation', descKey: 'about.values.innovationDesc' },
 ];
 
-const STATS = [
-  { value: '1000+', labelKey: 'about.stats.users' },
-  { value: '500+', labelKey: 'about.stats.listings' },
-  { value: '14', labelKey: 'about.stats.cities' },
-  { value: '2000+', labelKey: 'about.stats.transactions' },
-];
-
 export default function AboutPage() {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [statsError, setStatsError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    getPlatformStats()
+      .then(data => {
+        if (active) setStats(data);
+      })
+      .catch(() => {
+        if (active) setStatsError(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const numberFormatter = useMemo(
+    () => new Intl.NumberFormat(i18n.language === 'ar' ? 'ar-SY' : 'en-US'),
+    [i18n.language]
+  );
+
+  const liveStats = [
+    { value: stats?.registeredUsers, labelKey: 'about.stats.users' },
+    { value: stats?.activeListings, labelKey: 'about.stats.listings' },
+    { value: stats?.coveredRegions, labelKey: 'about.stats.cities' },
+    { value: stats?.completedTransactions, labelKey: 'about.stats.transactions' },
+  ];
 
   return (
     <Layout title={t('about.pageTitle')}>
@@ -76,9 +101,11 @@ export default function AboutPage() {
 
           <section className="rounded-2xl bg-slate-950 p-6 sm:p-8">
             <div className="grid grid-cols-2 gap-4 text-center md:grid-cols-4">
-              {STATS.map(({ value, labelKey }) => (
+              {liveStats.map(({ value, labelKey }) => (
                 <div key={labelKey} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-3xl font-bold text-white">{value}</p>
+                  <p className="text-3xl font-bold text-white">
+                    {statsError ? '-' : value === undefined ? '...' : numberFormatter.format(value)}
+                  </p>
                   <p className="mt-1 text-sm text-slate-300">{t(labelKey)}</p>
                 </div>
               ))}
