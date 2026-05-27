@@ -448,7 +448,6 @@ body {
 
   .hero-section {
     position: relative;
-    isolation: isolate;
   }
 
   .hero-ambient {
