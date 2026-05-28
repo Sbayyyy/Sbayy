@@ -8,6 +8,7 @@ import { addFavorite, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store';
 import { CONDITION_I18N_MAP, getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 import { formatPrice } from '@/lib/formatters';
+import { normalizeImageUrl, shouldBypassNextImageOptimizer } from '@/lib/images';
 import { useTranslation } from 'next-i18next';
 
 interface ProductCardProps {
@@ -57,7 +58,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
     }
   };
 
-  const imageUrl = product.thumbnailUrl || product.imageUrls?.[0] || null;
+  const imageUrl = normalizeImageUrl(product.thumbnailUrl || product.imageUrls?.[0]);
   const isAvailable = product.stock === undefined || product.stock > 0;
   const regionI18nKey = getCityI18nKeyFromValue(product.region);
   const regionLabel = product.region
@@ -89,7 +90,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
               loading="lazy"
               sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
               className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-              unoptimized={imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')}
+              unoptimized={shouldBypassNextImageOptimizer(imageUrl)}
             />
           ) : (
             <div className="flex h-full items-center justify-center">

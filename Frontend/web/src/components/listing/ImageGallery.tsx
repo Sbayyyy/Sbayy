@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { normalizeImageUrl, shouldBypassNextImageOptimizer } from '@/lib/images';
 
 interface ImageGalleryProps {
   images: string[];
@@ -18,29 +19,33 @@ export default function ImageGallery({
   prevLabel = 'Previous image',
   nextLabel = 'Next image',
 }: ImageGalleryProps) {
+  const normalizedImages = images.map(normalizeImageUrl).filter((image): image is string => Boolean(image));
+  const safeSelectedIndex = normalizedImages[selectedIndex] ? selectedIndex : 0;
+  const selectedImage = normalizedImages[safeSelectedIndex];
+
   const prevImage = () => {
-    onSelectIndex(selectedIndex === 0 ? images.length - 1 : selectedIndex - 1);
+    onSelectIndex(safeSelectedIndex === 0 ? normalizedImages.length - 1 : safeSelectedIndex - 1);
   };
 
   const nextImage = () => {
-    onSelectIndex(selectedIndex === images.length - 1 ? 0 : selectedIndex + 1);
+    onSelectIndex(safeSelectedIndex === normalizedImages.length - 1 ? 0 : safeSelectedIndex + 1);
   };
 
   return (
     <div>
       <div className="relative mb-4 aspect-square overflow-hidden rounded-2xl bg-slate-100">
-        {images.length > 0 ? (
+        {selectedImage ? (
           <>
             <Image
-              src={images[selectedIndex]}
+              src={selectedImage}
               alt={title}
               fill
               priority
               sizes="(min-width: 1024px) 50vw, 100vw"
               className="h-full w-full object-cover transition-transform duration-500"
-              unoptimized={images[selectedIndex].startsWith('data:') || images[selectedIndex].startsWith('blob:')}
+              unoptimized={shouldBypassNextImageOptimizer(selectedImage)}
             />
-            {images.length > 1 && (
+            {normalizedImages.length > 1 && (
               <>
                 <button
                   type="button"
@@ -59,7 +64,7 @@ export default function ImageGallery({
                   <ChevronRight size={24} />
                 </button>
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-slate-950/60 px-3 py-1 text-sm font-semibold text-white backdrop-blur">
-                  {selectedIndex + 1} / {images.length}
+                  {safeSelectedIndex + 1} / {normalizedImages.length}
                 </div>
               </>
             )}
@@ -72,15 +77,15 @@ export default function ImageGallery({
       </div>
 
       {/* Thumbnails */}
-      {images.length > 1 && (
+      {normalizedImages.length > 1 && (
         <div className="grid grid-cols-5 gap-2">
-          {images.map((image, index) => (
+          {normalizedImages.map((image, index) => (
             <button
               type="button"
               key={index}
               onClick={() => onSelectIndex(index)}
               className={`relative aspect-square overflow-hidden rounded-xl border-2 transition-all ${
-                selectedIndex === index
+                safeSelectedIndex === index
                   ? 'border-primary-600 ring-2 ring-primary-200'
                   : 'border-slate-200 hover:border-primary-200'
               }`}
@@ -91,7 +96,7 @@ export default function ImageGallery({
                 fill
                 sizes="96px"
                 className="h-full w-full object-cover"
-                unoptimized={image.startsWith('data:') || image.startsWith('blob:')}
+                unoptimized={shouldBypassNextImageOptimizer(image)}
               />
             </button>
           ))}
