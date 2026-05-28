@@ -4,7 +4,7 @@
 
 :root {
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  --font-arabic: 'Cairo', 'Tajawal', 'Segoe UI', sans-serif;
+  --font-arabic: 'IBM Plex Sans Arabic', 'Segoe UI', sans-serif;
   --page-bg: #fafaf7;
   --surface: #ffffff;
   --surface-muted: #f7f7f3;
@@ -48,11 +48,16 @@ body {
   body {
     @apply text-slate-900 antialiased;
 
+    font-family: var(--font-sans);
     background:
       radial-gradient(900px circle at 80% -10%, rgba(228, 168, 83, 0.06) 0%, transparent 55%),
       radial-gradient(900px circle at 20% -10%, rgba(37, 99, 235, 0.05) 0%, transparent 55%),
       var(--page-bg);
     background-attachment: fixed;
+  }
+
+  [dir='rtl'] body {
+    font-family: var(--font-arabic);
   }
 
   ::selection {
@@ -379,27 +384,44 @@ body {
     box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.30);
   }
 
-  .footer-locale-switch {
+  .language-toggle {
     @apply rounded-full border p-0.5;
 
     border-color: var(--border-soft);
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   }
 
-  .footer-locale-btn {
+  .language-toggle-btn {
     @apply rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 transition-colors;
   }
 
-  .footer-locale-btn:hover {
+  .language-toggle-btn:hover {
     @apply text-slate-900;
   }
 
-  .footer-locale-btn-active {
+  .language-toggle-btn-active {
     @apply bg-slate-950 text-white;
   }
 
-  .footer-locale-btn-active:hover {
+  .language-toggle-btn-active:hover {
     @apply text-white;
+  }
+
+  [dir='rtl'] .language-toggle-btn {
+    letter-spacing: 0;
+  }
+
+  .language-toggle-compact {
+    @apply inline-flex h-10 min-w-10 items-center justify-center gap-1 rounded-full border px-2 text-xs font-bold uppercase tracking-wide text-slate-600 transition-all hover:border-primary-200 hover:bg-white hover:text-primary-700;
+
+    border-color: var(--border-soft);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  }
+
+  [dir='rtl'] .language-toggle-compact {
+    letter-spacing: 0;
   }
 
   /* ── Product card pills ──────────────────────────────────── */
@@ -459,6 +481,7 @@ body {
 
   .hero-section {
     position: relative;
+    overflow-x: clip;
   }
 
   .hero-ambient {
@@ -489,6 +512,8 @@ body {
     --glow-x: 50%;
     --glow-y: 50%;
     position: relative;
+    width: 100%;
+    max-width: 100%;
     border-radius: 28px;
     background: #ffffff;
     border: 1px solid rgba(15, 23, 42, 0.07);
@@ -525,6 +550,7 @@ body {
     background: transparent;
     border: none;
     outline: none;
+    min-width: 0;
     width: 100%;
     height: 64px;
     padding: 0 1.25rem;
@@ -552,6 +578,7 @@ body {
     margin: 4px;
     border-radius: 22px;
     padding: 0 1.5rem;
+    min-width: 0;
     font-weight: 600;
     font-size: 15px;
     background: #2563eb;
@@ -713,6 +740,7 @@ body {
 
   .hero-cta-primary {
     position: relative;
+    max-width: 100%;
     height: 52px;
     padding: 0 1.5rem 0 1.25rem;
     border-radius: 16px;
@@ -735,6 +763,7 @@ body {
 
   .hero-cta-free-badge {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     padding: 3px 8px;
     border-radius: 999px;
@@ -748,6 +777,7 @@ body {
 
   .hero-cta-secondary {
     display: inline-flex;
+    max-width: 100%;
     align-items: center;
     gap: 0.4rem;
     height: 52px;
@@ -883,15 +913,40 @@ body {
       display: none;
     }
 
+    .hero-headline {
+      text-wrap: pretty;
+    }
+
+    .hero-command-bar {
+      border-radius: 22px;
+    }
+
     .hero-command-input,
     .hero-command-region {
-      height: 56px;
+      height: 52px;
       font-size: 15.5px;
     }
 
     .hero-command-submit {
       height: 48px;
       margin: 4px;
+      width: calc(100% - 8px);
+      justify-content: center;
+    }
+
+    .hero-cta-primary,
+    .hero-cta-secondary {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .hero-cta-primary {
+      padding-inline: 1rem;
+    }
+
+    .hero-trust-row {
+      font-size: 12.5px;
+      gap: 0.5rem 0.875rem;
     }
   }
 }

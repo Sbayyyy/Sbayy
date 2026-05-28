@@ -250,8 +250,8 @@ export default function Home() {
         <section className="hero-section relative">
           <div aria-hidden="true" className="hero-ambient pointer-events-none absolute inset-0" />
 
-          <div className="container relative mx-auto flex min-h-[calc(100vh-4rem)] flex-col justify-center px-4 pb-14 pt-12 sm:pb-16 sm:pt-16 lg:pb-20 lg:pt-20">
-            <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+          <div className="container relative mx-auto flex min-h-0 flex-col justify-start px-4 pb-8 pt-8 sm:min-h-[calc(100vh-4rem)] sm:justify-center sm:pb-16 sm:pt-16 lg:pb-20 lg:pt-20">
+            <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center text-center">
               <div
                 className="hero-fade-up inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur"
                 style={{ animationDelay: '0ms' }}
@@ -261,21 +261,21 @@ export default function Home() {
               </div>
 
               <h1
-                className="hero-headline hero-fade-up mt-6 text-5xl font-extrabold leading-[1.05] text-slate-950 sm:text-6xl lg:text-7xl"
+                className="hero-headline hero-fade-up mt-5 w-full max-w-full text-4xl font-extrabold leading-[1.08] text-slate-950 sm:mt-6 sm:text-6xl sm:leading-[1.05] lg:text-7xl"
                 style={{ animationDelay: '80ms' }}
               >
                 {t('home.heroTitle')}
               </h1>
 
               <p
-                className="hero-fade-up mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8"
+                className="hero-fade-up mt-4 w-full max-w-2xl text-sm leading-6 text-slate-600 sm:mt-5 sm:text-lg sm:leading-8"
                 style={{ animationDelay: '160ms' }}
               >
                 {t('home.heroSubtitle')}
               </p>
 
               <div
-                className={`hero-fade-up mt-10 w-full ${regionMenuOpen ? 'relative z-[70]' : ''}`}
+                className={`hero-fade-up mt-7 w-full sm:mt-10 ${regionMenuOpen ? 'relative z-[70]' : ''}`}
                 style={{ animationDelay: '240ms' }}
               >
                 <form onSubmit={handleSearch}>
@@ -379,7 +379,7 @@ export default function Home() {
               </div>
 
               <div
-                className="hero-fade-up mt-6 flex w-full items-center gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0"
+                className="hero-fade-up mt-5 flex w-full max-w-full items-center gap-2 overflow-x-auto pb-2 sm:mt-6 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0"
                 style={{ animationDelay: '320ms' }}
                 aria-label={t('home.heroTrendingLabel')}
               >
@@ -401,7 +401,7 @@ export default function Home() {
               </div>
 
               <div
-                className="hero-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row sm:gap-5"
+                className="hero-fade-up mt-6 flex w-full flex-col items-stretch gap-3 sm:mt-8 sm:w-auto sm:flex-row sm:items-center sm:gap-5"
                 style={{ animationDelay: '400ms' }}
               >
                 <Link href="/listing/sell" className="hero-cta-primary">
@@ -416,7 +416,7 @@ export default function Home() {
               </div>
 
               <div
-                className="hero-fade-up hero-trust-row mt-9 flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
+                className="hero-fade-up hero-trust-row mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:mt-9"
                 style={{ animationDelay: '480ms' }}
               >
                 {heroTrustItems.map((item, idx) => {

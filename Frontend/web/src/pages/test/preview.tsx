@@ -189,7 +189,7 @@ export default function ComponentPreviewPage() {
 
                       {/* Subtitle with Order Number */}
                       <p className="text-gray-600 mb-8">
-                        شكراً لطلبك. رقم طلبك هو <span className="font-bold text-blue-600">#ORD-DEMO-123</span>
+                        شكرا لطلبك. رقم طلبك هو <span className="font-bold text-blue-600">#ORD-DEMO-123</span>
                       </p>
 
                       {/* Order Info Grid */}
