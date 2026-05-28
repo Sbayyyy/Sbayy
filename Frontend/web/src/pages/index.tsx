@@ -251,7 +251,7 @@ export default function Home() {
           <div aria-hidden="true" className="hero-ambient pointer-events-none absolute inset-0" />
 
           <div className="container relative mx-auto flex min-h-0 flex-col justify-start px-4 pb-8 pt-8 sm:min-h-[calc(100vh-4rem)] sm:justify-center sm:pb-16 sm:pt-16 lg:pb-20 lg:pt-20">
-            <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+            <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center text-center">
               <div
                 className="hero-fade-up inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur"
                 style={{ animationDelay: '0ms' }}
@@ -261,14 +261,14 @@ export default function Home() {
               </div>
 
               <h1
-                className="hero-headline hero-fade-up mt-5 text-4xl font-extrabold leading-[1.08] text-slate-950 sm:mt-6 sm:text-6xl sm:leading-[1.05] lg:text-7xl"
+                className="hero-headline hero-fade-up mt-5 w-full max-w-full text-4xl font-extrabold leading-[1.08] text-slate-950 sm:mt-6 sm:text-6xl sm:leading-[1.05] lg:text-7xl"
                 style={{ animationDelay: '80ms' }}
               >
                 {t('home.heroTitle')}
               </h1>
 
               <p
-                className="hero-fade-up mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:mt-5 sm:text-lg sm:leading-8"
+                className="hero-fade-up mt-4 w-full max-w-2xl text-sm leading-6 text-slate-600 sm:mt-5 sm:text-lg sm:leading-8"
                 style={{ animationDelay: '160ms' }}
               >
                 {t('home.heroSubtitle')}
