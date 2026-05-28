@@ -9,6 +9,7 @@ import { ToastContainer } from '@/lib/toast';
 import { appWithTranslation } from 'next-i18next';
 import { ClientLogger } from '@/lib/clientLogger';
 import { useAuthStore } from '@/lib/store';
+import { loadProfanityListFromUrl } from '@sbay/shared';
 
 const SUPPORTED_LOCALES = ['ar', 'en'] as const;
 
@@ -19,6 +20,7 @@ function App({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     ClientLogger.init();
+    void loadProfanityListFromUrl('/profanities.txt');
   }, []);
 
   useEffect(() => {

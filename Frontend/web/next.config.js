@@ -8,6 +8,13 @@ const nextConfig = {
   i18n,
   images: {
     domains: ['localhost', 'api.syrian-bay.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'api.syrian-bay.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'syrian-bay.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'sbay.sy', pathname: '/**' },
+      { protocol: 'http', hostname: 'localhost', pathname: '/**' },
+      { protocol: 'http', hostname: '127.0.0.1', pathname: '/**' },
+    ],
   },
   transpilePackages: ['@sbay/shared'],
   webpack(config, { dev }) {

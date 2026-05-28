@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { CalendarDays, Heart, MapPin, Package, Star, Zap } from 'lucide-react';
@@ -81,13 +82,14 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
         <Link href={`/listing/${product.id}`} className="block">
           <div className="relative aspect-square flex-shrink-0 overflow-hidden bg-slate-100">
           {imageUrl ? (
-            <img
+            <Image
               src={imageUrl}
               alt={product.title}
+              fill
               loading="lazy"
-              decoding="async"
               sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className="h-full w-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.04]"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              unoptimized={imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')}
             />
           ) : (
             <div className="flex h-full items-center justify-center">

@@ -210,17 +210,3 @@ export const useCartStore = create<CartStore>()(
     }
   )
 );
-
-const getActiveLocale = () => {
-  if (typeof document === 'undefined') return 'en-US';
-  return document.documentElement.lang?.startsWith('ar') ? 'ar-SY' : 'en-US';
-};
-
-export const formatPrice = (price: number, currency: string = 'SYP'): string => {
-  return new Intl.NumberFormat(getActiveLocale(), {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-};

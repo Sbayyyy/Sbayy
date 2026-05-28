@@ -12,7 +12,7 @@ import { getPurchases } from '@/lib/api/orders';
 import { getFavorites, removeFavorite } from '@/lib/api/favorites';
 import { api } from '@/lib/api';
 import type { Product, OrderResponse } from '@sbay/shared';
-import { defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
+import { defaultTextInputValidator, sanitizeInput } from '@sbay/shared';
 import { ArrowLeft } from 'lucide-react';
 import { CITIES, normalizeCityValue } from '@/lib/constants';
 import {
@@ -129,10 +129,6 @@ export default function ProfilePage() {
     loadListings();
     loadPurchases();
   }, [isAuthenticated, loadListings, loadPurchases, loadUserData]);
-
-  useEffect(() => {
-    void loadProfanityListFromUrl('/profanities.txt');
-  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;

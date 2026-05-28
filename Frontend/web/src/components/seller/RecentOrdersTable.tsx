@@ -1,7 +1,7 @@
 // components/seller/RecentOrdersTable.tsx
 import { SellerOrderSummary } from '@sbay/shared';
-import { formatPrice } from '@/lib/cartStore';
 import { useTranslation } from 'next-i18next';
+import { formatPrice } from '@/lib/formatters';
 
 interface RecentOrdersTableProps {
   orders: SellerOrderSummary[];
@@ -81,7 +81,7 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm font-semibold text-slate-950">
-                    {formatPrice(order.amount, 'SYP')}
+                    {formatPrice(order.amount)}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

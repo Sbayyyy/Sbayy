@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import {
   createOptionalTextInputValidator,
   IValidator,
-  loadProfanityListFromUrl,
   isValidEmail,
   sanitizeInput
 } from '@sbay/shared';
@@ -121,10 +120,6 @@ export default function Login() {
 
         void ensureCurrentLocaleLoaded();
     }, [i18n, i18n?.language]);
-
-    useEffect(() => {
-        void loadProfanityListFromUrl('/profanities.txt');
-    }, []);
 
     const validateForm = (): boolean => {
         const newErrors: { email?: string; password?: string } = {};

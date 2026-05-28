@@ -1,10 +1,11 @@
 // components/CartSidebar.tsx
-import { X, ShoppingBag, ArrowRight } from 'lucide-react';
-import { useCartStore, formatPrice } from '@/lib/cartStore';
-import CartItem from '@/components/CartItem';
-import Link from 'next/link';
 import { useEffect } from 'react';
+import Link from 'next/link';
+import { X, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
+import CartItem from '@/components/CartItem';
+import { useCartStore } from '@/lib/cartStore';
+import { formatPrice } from '@/lib/formatters';
 
 export default function CartSidebar() {
   const {

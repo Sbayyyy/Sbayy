@@ -1,6 +1,7 @@
 import { useTranslation } from 'next-i18next';
-import { CartItem, formatPrice } from '@/lib/cartStore';
 import { Package } from 'lucide-react';
+import type { CartItem } from '@/lib/cartStore';
+import { formatPrice } from '@/lib/formatters';
 
 interface OrderSummaryProps {
   items: CartItem[];

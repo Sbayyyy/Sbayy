@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import EmptyState from '@/components/ui/empty-state';
+import FilterTabs from '@/components/ui/filter-tabs';
 import { getPurchases } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
+import { formatPrice } from '@/lib/formatters';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import {
@@ -21,6 +24,8 @@ import {
 } from 'lucide-react';
 import Head from 'next/head';
 
+type OrderStatusFilter = 'all' | OrderResponse['status'];
+
 export default function PurchasesPage() {
   const isAuthed = useRequireAuth();
   const { t, i18n } = useTranslation('common');
@@ -32,7 +37,7 @@ export default function PurchasesPage() {
   const [hasMore, setHasMore] = useState(true);
 
   // Filter State
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>('all');
 
   const loadOrders = useCallback(async () => {
     try {
@@ -122,14 +127,6 @@ export default function PurchasesPage() {
     });
   };
 
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
-      style: 'currency',
-      currency: 'SYP',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
   const formatCity = (city?: string) => {
     if (!city) return '';
     const cityI18nKey = getCityI18nKeyFromValue(city);
@@ -137,6 +134,15 @@ export default function PurchasesPage() {
       ? t(cityI18nKey, getCityLabel(city, i18n.language))
       : getCityLabel(city, i18n.language);
   };
+
+  const statusFilterOptions: Array<{ value: OrderStatusFilter; label: string }> = [
+    { value: 'all', label: `${t('dashboard.statusFilters.all')} (${orders.length})` },
+    { value: 'pending', label: t('dashboard.statusFilters.pending') },
+    { value: 'confirmed', label: t('dashboard.statusFilters.confirmed') },
+    { value: 'shipped', label: t('dashboard.statusFilters.shipped') },
+    { value: 'delivered', label: t('dashboard.statusFilters.delivered') },
+    { value: 'cancelled', label: t('dashboard.statusFilters.cancelled') },
+  ];
 
   return (
     <Layout>
@@ -163,30 +169,13 @@ export default function PurchasesPage() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="bg-white rounded-lg shadow mb-6 p-4">
-            <div className="flex flex-wrap gap-2">
-              {[
-                { value: 'all', label: t('dashboard.statusFilters.all'), count: orders.length },
-                { value: 'pending', label: t('dashboard.statusFilters.pending') },
-                { value: 'confirmed', label: t('dashboard.statusFilters.confirmed') },
-                { value: 'shipped', label: t('dashboard.statusFilters.shipped') },
-                { value: 'delivered', label: t('dashboard.statusFilters.delivered') },
-                { value: 'cancelled', label: t('dashboard.statusFilters.cancelled') }
-              ].map(tab => (
-                <button
-                  key={tab.value}
-                  onClick={() => setStatusFilter(tab.value)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    statusFilter === tab.value
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab.label}
-                  {tab.count !== undefined && ` (${tab.count})`}
-                </button>
-              ))}
-            </div>
+          <div className="surface-card mb-6 p-4">
+            <FilterTabs
+              options={statusFilterOptions}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              fullWidth
+            />
           </div>
 
           {/* Error State */}
@@ -245,7 +234,7 @@ export default function PurchasesPage() {
                               {t('dashboard.purchases.product', { id: item.productId.slice(0, 8) })}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {t('dashboard.purchases.quantity', { qty: item.quantity, price: formatPrice(item.price) })}
+                              {t('dashboard.purchases.quantity', { qty: item.quantity, price: formatPrice(item.price, i18n.language) })}
                             </p>
                           </div>
                         </div>
@@ -274,13 +263,13 @@ export default function PurchasesPage() {
                     {/* Totals */}
                     <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                       <div className="text-sm text-gray-600">
-                        <p>{t('dashboard.purchases.subtotal')} {formatPrice(order.subtotal)}</p>
-                        <p>{t('dashboard.purchases.shippingCost')} {formatPrice(order.shippingInfo.cost)}</p>
+                        <p>{t('dashboard.purchases.subtotal')} {formatPrice(order.subtotal, i18n.language)}</p>
+                        <p>{t('dashboard.purchases.shippingCost')} {formatPrice(order.shippingInfo.cost, i18n.language)}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-600 mb-1">{t('dashboard.purchases.grandTotal')}</p>
                         <p className="text-2xl font-bold text-primary">
-                          {formatPrice(order.total)}
+                          {formatPrice(order.total, i18n.language)}
                         </p>
                       </div>
                     </div>
@@ -327,18 +316,17 @@ export default function PurchasesPage() {
             </div>
           ) : (
             /* Empty State */
-            <div className="bg-white rounded-lg shadow p-16 text-center">
-              <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {t('dashboard.purchases.emptyTitle')}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {t('dashboard.purchases.emptyMessage')}
-              </p>
-              <Link href="/browse" className="btn-primary">
-                {t('dashboard.common.browseProducts')}
-              </Link>
-            </div>
+            <EmptyState
+              icon={Package}
+              iconTone="slate"
+              title={t('dashboard.purchases.emptyTitle')}
+              description={t('dashboard.purchases.emptyMessage')}
+              actions={(
+                <Link href="/browse" className="btn-primary">
+                  {t('dashboard.common.browseProducts')}
+                </Link>
+              )}
+            />
           )}
 
           {/* Load More */}

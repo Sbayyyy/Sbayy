@@ -1,10 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import {
-  createOptionalTextInputValidator,
-  loadProfanityListFromUrl
-} from '@sbay/shared';
+import { createOptionalTextInputValidator } from '@sbay/shared';
 import { resetPassword } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
 import { config } from '@/lib/config';
@@ -32,10 +29,6 @@ export default function ResetPassword() {
       }),
     [t]
   );
-
-  useEffect(() => {
-    void loadProfanityListFromUrl('/profanities.txt');
-  }, []);
 
   useEffect(() => {
     if (!router.isReady || typeof window === 'undefined') return;
