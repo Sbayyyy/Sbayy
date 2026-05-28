@@ -1,8 +1,8 @@
 import { X, Plus, Minus } from 'lucide-react';
-import { CartItem as CartItemType } from '@/lib/cartStore';
-import { formatPrice } from '@/lib/cartStore';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
+import type { CartItem as CartItemType } from '@/lib/cartStore';
+import { formatPrice } from '@/lib/formatters';
 import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
 
 interface CartItemProps {
@@ -73,7 +73,7 @@ export default function CartItem({
         )}
 
         <p className={`${compact ? 'text-base' : 'text-lg'} font-bold text-primary-700 mb-3`}>
-          {formatPrice(product.priceAmount, product.priceCurrency)}
+          {formatPrice(product.priceAmount, undefined, product.priceCurrency)}
         </p>
 
         <div className="flex items-center gap-3">

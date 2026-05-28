@@ -8,7 +8,7 @@ import RecentOrdersTable from '@/components/seller/RecentOrdersTable';
 import { SellerStats, SellerOrderSummary, DailyRevenue, WeeklySales } from '@sbay/shared';
 import { getSellerStats, getRecentOrders, getDailyRevenue, getWeeklySales } from '@/lib/api/seller';
 import { AlertCircle, DollarSign, ShoppingCart, Users, TrendingUp, Package, CheckCircle, Clock } from 'lucide-react';
-import { formatPrice } from '@/lib/cartStore';
+import { formatPrice } from '@/lib/formatters';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -99,7 +99,7 @@ export default function SellerDashboard() {
           <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             <KPICard
               title={t('sellerDashboard.totalRevenue')}
-              value={formatPrice(stats?.totalRevenue || 0, 'SYP')}
+              value={formatPrice(stats?.totalRevenue || 0)}
               change={stats?.revenueChange || 0}
               icon={<DollarSign size={24} />}
               iconBgColor="bg-emerald-100"

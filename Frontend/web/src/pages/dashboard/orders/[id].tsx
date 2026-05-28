@@ -7,6 +7,8 @@ import { getOrder, updateOrderStatus, cancelOrder } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
+import { formatPrice } from '@/lib/formatters';
+import { useAsyncAction } from '@/lib/hooks/useAsyncAction';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { 
@@ -37,7 +39,34 @@ export default function OrderDetailsPage() {
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [updating, setUpdating] = useState(false);
+  const updateStatusAction = useAsyncAction(
+    async (orderId: string, newStatus: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled') => {
+      await updateOrderStatus(orderId, newStatus);
+      return newStatus;
+    },
+    {
+      successMessage: t('dashboard.orderDetails.statusUpdateSuccess'),
+      errorMessage: t('dashboard.orderDetails.statusUpdateError'),
+      onSuccess: (newStatus) => {
+        setOrder(current => current ? { ...current, status: newStatus } : current);
+      },
+    }
+  );
+
+  const cancelOrderAction = useAsyncAction(
+    async (orderId: string) => {
+      await cancelOrder(orderId);
+      return orderId;
+    },
+    {
+      successMessage: t('dashboard.orderDetails.cancelSuccess'),
+      errorMessage: t('dashboard.orderDetails.cancelError'),
+      onSuccess: () => {
+        setOrder(current => current ? { ...current, status: 'cancelled' } : current);
+      },
+    }
+  );
+  const updating = updateStatusAction.loading || cancelOrderAction.loading;
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -62,34 +91,14 @@ export default function OrderDetailsPage() {
 
   const handleUpdateStatus = async (newStatus: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled') => {
     if (!order) return;
-    
-    try {
-      setUpdating(true);
-      await updateOrderStatus(order.id, newStatus);
-      setOrder({ ...order, status: newStatus });
-      alert(t('dashboard.orderDetails.statusUpdateSuccess'));
-    } catch (err) {
-      console.error('Error updating order status:', err);
-      alert(t('dashboard.orderDetails.statusUpdateError'));
-    } finally {
-      setUpdating(false);
-    }
+
+    await updateStatusAction.run(order.id, newStatus);
   };
 
   const handleCancelOrder = async () => {
     if (!order || !confirm(t('dashboard.orderDetails.cancelConfirm'))) return;
 
-    try {
-      setUpdating(true);
-      await cancelOrder(order.id);
-      setOrder({ ...order, status: 'cancelled' });
-      alert(t('dashboard.orderDetails.cancelSuccess'));
-    } catch (err) {
-      console.error('Error cancelling order:', err);
-      alert(t('dashboard.orderDetails.cancelError'));
-    } finally {
-      setUpdating(false);
-    }
+    await cancelOrderAction.run(order.id);
   };
 
   const getStatusIcon = (status: string) => {
@@ -152,14 +161,6 @@ export default function OrderDetailsPage() {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
-      style: 'currency',
-      currency: 'SYP',
-      minimumFractionDigits: 0
-    }).format(amount);
   };
 
   // Order Timeline Steps
@@ -301,7 +302,7 @@ export default function OrderDetailsPage() {
                           {t('dashboard.orderDetails.product', { id: item.productId.slice(0, 8) })}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {t('dashboard.orderDetails.price')}: {formatPrice(item.price)}
+                          {t('dashboard.orderDetails.price')}: {formatPrice(item.price, i18n.language)}
                         </p>
                         <p className="text-sm text-gray-600">
                           {t('dashboard.orderDetails.quantity')}: {item.quantity}
@@ -309,7 +310,7 @@ export default function OrderDetailsPage() {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-lg text-gray-900">
-                          {formatPrice(item.price * item.quantity)}
+                          {formatPrice(item.price * item.quantity, i18n.language)}
                         </p>
                       </div>
                     </div>
@@ -366,7 +367,7 @@ export default function OrderDetailsPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-600">{t('dashboard.orderDetails.shippingCost')}:</span>
                       <span className="font-medium text-gray-900">
-                        {formatPrice(order.shippingInfo.cost)}
+                        {formatPrice(order.shippingInfo.cost, i18n.language)}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -407,16 +408,16 @@ export default function OrderDetailsPage() {
                 <div className="p-6 space-y-3">
                   <div className="flex justify-between text-gray-600">
                     <span>{t('dashboard.orderDetails.subtotal')}:</span>
-                    <span>{formatPrice(order.subtotal)}</span>
+                    <span>{formatPrice(order.subtotal, i18n.language)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>{t('dashboard.orderDetails.shipping')}:</span>
-                    <span>{formatPrice(order.shippingInfo.cost)}</span>
+                    <span>{formatPrice(order.shippingInfo.cost, i18n.language)}</span>
                   </div>
                   <div className="pt-3 border-t border-gray-200 flex justify-between">
                     <span className="font-bold text-lg">{t('dashboard.orderDetails.grandTotal')}:</span>
                     <span className="font-bold text-2xl text-primary">
-                      {formatPrice(order.total)}
+                      {formatPrice(order.total, i18n.language)}
                     </span>
                   </div>
                   <div className="pt-3 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-600">

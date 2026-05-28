@@ -11,17 +11,10 @@ import { useRequireAuth } from '@/lib/useRequireAuth';
 import { HubConnectionState } from '@microsoft/signalr';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import { 
-  MessageSquare, 
-  Search,
-  Package,
-  User as UserIcon,
-  AlertCircle,
-  Inbox,
-  Trash2
-} from 'lucide-react';
+import { AlertCircle, Inbox, MessageSquare, Package, Search, Trash2, User as UserIcon } from 'lucide-react';
 import Head from 'next/head';
 import { toast } from '@/lib/toast';
+import FilterTabs from '@/components/ui/filter-tabs';
 
 interface ChatWithParticipant {
   id: string;
@@ -397,28 +390,14 @@ export default function MessagesPage() {
                 />
               </div>
 
-              <div className="flex gap-2 rounded-2xl bg-slate-100 p-1">
-                <button
-                  onClick={() => setFilter('all')}
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
-                    filter === 'all'
-                      ? 'bg-white text-primary-700 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-950'
-                  }`}
-                >
-                  {t('messages.filterAll', { count: chats.length })}
-                </button>
-                <button
-                  onClick={() => setFilter('unread')}
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
-                    filter === 'unread'
-                      ? 'bg-white text-primary-700 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-950'
-                  }`}
-                >
-                  {t('messages.filterUnread', { count: totalUnread })}
-                </button>
-              </div>
+              <FilterTabs<'all' | 'unread'>
+                options={[
+                  { value: 'all', label: t('messages.filterAll', { count: chats.length }) },
+                  { value: 'unread', label: t('messages.filterUnread', { count: totalUnread }) },
+                ]}
+                value={filter}
+                onChange={setFilter}
+              />
             </div>
           </div>
 

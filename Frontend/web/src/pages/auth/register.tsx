@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import {
   createOptionalTextInputValidator,
   IValidator,
-  loadProfanityListFromUrl,
   isValidEmail,
   isValidPhone,
   passwordsMatch,
@@ -120,10 +119,6 @@ export default function Register() {
 
         void ensureCurrentLocaleLoaded();
     }, [i18n, i18n?.language]);
-
-    useEffect(() => {
-        void loadProfanityListFromUrl('/profanities.txt');
-    }, []);
 
     const validateForm = (): boolean => {
         const newErrors: typeof errors = {};

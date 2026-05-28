@@ -18,7 +18,7 @@ import { getCurrentUser, requestAccountDeletion, updateProfile, UpdateProfileReq
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 import { useRequireAuth } from '@/lib/useRequireAuth';
-import { defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
+import { defaultTextInputValidator, sanitizeInput } from '@sbay/shared';
 import { Select } from '@/components/ui/select';
 
 const Toggle = ({
@@ -126,10 +126,6 @@ export default function AccountSettingsPage() {
       setIsLoading(false);
     }
   }, [setUser, splitName]);
-
-  useEffect(() => {
-    void loadProfanityListFromUrl('/profanities.txt');
-  }, []);
 
   useEffect(() => {
     void loadProfile();

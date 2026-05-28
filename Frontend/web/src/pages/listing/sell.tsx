@@ -5,7 +5,6 @@ import Layout from '@/components/Layout';
 import {
   createOptionalTextInputValidator,
   IValidator,
-  loadProfanityListFromUrl,
   sanitizeInput
 } from '@sbay/shared';
 import type { ProductCreate } from '@sbay/shared';
@@ -80,10 +79,6 @@ export default function SellPage() {
     region: textInputValidator,
     specificLocation: textInputValidator
   };
-
-  useEffect(() => {
-    void loadProfanityListFromUrl('/profanities.txt');
-  }, []);
 
   useEffect(() => {
     getBoostOptions()

@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import EmptyState from '@/components/ui/empty-state';
+import FilterTabs from '@/components/ui/filter-tabs';
 import { getSales, updateOrderStatus } from '@/lib/api/orders';
 import { OrderResponse } from '@sbay/shared';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
+import { formatPrice } from '@/lib/formatters';
+import { useAsyncAction } from '@/lib/hooks/useAsyncAction';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { 
@@ -23,6 +27,8 @@ import {
 } from 'lucide-react';
 import Head from 'next/head';
 
+type OrderStatusFilter = 'all' | OrderResponse['status'];
+
 export default function SalesPage() {
   const isAuthed = useRequireAuth();
   const { t, i18n } = useTranslation('common');
@@ -35,7 +41,7 @@ export default function SalesPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   // Filter State
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>('all');
 
   // Stats
   const [stats, setStats] = useState({
@@ -79,24 +85,25 @@ export default function SalesPage() {
     }
   };
 
-  const handleUpdateStatus = async (orderId: string, newStatus: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled') => {
-    try {
-      setUpdatingStatus(orderId);
+  const updateStatusAction = useAsyncAction(
+    async (orderId: string, newStatus: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled') => {
       await updateOrderStatus(orderId, newStatus);
-      
-      // Update local state
-      setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
-      ));
-      
-      // Show success (could use toast notification)
-      alert(t('dashboard.sales.statusUpdateSuccess'));
-    } catch (err) {
-      console.error('Error updating order status:', err);
-      alert(t('dashboard.sales.statusUpdateError'));
-    } finally {
-      setUpdatingStatus(null);
+      return { orderId, newStatus };
+    },
+    {
+      successMessage: t('dashboard.sales.statusUpdateSuccess'),
+      errorMessage: t('dashboard.sales.statusUpdateError'),
+      onSuccess: ({ orderId, newStatus }) => {
+        setOrders(prev => prev.map(order =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        ));
+      },
     }
+  );
+
+  const handleUpdateStatus = (orderId: string, newStatus: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled') => {
+    setUpdatingStatus(orderId);
+    void updateStatusAction.run(orderId, newStatus).finally(() => setUpdatingStatus(null));
   };
 
   const getStatusIcon = (status: string) => {
@@ -159,14 +166,6 @@ export default function SalesPage() {
     });
   };
 
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat(i18n.language?.startsWith('ar') ? 'ar-SY' : 'en-US', {
-      style: 'currency',
-      currency: 'SYP',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
   const formatCity = (city?: string) => {
     if (!city) return '';
     const cityI18nKey = getCityI18nKeyFromValue(city);
@@ -174,6 +173,15 @@ export default function SalesPage() {
       ? t(cityI18nKey, getCityLabel(city, i18n.language))
       : getCityLabel(city, i18n.language);
   };
+
+  const statusFilterOptions: Array<{ value: OrderStatusFilter; label: string }> = [
+    { value: 'all', label: `${t('dashboard.statusFilters.all')} (${orders.length})` },
+    { value: 'pending', label: t('dashboard.statusFilters.pending') },
+    { value: 'confirmed', label: t('dashboard.statusFilters.confirmed') },
+    { value: 'shipped', label: t('dashboard.statusFilters.shipped') },
+    { value: 'delivered', label: t('dashboard.statusFilters.delivered') },
+    { value: 'cancelled', label: t('dashboard.statusFilters.cancelled') },
+  ];
 
   return (
     <Layout>
@@ -206,7 +214,7 @@ export default function SalesPage() {
                 <div>
                   <p className="text-sm text-gray-600 mb-1">{t('dashboard.sales.totalRevenue')}</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {formatPrice(stats.totalRevenue)}
+                    {formatPrice(stats.totalRevenue, i18n.language)}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -245,35 +253,18 @@ export default function SalesPage() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="bg-white rounded-lg shadow mb-6 p-4">
-            <div className="flex flex-wrap gap-2">
-              {[
-                { value: 'all', label: t('dashboard.statusFilters.all'), count: orders.length },
-                { value: 'pending', label: t('dashboard.statusFilters.pending') },
-                { value: 'confirmed', label: t('dashboard.statusFilters.confirmed') },
-                { value: 'shipped', label: t('dashboard.statusFilters.shipped') },
-                { value: 'delivered', label: t('dashboard.statusFilters.delivered') },
-                { value: 'cancelled', label: t('dashboard.statusFilters.cancelled') }
-              ].map(tab => (
-                <button
-                  key={tab.value}
-                  onClick={() => {
-                    if (statusFilter !== tab.value) {
-                      setStatusFilter(tab.value);
-                      setPage(1);
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    statusFilter === tab.value
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab.label}
-                  {tab.count !== undefined && ` (${tab.count})`}
-                </button>
-              ))}
-            </div>
+          <div className="surface-card mb-6 p-4">
+            <FilterTabs
+              options={statusFilterOptions}
+              value={statusFilter}
+              onChange={(next) => {
+                if (statusFilter !== next) {
+                  setStatusFilter(next);
+                  setPage(1);
+                }
+              }}
+              fullWidth
+            />
           </div>
 
           {/* Error State */}
@@ -332,7 +323,7 @@ export default function SalesPage() {
                               {t('dashboard.sales.product', { id: item.productId.slice(0, 8) })}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {t('dashboard.sales.quantity', { qty: item.quantity, price: formatPrice(item.price) })}
+                              {t('dashboard.sales.quantity', { qty: item.quantity, price: formatPrice(item.price, i18n.language) })}
                             </p>
                           </div>
                         </div>
@@ -366,7 +357,7 @@ export default function SalesPage() {
                       <div className="text-right">
                         <p className="text-sm text-gray-600 mb-1">{t('dashboard.sales.grandTotal')}</p>
                         <p className="text-2xl font-bold text-primary">
-                          {formatPrice(order.total)}
+                          {formatPrice(order.total, i18n.language)}
                         </p>
                       </div>
                     </div>
@@ -381,7 +372,7 @@ export default function SalesPage() {
                           {order.status === 'pending' && (
                             <button
                               onClick={() => handleUpdateStatus(order.id, 'confirmed')}
-                              disabled={updatingStatus === order.id}
+                              disabled={updatingStatus === order.id || updateStatusAction.loading}
                               className="btn-primary text-sm"
                             >
                               {t('dashboard.sales.confirmOrder')}
@@ -390,7 +381,7 @@ export default function SalesPage() {
                           {order.status === 'confirmed' && (
                             <button
                               onClick={() => handleUpdateStatus(order.id, 'shipped')}
-                              disabled={updatingStatus === order.id}
+                              disabled={updatingStatus === order.id || updateStatusAction.loading}
                               className="btn-primary text-sm"
                             >
                               {t('dashboard.sales.markShipped')}
@@ -399,7 +390,7 @@ export default function SalesPage() {
                           {order.status === 'shipped' && (
                             <button
                               onClick={() => handleUpdateStatus(order.id, 'delivered')}
-                              disabled={updatingStatus === order.id}
+                              disabled={updatingStatus === order.id || updateStatusAction.loading}
                               className="btn-primary text-sm"
                             >
                               {t('dashboard.sales.markDelivered')}
@@ -408,7 +399,7 @@ export default function SalesPage() {
                           {order.status === 'pending' && (
                             <button
                               onClick={() => handleUpdateStatus(order.id, 'cancelled')}
-                              disabled={updatingStatus === order.id}
+                              disabled={updatingStatus === order.id || updateStatusAction.loading}
                               className="btn-outline text-sm border-red-300 text-red-700 hover:bg-red-50"
                             >
                               {t('dashboard.sales.cancelOrder')}
@@ -446,18 +437,17 @@ export default function SalesPage() {
             </div>
           ) : (
             /* Empty State */
-            <div className="bg-white rounded-lg shadow p-16 text-center">
-              <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {t('dashboard.sales.emptyTitle')}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {t('dashboard.sales.emptyMessage')}
-              </p>
-              <Link href="/listing/sell" className="btn-primary">
-                {t('dashboard.sales.addProduct')}
-              </Link>
-            </div>
+            <EmptyState
+              icon={TrendingUp}
+              iconTone="slate"
+              title={t('dashboard.sales.emptyTitle')}
+              description={t('dashboard.sales.emptyMessage')}
+              actions={(
+                <Link href="/listing/sell" className="btn-primary">
+                  {t('dashboard.sales.addProduct')}
+                </Link>
+              )}
+            />
           )}
 
           {/* Load More */}

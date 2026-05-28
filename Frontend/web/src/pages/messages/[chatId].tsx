@@ -9,7 +9,7 @@ import { getMessages, sendMessage, markAsRead, getChats, updateMessage, deleteMe
 import { requestEmailVerification } from '@/lib/api/auth';
 import { getListingById } from '@/lib/api/listings';
 import { getSellerProfile } from '@/lib/api/users';
-import { Message, Chat, OfferMessageData, Product, defaultTextInputValidator, loadProfanityListFromUrl, sanitizeInput } from '@sbay/shared';
+import { Message, Chat, OfferMessageData, Product, defaultTextInputValidator, sanitizeInput } from '@sbay/shared';
 import { useAuthStore } from '@/lib/store';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { createChatConnection, onMessageNew, onMessagesRead, onMessageUpdated, onMessageDeleted } from '@/lib/realtime/chat';
@@ -103,10 +103,6 @@ export default function ChatPage() {
       : null;
     messagesRef.current = messages;
   }, [messages]);
-
-  useEffect(() => {
-    void loadProfanityListFromUrl('/profanities.txt');
-  }, []);
 
   useEffect(() => {
     setListingImageFailed(false);

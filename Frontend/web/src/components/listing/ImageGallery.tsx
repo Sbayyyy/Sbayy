@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
 
 interface ImageGalleryProps {
@@ -30,14 +31,19 @@ export default function ImageGallery({
       <div className="relative mb-4 aspect-square overflow-hidden rounded-2xl bg-slate-100">
         {images.length > 0 ? (
           <>
-            <img
+            <Image
               src={images[selectedIndex]}
               alt={title}
+              fill
+              priority
+              sizes="(min-width: 1024px) 50vw, 100vw"
               className="h-full w-full object-cover transition-transform duration-500"
+              unoptimized={images[selectedIndex].startsWith('data:') || images[selectedIndex].startsWith('blob:')}
             />
             {images.length > 1 && (
               <>
                 <button
+                  type="button"
                   onClick={prevImage}
                   className="icon-button absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur"
                   aria-label={prevLabel}
@@ -45,6 +51,7 @@ export default function ImageGallery({
                   <ChevronLeft size={24} />
                 </button>
                 <button
+                  type="button"
                   onClick={nextImage}
                   className="icon-button absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur"
                   aria-label={nextLabel}
@@ -69,18 +76,22 @@ export default function ImageGallery({
         <div className="grid grid-cols-5 gap-2">
           {images.map((image, index) => (
             <button
+              type="button"
               key={index}
               onClick={() => onSelectIndex(index)}
-              className={`aspect-square overflow-hidden rounded-xl border-2 transition-all ${
+              className={`relative aspect-square overflow-hidden rounded-xl border-2 transition-all ${
                 selectedIndex === index
                   ? 'border-primary-600 ring-2 ring-primary-200'
                   : 'border-slate-200 hover:border-primary-200'
               }`}
             >
-              <img
+              <Image
                 src={image}
                 alt={`${title} ${index + 1}`}
-                className="w-full h-full object-cover"
+                fill
+                sizes="96px"
+                className="h-full w-full object-cover"
+                unoptimized={image.startsWith('data:') || image.startsWith('blob:')}
               />
             </button>
           ))}
