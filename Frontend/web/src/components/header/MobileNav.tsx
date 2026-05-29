@@ -32,9 +32,6 @@ export default function MobileNav({
         <Link href="/browse" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-primary-700" onClick={onClose}>
           {t('nav.browse')}
         </Link>
-        <Link href="/categories" className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-primary-700" onClick={onClose}>
-          {t('nav.categories')}
-        </Link>
         <Link href="/listing/sell" className="block rounded-xl px-3 py-2 font-semibold text-primary-700 hover:bg-primary-50" onClick={onClose}>
           {t('nav.sellNow')}
         </Link>
