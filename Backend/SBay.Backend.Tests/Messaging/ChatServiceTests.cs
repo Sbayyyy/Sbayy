@@ -315,7 +315,7 @@ public sealed class ChatServiceTests
         notificationRepo.Setup(x => x.AddAsync(It.IsAny<UserNotification>(), It.IsAny<CancellationToken>()))
             .Callback<UserNotification, CancellationToken>((n, _) => notifications.Add(n))
             .Returns(Task.CompletedTask);
-        var now = new DateTime(2026, 5, 18, 10, 0, 0, DateTimeKind.Utc);
+        var now = DateTime.UtcNow;
         var svc = CreateService(db, seller, Clock(now), listingRepo.Object, notificationRepo.Object);
         var chat = await svc.OpenOrGetAsync(buyer, seller, listing.Id, default);
 
