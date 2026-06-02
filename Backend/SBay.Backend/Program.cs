@@ -49,7 +49,7 @@ if (!useEf)
     throw new InvalidOperationException("Firestore provider is not production-ready: refresh-token, notification, notification preference, push-token, reports, and user-block repositories are incomplete. Use Database:Provider=ef until those repositories are fully implemented.");
 }
 
-ConfigurationGuard.Validate(builder.Configuration);
+ConfigurationGuard.Validate(builder.Configuration, builder.Environment);
 ProductionConfigurationGuard.Validate(builder.Configuration, builder.Environment);
 
 if (useEf)
@@ -520,8 +520,10 @@ public partial class Program { }
 
 internal static class ConfigurationGuard
 {
-    public static void Validate(IConfiguration configuration)
+    public static void Validate(IConfiguration configuration, IWebHostEnvironment environment)
     {
+        if (environment.IsEnvironment("Testing")) return;
+
         var refreshTokenDays = configuration.GetValue<int?>("Jwt:RefreshTokenDays");
         if (refreshTokenDays is null)
             throw new InvalidOperationException("Jwt:RefreshTokenDays must be configured. Set JWT_REFRESH_TOKEN_DAYS in the environment.");

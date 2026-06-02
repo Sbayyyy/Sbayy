@@ -404,9 +404,12 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
         if (result == PasswordVerificationResult.Failed)
             return Unauthorized(_l["Auth_InvalidCurrentPassword"].Value);
 
+        await using var tx = await _uow.BeginTransactionAsync(ct);
         user.PasswordHash = _hasher.HashPassword(user, req.NewPassword);
         await _users.UpdateAsync(user, ct);
+        await _refreshTokens.RevokeAllForUserAsync(user.Id, DateTimeOffset.UtcNow, ct);
         await _uow.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         return Ok();
     }

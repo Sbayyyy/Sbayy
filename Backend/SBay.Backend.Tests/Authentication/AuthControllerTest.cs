@@ -172,6 +172,29 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
+    public async Task ChangePassword_RevokesRefreshTokens()
+    {
+        var password = "Password1!";
+        var newPassword = "NewPassword1!";
+        var (client, auth) = await AuthTestClient.CreateAuthedAsync(_factory, "change-password", password);
+        auth.RefreshToken.Should().NotBeNullOrWhiteSpace();
+
+        var changePassword = await client.PostAsJsonAsync("/api/auth/change-password", new
+        {
+            currentPassword = password,
+            newPassword
+        });
+        changePassword.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var refresh = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = auth.RefreshToken });
+        refresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var login = await _factory.CreateClient().PostAsJsonAsync("/api/auth/login",
+            new LoginRequest(auth.User.Email, newPassword));
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Login_With_WrongPassword_Returns401()
     {
         var client = _factory.CreateClient();

@@ -89,14 +89,14 @@ if (typeof window !== 'undefined') {
         } catch (refreshError) {
           clearAuthSession();
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-            window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
+            window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
           }
           return Promise.reject(refreshError);
         }
 
         clearAuthSession();
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-          window.location.href = '/auth/login';
+          window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
         }
       }
 

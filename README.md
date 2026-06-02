@@ -43,6 +43,14 @@ For local development, set at minimum:
 - `Cors__AllowedOrigins__0` for the frontend origin
 - S3 storage settings if `Storage__Provider=s3`
 
+## Authentication Security
+
+`JWT_REFRESH_TOKEN_DAYS=180` is the sample default so web and mobile users can stay signed in. The backend requires `Jwt:RefreshTokenDays` at startup and rejects values outside `1..365`.
+
+Refresh tokens are opaque random secrets, stored only as hashes in PostgreSQL. They rotate on refresh and are revoked on logout, password reset, password change, account deactivation/deletion, and admin role/status changes.
+
+Each refresh token records the request user agent and optional `X-Device-Id` metadata. Device binding and anomaly detection are not enforced yet; deployments that need stronger long-lived-session controls should add those checks or lower `JWT_REFRESH_TOKEN_DAYS`.
+
 ## Common Commands
 
 Frontend checks:
