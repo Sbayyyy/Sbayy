@@ -6,4 +6,5 @@ public sealed class JwtOptions
     public string Audience { get; set; } = "SBayClients";
     public string Secret { get; set; } = "REPLACE_ME_WITH_A_LONG_RANDOM_SECRET";
     public int ExpMinutes { get; set; } = 60;
+    public int RefreshTokenDays { get; set; }
 }

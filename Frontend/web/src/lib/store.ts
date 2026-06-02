@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '@sbay/shared';
+import {
+  clearAuthSession,
+  getStoredAccessToken,
+  storeAuthSession
+} from './auth-session';
 
 interface AuthState {
   user: User | null;
@@ -41,21 +46,11 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       hasHydrated: false,
       login: (user, token, refreshToken) => {
-        // Store in both localStorage (for API interceptor) and Zustand (for React state)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
-          if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
-          }
-        }
+        storeAuthSession({ token, refreshToken });
         set({ user, token, isAuthenticated: true });
       },
       logout: () => {
-        // Clear both storage locations
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-        }
+        clearAuthSession();
         set({ user: null, token: null, isAuthenticated: false });
       },
       setUser: (user) => {
@@ -75,7 +70,7 @@ export const useAuthStore = create<AuthState>()(
       // Rehydrate token from localStorage on load
       onRehydrateStorage: () => (state) => {
         if (state && typeof window !== 'undefined') {
-          const token = localStorage.getItem('token');
+          const token = getStoredAccessToken();
           if (token) {
             state.token = token;
             state.isAuthenticated = true;

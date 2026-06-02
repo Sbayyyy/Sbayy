@@ -1,4 +1,5 @@
 import { api } from '../api';
+import { revokeStoredRefreshToken } from '../auth-session';
 import type { UserLogin, UserRegistration } from '@sbay/shared';
 import { toUser, type BackendUserDto } from './transforms';
 
@@ -42,8 +43,7 @@ export const requestEmailVerification = async (): Promise<void> => {
  * Logout
  */
 export const logout = async () => {
-  const response = await api.post('/auth/logout');
-  return response.data;
+  await revokeStoredRefreshToken();
 };
 
 /**

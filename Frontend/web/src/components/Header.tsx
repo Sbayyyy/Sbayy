@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { Heart, Menu, MessageCircle, Package, User, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
+import { logout as revokeSession } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store';
 import { config } from '@/lib/config';
 import LanguageToggle from './LanguageToggle';
@@ -25,11 +26,14 @@ export default function Header() {
   const isAdmin = user?.role === 'admin';
   const detached = scrolled || mobileMenuOpen;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await revokeSession().catch((error) => {
+      console.error('Error revoking session:', error);
+    });
     logout();
     setUserMenuOpen(false);
     setMobileMenuOpen(false);
-    router.push('/');
+    void router.push('/');
   };
 
   const navLinkClass = (href: string) =>

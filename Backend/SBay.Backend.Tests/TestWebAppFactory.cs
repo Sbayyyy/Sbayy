@@ -35,6 +35,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                    ["Jwt:Audience"] = "SBayClients",
                    ["Jwt:Secret"] = "test_jwt_secret_32_bytes_minimum_value",
                    ["Jwt:ExpMinutes"] = "60",
+                   ["Jwt:RefreshTokenDays"] = "7",
                    ["RateLimits:Auth:PermitLimit"] = "1000",
                    ["RateLimits:Registration:PermitLimit"] = "1000",
                    ["RateLimits:Uploads:PermitLimit"] = "1000",
