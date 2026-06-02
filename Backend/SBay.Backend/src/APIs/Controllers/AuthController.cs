@@ -448,16 +448,16 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
 
     private (string Token, RefreshToken Entity) CreateRefreshToken(Guid userId)
     {
+        // Refresh tokens are opaque random secrets; only their hash is stored.
         var raw = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var now = DateTimeOffset.UtcNow;
-        var days = _config.GetValue<int?>("Jwt:RefreshTokenDays") ?? 30;
         var entity = new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             TokenHash = HashRefreshToken(raw),
             CreatedAt = now,
-            ExpiresAt = now.AddDays(Math.Clamp(days, 1, 365)),
+            ExpiresAt = now.AddDays(_jwt.RefreshTokenDays),
             DeviceId = Request.Headers.TryGetValue("X-Device-Id", out var deviceId) ? NormalizeHeaderValue(deviceId.ToString(), 128) : null,
             UserAgent = NormalizeHeaderValue(Request.Headers.UserAgent.ToString(), 512)
         };

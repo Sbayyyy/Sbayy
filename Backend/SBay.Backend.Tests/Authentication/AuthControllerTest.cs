@@ -147,6 +147,31 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
+    public async Task Logout_RevokesRefreshToken()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+        var pwd = "Password1!";
+
+        var registration = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, pwd, "Logout"));
+        registration.EnsureSuccessStatusCode();
+        var verificationToken = _factory.Services.GetRequiredService<TestEmailSender>().GetLatestVerificationToken(email);
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token = verificationToken });
+        verify.EnsureSuccessStatusCode();
+
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, pwd));
+        login.EnsureSuccessStatusCode();
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        auth!.RefreshToken.Should().NotBeNullOrWhiteSpace();
+
+        var logout = await client.PostAsJsonAsync("/api/auth/logout", new { refreshToken = auth.RefreshToken });
+        logout.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var refresh = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = auth.RefreshToken });
+        refresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task Login_With_WrongPassword_Returns401()
     {
         var client = _factory.CreateClient();

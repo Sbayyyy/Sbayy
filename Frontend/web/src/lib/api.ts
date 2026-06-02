@@ -1,5 +1,10 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import config from './config';
+import {
+  clearAuthSession,
+  getStoredAccessToken,
+  refreshStoredAuthSession
+} from './auth-session';
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -8,7 +13,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 const api = axios.create({
   baseURL: config.apiUrl,
   timeout: config.apiTimeout,
-  headers: { 
+  headers: {
     'Content-Type': 'application/json',
   },
 });
@@ -33,14 +38,14 @@ if (config.enableLogging) {
     console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   });
-  
+
   api.interceptors.response.use(
     (response) => {
-      console.log(`[API] ✓ ${response.config.method?.toUpperCase()} ${response.config.url}`);
+      console.log(`[API] OK ${response.config.method?.toUpperCase()} ${response.config.url}`);
       return response;
     },
     (error) => {
-      console.error(`[API] ✗ ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.message);
+      console.error(`[API] ERROR ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.message);
       return Promise.reject(error);
     }
   );
@@ -49,7 +54,7 @@ if (config.enableLogging) {
 if (typeof window !== 'undefined') {
   api.interceptors.request.use(
     (config) => {
-      const token = localStorage.getItem('token');
+      const token = getStoredAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -74,35 +79,24 @@ if (typeof window !== 'undefined') {
       // Handle 401 Unauthorized - Token refresh
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
-        const refreshToken = localStorage.getItem('refreshToken');
 
-        if (refreshToken) {
-          try {
-            const response = await axios.post(`${config.apiUrl}/auth/refresh`, { refreshToken });
-            const { token, refreshToken: nextRefreshToken } = response.data;
-
-            localStorage.setItem('token', token);
-            if (nextRefreshToken) {
-              localStorage.setItem('refreshToken', nextRefreshToken);
-            }
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            
+        try {
+          const session = await refreshStoredAuthSession();
+          if (session) {
+            originalRequest.headers.Authorization = `Bearer ${session.token}`;
             return api.request(originalRequest);
-          } catch (refreshError) {
-            // Refresh failed - logout
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-              window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
-            }
-            return Promise.reject(refreshError);
           }
-        } else {
-          // No refresh token - logout
-          localStorage.removeItem('token');
+        } catch (refreshError) {
+          clearAuthSession();
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-            window.location.href = '/auth/login';
+            window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
           }
+          return Promise.reject(refreshError);
+        }
+
+        clearAuthSession();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+          window.location.href = '/auth/login';
         }
       }
 

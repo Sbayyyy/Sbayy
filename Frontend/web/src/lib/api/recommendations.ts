@@ -1,4 +1,5 @@
 import { api } from '../api';
+import { getStoredAccessToken } from '../auth-session';
 import type { Product } from '@sbay/shared';
 
 export type InteractionType = 'view' | 'category_click' | 'favorite' | 'purchase';
@@ -14,11 +15,11 @@ const topLevelCategory = (categoryPath?: string): string =>
 export const trackInteraction = async (category: string, type: InteractionType): Promise<void> => {
   const slug = topLevelCategory(category);
   if (!slug) return;
-  if (typeof window !== 'undefined' && !localStorage.getItem('token')) return;
+  if (typeof window !== 'undefined' && !getStoredAccessToken()) return;
   try {
     await api.post('/recommendations/track', { category: slug, type });
   } catch {
-    // ignore — tracking is best-effort
+    // ignore: tracking is best-effort
   }
 };
 
@@ -27,7 +28,7 @@ export const trackInteraction = async (category: string, type: InteractionType):
  * no interest data yet or is not logged in.
  */
 export const getRecommendedListings = async (pageSize = 12): Promise<Product[]> => {
-  if (typeof window !== 'undefined' && !localStorage.getItem('token')) return [];
+  if (typeof window !== 'undefined' && !getStoredAccessToken()) return [];
   try {
     const response = await api.get<Product[]>('/recommendations/listings', {
       params: { pageSize },
