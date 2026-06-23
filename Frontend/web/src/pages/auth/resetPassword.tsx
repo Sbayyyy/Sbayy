@@ -33,8 +33,9 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!router.isReady || typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.hash.replace(/^#/, '') || window.location.search.replace(/^\?/, ''));
-    setToken(params.get('token') ?? '');
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const searchParams = new URLSearchParams(window.location.search.replace(/^\?/, ''));
+    setToken(hashParams.get('token') ?? searchParams.get('token') ?? '');
   }, [router.isReady]);
 
   const validatePasswordRules = (value: string): string | undefined => {

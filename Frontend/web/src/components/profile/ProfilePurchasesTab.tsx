@@ -12,13 +12,20 @@ interface ProfilePurchasesTabProps {
   t: TranslationFn;
 }
 
-export default function ProfilePurchasesTab({
-  purchases,
-  purchasesLoading,
-  purchasesError,
-  locale,
-  t,
-}: ProfilePurchasesTabProps) {
+/**
+ * Renders the profile purchases tab with loading, error, empty, and localized order states.
+ *
+ * @param props - Purchases data, loading/error state, active locale, and translation function.
+ * @returns The purchases tab content for the profile page.
+ */
+export default function ProfilePurchasesTab(props: ProfilePurchasesTabProps) {
+  const {
+    purchases,
+    purchasesLoading,
+    purchasesError,
+    locale,
+    t,
+  } = props;
   const dateFormatter = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (

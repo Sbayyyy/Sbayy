@@ -175,7 +175,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Google([FromBody] GoogleAuthRequest? req, CancellationToken ct)
     {
         if (req is null || string.IsNullOrWhiteSpace(req.IdToken))
-            return BadRequest("Google identity token is required.");
+            return BadRequest(_l["Auth_GoogleTokenRequired"].Value);
 
         VerifiedGoogleToken? googleToken;
         try
@@ -184,7 +184,11 @@ public class AuthController : ControllerBase
         }
         catch (InvalidOperationException)
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google sign-in is not configured.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, _l["Auth_GoogleSignInNotConfigured"].Value);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, _l["Auth_GoogleUnavailable"].Value);
         }
 
         var signIn = await SignInWithGoogleTokenAsync(googleToken, ct);
@@ -197,15 +201,15 @@ public class AuthController : ControllerBase
     public IActionResult GoogleMobileStart([FromQuery] string? redirectUri)
     {
         if (!TryNormalizeGoogleMobileRedirectUri(redirectUri, out var mobileRedirectUri))
-            return BadRequest("Invalid Google redirect URI.");
+            return BadRequest(_l["Auth_GoogleRedirectInvalid"].Value);
 
         var clientId = GoogleOAuthCodeExchanger.GetOAuthClientId(_config);
         if (string.IsNullOrWhiteSpace(clientId))
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google sign-in is not configured.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, _l["Auth_GoogleSignInNotConfigured"].Value);
 
         var callbackUrl = GetGoogleMobileCallbackUrl();
         if (string.IsNullOrWhiteSpace(callbackUrl))
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google sign-in callback is not configured.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, _l["Auth_GoogleCallbackNotConfigured"].Value);
 
         var state = CreateGoogleMobileState(mobileRedirectUri);
         var authorizationUrl = QueryHelpers.AddQueryString(
@@ -234,12 +238,12 @@ public class AuthController : ControllerBase
         CancellationToken ct)
     {
         if (!TryReadGoogleMobileState(state, out var mobileRedirectUri))
-            return BadRequest("Invalid Google sign-in state.");
+            return BadRequest(_l["Auth_GoogleStateInvalid"].Value);
 
         if (!string.IsNullOrWhiteSpace(error))
             return RedirectWithGoogleMobileError(mobileRedirectUri, error);
         if (string.IsNullOrWhiteSpace(code))
-            return RedirectWithGoogleMobileError(mobileRedirectUri, "Google sign-in did not return an authorization code.");
+            return RedirectWithGoogleMobileError(mobileRedirectUri, _l["Auth_GoogleAuthorizationCodeMissing"].Value);
 
         VerifiedGoogleToken? googleToken;
         try
@@ -248,17 +252,17 @@ public class AuthController : ControllerBase
         }
         catch (InvalidOperationException)
         {
-            return RedirectWithGoogleMobileError(mobileRedirectUri, "Google sign-in is not configured.");
+            return RedirectWithGoogleMobileError(mobileRedirectUri, _l["Auth_GoogleSignInNotConfigured"].Value);
         }
         catch (HttpRequestException)
         {
-            return RedirectWithGoogleMobileError(mobileRedirectUri, "Unable to reach Google sign-in.");
+            return RedirectWithGoogleMobileError(mobileRedirectUri, _l["Auth_GoogleUnavailable"].Value);
         }
 
         var signIn = await SignInWithGoogleTokenAsync(googleToken, ct);
         return signIn.Succeeded
             ? RedirectWithGoogleMobileAuth(mobileRedirectUri, signIn.Auth!)
-            : RedirectWithGoogleMobileError(mobileRedirectUri, signIn.Error ?? "Unable to continue with Google.");
+            : RedirectWithGoogleMobileError(mobileRedirectUri, signIn.Error ?? _l["Auth_GoogleContinueFailed"].Value);
     }
 
     [HttpPost("google/mobile/callback")]
@@ -267,7 +271,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> GoogleMobileCallback([FromBody] GoogleMobileCallbackRequest? req, CancellationToken ct)
     {
         if (req is null)
-            return BadRequest("Google authorization code or identity token is required.");
+            return BadRequest(_l["Auth_GoogleCredentialsRequired"].Value);
 
         VerifiedGoogleToken? googleToken = null;
         try
@@ -279,18 +283,18 @@ public class AuthController : ControllerBase
             else if (!string.IsNullOrWhiteSpace(req.Code) && !string.IsNullOrWhiteSpace(req.RedirectUri))
             {
                 if (!TryNormalizeGoogleMobileRedirectUri(req.RedirectUri, out var mobileRedirectUri))
-                    return BadRequest("Invalid Google redirect URI.");
+                    return BadRequest(_l["Auth_GoogleRedirectInvalid"].Value);
 
                 googleToken = await ExchangeGoogleCodeAsync(req.Code, mobileRedirectUri, ct);
             }
         }
         catch (InvalidOperationException)
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google sign-in is not configured.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, _l["Auth_GoogleSignInNotConfigured"].Value);
         }
         catch (HttpRequestException)
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Unable to reach Google sign-in.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, _l["Auth_GoogleUnavailable"].Value);
         }
 
         var signIn = await SignInWithGoogleTokenAsync(googleToken, ct);
@@ -300,9 +304,9 @@ public class AuthController : ControllerBase
     private async Task<GoogleSignInResult> SignInWithGoogleTokenAsync(VerifiedGoogleToken? googleToken, CancellationToken ct)
     {
         if (googleToken is null)
-            return GoogleSignInResult.Fail(StatusCodes.Status401Unauthorized, "Invalid Google token.");
+            return GoogleSignInResult.Fail(StatusCodes.Status401Unauthorized, _l["Auth_GoogleInvalidToken"].Value);
         if (!googleToken.EmailVerified || !EmailValidator.TryNormalize(googleToken.Email, out var email))
-            return GoogleSignInResult.Fail(StatusCodes.Status401Unauthorized, "Google account email could not be verified.");
+            return GoogleSignInResult.Fail(StatusCodes.Status401Unauthorized, _l["Auth_GoogleEmailUnverified"].Value);
 
         var externalId = CreateProviderExternalId("google", googleToken.Subject);
         var user = await _users.GetByExternalIdAsync(externalId, ct);
@@ -326,6 +330,7 @@ public class AuthController : ControllerBase
                 };
                 ApplyDefaultListingLimit(user);
                 user.PasswordHash = CreateUnavailablePasswordHash(user);
+                // User persistence is committed by CreateAuthResponseAsync through IssueRefreshTokenAsync.
                 await _users.AddAsync(user, ct);
             }
             else
@@ -335,7 +340,7 @@ public class AuthController : ControllerBase
                 {
                     return GoogleSignInResult.Fail(
                         StatusCodes.Status409Conflict,
-                        "This email is already linked to another sign-in provider.");
+                        _l["Auth_GoogleProviderConflict"].Value);
                 }
 
                 user.ExternalId = externalId;
@@ -345,6 +350,7 @@ public class AuthController : ControllerBase
                 user.EmailVerificationExpiresAt = null;
                 user.DisplayName ??= NormalizeDisplayName(googleToken.Name);
                 user.AvatarUrl ??= NormalizeAvatarUrl(googleToken.Picture);
+                // User updates are committed by CreateAuthResponseAsync through IssueRefreshTokenAsync.
                 await _users.UpdateAsync(user, ct);
             }
         }

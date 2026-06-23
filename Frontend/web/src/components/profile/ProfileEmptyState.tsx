@@ -9,13 +9,20 @@ interface ProfileEmptyStateProps {
   actionLabel?: string;
 }
 
-export default function ProfileEmptyState({
-  icon: Icon,
-  title,
-  description,
-  actionHref,
-  actionLabel,
-}: ProfileEmptyStateProps) {
+/**
+ * Displays a profile-tab empty state with an optional call to action.
+ *
+ * @param props - Empty state icon, copy, and optional action link.
+ * @returns A reusable profile empty-state panel.
+ */
+export default function ProfileEmptyState(props: ProfileEmptyStateProps) {
+  const {
+    icon: Icon,
+    title,
+    description,
+    actionHref,
+    actionLabel,
+  } = props;
   return (
     <div className="rounded-xl border border-dashed border-primary-200 bg-primary-50/40 px-6 py-10 text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary-700 shadow-sm ring-1 ring-primary-100">

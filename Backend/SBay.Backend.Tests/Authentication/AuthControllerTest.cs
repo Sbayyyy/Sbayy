@@ -178,6 +178,21 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Theory]
+    [InlineData("|user@example.com|Google User")]
+    [InlineData("google-sub| |Google User")]
+    public async Task GoogleLogin_RejectsMissingRequiredGoogleClaims(string idToken)
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/auth/google", new
+        {
+            idToken
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
     [Fact]
     public async Task GoogleLogin_RejectsUnverifiedGoogleEmail()
     {

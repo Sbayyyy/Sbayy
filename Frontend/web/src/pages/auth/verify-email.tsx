@@ -16,10 +16,10 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     if (!router.isReady) return;
 
-    const hash = window.location.hash.replace('#', '');
-    const params = new URLSearchParams(hash);
-    const token = params.get('token') ?? '';
-    const redirect = params.get('redirect') ?? '';
+    const searchParams = new URLSearchParams(window.location.search.replace(/^\?/, ''));
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const token = searchParams.get('token') ?? hashParams.get('token') ?? '';
+    const redirect = searchParams.get('redirect') ?? hashParams.get('redirect') ?? '';
     const redirectSuffix = redirect.startsWith('/') && !redirect.startsWith('//')
       ? `&redirect=${encodeURIComponent(redirect)}`
       : '';

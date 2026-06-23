@@ -12,6 +12,13 @@ export function formatPrice(
   return `${formatted} ${currency}`;
 }
 
+/**
+ * Formats a date or date string as localized relative time, returning an empty string for invalid dates.
+ *
+ * @param value - Date object or parseable date string.
+ * @param locale - Locale used for relative time formatting; falls back to the document language.
+ * @returns A localized relative time string, or an empty string when the date is invalid.
+ */
 export function formatRelativeTime(value: string | Date, locale: string = getFallbackLocale()): string {
   const date = value instanceof Date ? value : new Date(value);
   const timestamp = date.getTime();

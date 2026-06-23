@@ -68,10 +68,14 @@ public sealed class GoogleTokenVerifier : IGoogleTokenVerifier
 
         var fallbacks = new[]
         {
+            configuration["Authentication:Google:OAuthClientId"],
+            configuration["Authentication:Google:WebClientId"],
             configuration["Authentication:Google:ClientId"],
+            configuration["Google:OAuthClientId"],
             configuration["Google:ClientId"],
             configuration["Google:WebClientId"],
             configuration["Google:AndroidClientId"],
+            configuration["GOOGLE_OAUTH_CLIENT_ID"],
             configuration["GOOGLE_CLIENT_ID"],
             configuration["GOOGLE_WEB_CLIENT_ID"],
             configuration["GOOGLE_ANDROID_CLIENT_ID"]

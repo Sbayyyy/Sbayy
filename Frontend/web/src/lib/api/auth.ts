@@ -21,6 +21,13 @@ export const login = async (credentials: UserLogin) => {
   };
 };
 
+/**
+ * Authenticates a user with a Google ID token and returns the normal auth response shape.
+ *
+ * @param idToken - Google identity token returned by Google Identity Services.
+ * @param accessToken - Optional Google access token when a client flow provides one.
+ * @returns The auth response with the backend user DTO transformed into the web user shape.
+ */
 export const loginWithGoogle = async (idToken: string, accessToken?: string | null) => {
   const response = await api.post<AuthResponse>('/auth/google', {
     idToken,

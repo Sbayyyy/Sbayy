@@ -868,10 +868,17 @@ export default function ApiPreviewPage() {
   );
 }
 
-export async function getStaticProps({ locale }: { locale?: string }) {
+/**
+ * Provides localized static props for the API preview test page.
+ *
+ * @param context - Static generation context containing an optional locale.
+ * @returns Page props with common namespace translations.
+ */
+export async function getStaticProps(context: { locale?: string }) {
+  const { locale } = context;
   return {
     props: {
-      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+      ...(await serverSideTranslations(locale ?? process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'ar', ['common']))
     }
   };
 }

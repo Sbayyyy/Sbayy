@@ -15,7 +15,14 @@ interface ProfileOverviewTabProps {
   t: TranslationFn;
 }
 
-export default function ProfileOverviewTab({ activities, locale, t }: ProfileOverviewTabProps) {
+/**
+ * Renders the profile overview tab with localized recent activity timestamps.
+ *
+ * @param props - Recent activities, active locale, and translation function.
+ * @returns The overview tab content for the profile page.
+ */
+export default function ProfileOverviewTab(props: ProfileOverviewTabProps) {
+  const { activities, locale, t } = props;
   const dateFormatter = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' });
 
   return (

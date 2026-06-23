@@ -6,4 +6,7 @@ Sentry.init({
   enabled: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN ?? process.env.SENTRY_DSN),
 });
 
+/**
+ * Captures client router transition start events for Sentry navigation tracing.
+ */
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

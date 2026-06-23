@@ -47,12 +47,23 @@ interface GoogleAuthButtonProps {
 const SCRIPT_ID = 'google-identity-services';
 const SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 
-export default function GoogleAuthButton({
-  onToken,
-  onError,
-  disabled = false,
-  text = 'continue_with',
-}: GoogleAuthButtonProps) {
+/**
+ * Renders the Google Identity Services button and returns its ID token through onToken.
+ *
+ * @param props - Google button callbacks and display options.
+ * @param props.onToken - Called with the Google ID token after a successful sign-in.
+ * @param props.onError - Called with a localized error message when loading or token retrieval fails.
+ * @param props.disabled - Prevents GIS button rendering and user interaction when true.
+ * @param props.text - Google button text variant; defaults to continue_with.
+ * @returns A Google sign-in button or an unavailable-state button when no client ID is configured.
+ */
+export default function GoogleAuthButton(props: GoogleAuthButtonProps) {
+  const {
+    onToken,
+    onError,
+    disabled = false,
+    text = 'continue_with',
+  } = props;
   const { t, i18n } = useTranslation('common');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
@@ -92,6 +103,10 @@ export default function GoogleAuthButton({
     const container = containerRef.current;
     const googleId = window.google?.accounts?.id;
     if (!container || !ready || !clientId || !googleId) return;
+    if (disabled) {
+      container.innerHTML = '';
+      return;
+    }
 
     container.innerHTML = '';
     googleId.initialize({
@@ -114,7 +129,7 @@ export default function GoogleAuthButton({
       width: Math.max(220, Math.min(360, container.parentElement?.clientWidth || container.clientWidth || 280)),
       locale: i18n.language?.startsWith('ar') ? 'ar' : 'en',
     });
-  }, [clientId, i18n.language, onError, onToken, ready, t, text]);
+  }, [clientId, disabled, i18n.language, onError, onToken, ready, t, text]);
 
   if (!clientId) {
     return (

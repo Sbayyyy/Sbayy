@@ -7,6 +7,12 @@ interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
   hideLabel?: string;
 }
 
+/**
+ * Password input with an accessible visibility toggle and localized show/hide labels.
+ *
+ * @param props - Standard input props except type, plus optional showLabel and hideLabel overrides.
+ * @returns A password field whose text visibility can be toggled unless disabled.
+ */
 const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ className = '', showLabel, hideLabel, disabled, ...props }, ref) => {
     const { t } = useTranslation('common');
