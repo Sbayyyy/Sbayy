@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { Bug, Loader2, Send, X } from 'lucide-react';
 import { createBugReport, type BugReportSeverity } from '@/lib/api/bugReports';
+import { getLocalizedLoginRedirect } from '@/lib/auth-redirect';
 import { useAuthStore } from '@/lib/store';
 import { toast } from '@/lib/toast';
 
@@ -33,8 +34,9 @@ export default function BugReportButton() {
 
   const openDialog = () => {
     if (!isAuthenticated) {
-      const redirect = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
-      window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
+      window.location.href = typeof window !== 'undefined'
+        ? getLocalizedLoginRedirect(window.location.pathname, window.location.search)
+        : getLocalizedLoginRedirect('/');
       return;
     }
     setIsOpen(true);

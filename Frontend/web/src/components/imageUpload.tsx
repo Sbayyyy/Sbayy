@@ -138,12 +138,12 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
               <button
                 type="button"
                 onClick={() => removeImage(index)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-2 -end-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <X size={16} />
               </button>
               {index === 0 && (
-                <span className="absolute bottom-1 left-1 bg-primary-600 text-white text-xs px-2 py-1 rounded">
+                <span className="absolute bottom-1 start-1 bg-primary-600 text-white text-xs px-2 py-1 rounded">
                   {t('imageUpload.primaryBadge')}
                 </span>
               )}

@@ -5,6 +5,7 @@ import {
   getStoredAccessToken,
   refreshStoredAuthSession
 } from './auth-session';
+import { getLocalizedLoginRedirect, isAuthPath } from './auth-redirect';
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -88,15 +89,15 @@ if (typeof window !== 'undefined') {
           }
         } catch (refreshError) {
           clearAuthSession();
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-            window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+          if (typeof window !== 'undefined' && !isAuthPath(window.location.pathname)) {
+            window.location.href = getLocalizedLoginRedirect(window.location.pathname, window.location.search);
           }
           return Promise.reject(refreshError);
         }
 
         clearAuthSession();
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-          window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+        if (typeof window !== 'undefined' && !isAuthPath(window.location.pathname)) {
+          window.location.href = getLocalizedLoginRedirect(window.location.pathname, window.location.search);
         }
       }
 

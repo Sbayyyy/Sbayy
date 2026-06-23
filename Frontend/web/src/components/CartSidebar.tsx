@@ -1,7 +1,7 @@
 // components/CartSidebar.tsx
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { X, ShoppingBag, ArrowRight } from 'lucide-react';
+import { X, ShoppingBag, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 import CartItem from '@/components/CartItem';
 import { useCartStore } from '@/lib/cartStore';
@@ -18,7 +18,8 @@ export default function CartSidebar() {
     removeItem
   } = useCartStore();
 
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
+  const CheckoutArrow = i18n.language?.startsWith('ar') ? ArrowLeft : ArrowRight;
 
   // Close on ESC key
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function CartSidebar() {
       />
 
       {/* Sidebar */}
-      <div className="fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col animate-slide-in">
+      <div className="cart-sidebar-panel fixed top-0 end-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
@@ -132,7 +133,7 @@ export default function CartSidebar() {
                   onClick={closeCart}
                 >
                   <span>{t('cartSidebar.checkout')}</span>
-                  <ArrowRight size={20} className="inline mr-2" />
+                  <CheckoutArrow size={20} className="inline ms-2" />
                 </Link>
 
                 <Link

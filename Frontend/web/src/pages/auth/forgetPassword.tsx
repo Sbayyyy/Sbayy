@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/lib/api/errors';
 import { config } from '@/lib/config';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import Link from 'next/link';
 
 export default function ForgotPassword() {
   const { t } = useTranslation('common');
@@ -160,12 +161,12 @@ export default function ForgotPassword() {
         </form>
 
         <div className="mt-6 text-center">
-          <a
+          <Link
             href="/auth/login"
             className="auth-link"
           >
             {t('forgotPassword.backToLogin')}
-          </a>
+          </Link>
         </div>
 
         {success && (

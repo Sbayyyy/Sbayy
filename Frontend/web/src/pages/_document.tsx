@@ -19,7 +19,8 @@ export default class Document extends NextDocument<Props> {
     const runtimeConfig = {
       apiUrl: process.env.RUNTIME_API_URL || process.env.NEXT_PUBLIC_API_URL || '/api',
       supportEmail: process.env.RUNTIME_SUPPORT_EMAIL || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@syrian-bay.com',
-      logoUrl: process.env.RUNTIME_LOGO_URL || process.env.NEXT_PUBLIC_LOGO_URL || '/assets/sbaylogo2.png'
+      logoUrl: process.env.RUNTIME_LOGO_URL || process.env.NEXT_PUBLIC_LOGO_URL || '/assets/sbaylogo2.png',
+      googleWebClientId: process.env.RUNTIME_GOOGLE_WEB_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID || ''
     };
 
     return (

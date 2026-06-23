@@ -28,7 +28,7 @@ export default function UserMenu({ user, isAdmin, open, unreadTotal, onOpenChang
       <button
         type="button"
         onClick={() => onOpenChange(!open)}
-        className="relative flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-2 pr-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        className="relative flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 ps-2 pe-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         aria-expanded={open}
       >
         <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary-100 ring-2 ring-white">
@@ -52,7 +52,7 @@ export default function UserMenu({ user, isAdmin, open, unreadTotal, onOpenChang
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => onOpenChange(false)} />
-          <DropdownMenu className="absolute right-0 mt-3 w-72" showArrow>
+          <DropdownMenu className="absolute end-0 mt-3 w-72" showArrow>
             <DropdownMenuHeader className="flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-100 ring-4 ring-white">
                 {user.avatar ? (

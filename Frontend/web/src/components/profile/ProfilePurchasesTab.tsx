@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ShoppingBag } from 'lucide-react';
+import ProfileEmptyState from './ProfileEmptyState';
 import type { OrderResponse } from '@sbay/shared';
 import type { TranslationFn } from './types';
 
@@ -7,6 +8,7 @@ interface ProfilePurchasesTabProps {
   purchases: OrderResponse[];
   purchasesLoading: boolean;
   purchasesError: string;
+  locale: string;
   t: TranslationFn;
 }
 
@@ -14,14 +16,17 @@ export default function ProfilePurchasesTab({
   purchases,
   purchasesLoading,
   purchasesError,
+  locale,
   t,
 }: ProfilePurchasesTabProps) {
+  const dateFormatter = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+
   return (
     <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.purchasesTitle')}</h2>
       {purchasesLoading ? (
-        <div className="flex items-center justify-center py-12 text-gray-500">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <div className="flex items-center justify-center py-12 text-slate-600">
+          <Loader2 className="me-2 h-5 w-5 animate-spin" />
           {t('profile.loadingPurchases')}
         </div>
       ) : purchasesError ? (
@@ -30,9 +35,13 @@ export default function ProfilePurchasesTab({
           {purchasesError}
         </div>
       ) : purchases.length === 0 ? (
-        <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center text-sm text-gray-500">
-          {t('profile.purchasesEmpty')}
-        </div>
+        <ProfileEmptyState
+          icon={ShoppingBag}
+          title={t('profile.purchasesEmptyTitle')}
+          description={t('profile.purchasesEmptyDescription')}
+          actionHref="/browse"
+          actionLabel={t('profile.browseListings')}
+        />
       ) : (
         <div className="space-y-4">
           {purchases.map(order => (
@@ -46,16 +55,16 @@ export default function ProfilePurchasesTab({
                   {t(`profile.orderStatus.${order.status}`)}
                 </p>
                 <p className="text-xs text-gray-400">
-                  {new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {dateFormatter.format(new Date(order.createdAt))}
                 </p>
               </div>
               <div className="text-sm text-gray-700">
                 {t('profile.orderItems', { count: order.items.length })}
               </div>
-              <div className="text-right">
+              <div className="text-start sm:text-end">
                 <p className="text-sm text-gray-500">{t('profile.total')}</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {order.total.toLocaleString('en-US')} {t('profile.currency')}
+                  {order.total.toLocaleString(locale)} {t('profile.currency')}
                 </p>
               </div>
               <Link

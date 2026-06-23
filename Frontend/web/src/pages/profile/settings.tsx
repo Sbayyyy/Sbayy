@@ -3,7 +3,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { User, Lock, Shield, Eye, EyeOff, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
+import { User, Lock, Shield, ChevronRight } from 'lucide-react';
 
 import Layout from '@/components/Layout';
 import { api } from '@/lib/api';
@@ -20,6 +21,7 @@ import { toast } from '@/lib/toast';
 import { useRequireAuth } from '@/lib/useRequireAuth';
 import { defaultTextInputValidator, sanitizeInput } from '@sbay/shared';
 import { Select } from '@/components/ui/select';
+import PasswordInput from '@/components/ui/password-input';
 
 const Toggle = ({
   checked,
@@ -48,8 +50,8 @@ const Toggle = ({
       }`}
     />
     <span
-      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-        checked ? 'translate-x-5' : 'translate-x-0'
+      className={`absolute start-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+        checked ? 'ltr:translate-x-5 rtl:-translate-x-5' : 'translate-x-0'
       }`}
     />
   </label>
@@ -58,9 +60,9 @@ const Toggle = ({
 export default function AccountSettingsPage() {
   useRequireAuth();
   const router = useRouter();
+  const { t } = useTranslation('common');
   const { user, setUser, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('personal');
-  const [showPassword, setShowPassword] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -259,12 +261,12 @@ export default function AccountSettingsPage() {
   const handlePasswordSave = async () => {
     const passwordRule = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}/;
     const nextErrors: typeof passwordErrors = {};
-    if (!passwordForm.current.trim()) nextErrors.current = 'Current password is required';
-    if (!passwordForm.next.trim()) nextErrors.next = 'New password is required';
+    if (!passwordForm.current.trim()) nextErrors.current = t('profile.settings.currentPasswordRequired');
+    if (!passwordForm.next.trim()) nextErrors.next = t('profile.settings.newPasswordRequired');
     if (passwordForm.next && !passwordRule.test(passwordForm.next)) {
-      nextErrors.next = 'Password must be at least 8 characters and include uppercase, lowercase, and a number';
+      nextErrors.next = t('profile.settings.passwordRule');
     }
-    if (passwordForm.next !== passwordForm.confirm) nextErrors.confirm = 'Passwords do not match';
+    if (passwordForm.next !== passwordForm.confirm) nextErrors.confirm = t('auth.errors.confirmMismatch');
 
     setPasswordErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -273,10 +275,10 @@ export default function AccountSettingsPage() {
     try {
       await changePassword(passwordForm.current, passwordForm.next);
       setPasswordForm({ current: '', next: '', confirm: '' });
-      toast.success('Password updated successfully');
+      toast.success(t('profile.settings.passwordUpdated'));
     } catch (error) {
       console.error('Error updating password:', error);
-      toast.error('Unable to update password');
+      toast.error(t('profile.settings.passwordUpdateError'));
     } finally {
       setPasswordSaving(false);
     }
@@ -484,57 +486,57 @@ export default function AccountSettingsPage() {
             {activeTab === 'security' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-6">Password & Authentication</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-6">{t('profile.settings.passwordAuthentication')}</h2>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="currentPassword" className="text-sm font-medium text-gray-700">Current Password</label>
-                      <div className="relative mt-2">
-                        <input
+                      <label htmlFor="currentPassword" className="text-sm font-medium text-gray-700">{t('profile.settings.currentPassword')}</label>
+                      <div className="mt-2">
+                        <PasswordInput
                           id="currentPassword"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Enter current password"
+                          placeholder={t('profile.settings.currentPasswordPlaceholder')}
                           value={passwordForm.current}
                           onChange={(e) => updatePasswordField('current')(e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10"
+                          disabled={passwordSaving}
+                          autoComplete="current-password"
+                          className="!rounded-md !border-gray-300 !py-2 !ps-3 !pe-11"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
                       </div>
                       {passwordErrors.current && (
                         <p className="text-xs text-red-500 mt-1">{passwordErrors.current}</p>
                       )}
                     </div>
                     <div>
-                      <label htmlFor="newPassword" className="text-sm font-medium text-gray-700">New Password</label>
-                      <input
-                        id="newPassword"
-                        type="password"
-                        placeholder="Enter new password"
-                        value={passwordForm.next}
-                        onChange={(e) => updatePasswordField('next')(e.target.value)}
-                        className="mt-2 w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
+                      <label htmlFor="newPassword" className="text-sm font-medium text-gray-700">{t('profile.settings.newPassword')}</label>
+                      <div className="mt-2">
+                        <PasswordInput
+                          id="newPassword"
+                          placeholder={t('profile.settings.newPasswordPlaceholder')}
+                          value={passwordForm.next}
+                          onChange={(e) => updatePasswordField('next')(e.target.value)}
+                          disabled={passwordSaving}
+                          autoComplete="new-password"
+                          className="!rounded-md !border-gray-300 !py-2 !ps-3 !pe-11"
+                        />
+                      </div>
                       {passwordErrors.next ? (
                         <p className="text-xs text-red-500 mt-1">{passwordErrors.next}</p>
                       ) : (
-                        <p className="text-xs text-gray-600 mt-1">Must be at least 8 characters with 1 uppercase, 1 lowercase, and 1 number</p>
+                        <p className="text-xs text-gray-600 mt-1">{t('profile.settings.passwordRule')}</p>
                       )}
                     </div>
                     <div>
-                      <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm New Password</label>
-                      <input
-                        id="confirmPassword"
-                        type="password"
-                        placeholder="Confirm new password"
-                        value={passwordForm.confirm}
-                        onChange={(e) => updatePasswordField('confirm')(e.target.value)}
-                        className="mt-2 w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
+                      <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">{t('profile.settings.confirmPassword')}</label>
+                      <div className="mt-2">
+                        <PasswordInput
+                          id="confirmPassword"
+                          placeholder={t('profile.settings.confirmPasswordPlaceholder')}
+                          value={passwordForm.confirm}
+                          onChange={(e) => updatePasswordField('confirm')(e.target.value)}
+                          disabled={passwordSaving}
+                          autoComplete="new-password"
+                          className="!rounded-md !border-gray-300 !py-2 !ps-3 !pe-11"
+                        />
+                      </div>
                       {passwordErrors.confirm && (
                         <p className="text-xs text-red-500 mt-1">{passwordErrors.confirm}</p>
                       )}
@@ -547,14 +549,14 @@ export default function AccountSettingsPage() {
                       onClick={() => setPasswordForm({ current: '', next: '', confirm: '' })}
                       disabled={passwordSaving}
                     >
-                      Cancel
+                      {t('profile.cancel')}
                     </button>
                     <button
                       onClick={handlePasswordSave}
                       className="px-4 py-2 rounded-md text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60"
                       disabled={passwordSaving}
                     >
-                      {passwordSaving ? 'Updating...' : 'Update Password'}
+                      {passwordSaving ? t('profile.settings.updatingPassword') : t('profile.settings.updatePassword')}
                     </button>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
-import { Package, ShoppingBag } from 'lucide-react';
+import { Clock3, Package, ShoppingBag } from 'lucide-react';
+import ProfileEmptyState from './ProfileEmptyState';
 import type { TranslationFn } from './types';
 
 interface Activity {
@@ -10,10 +11,13 @@ interface Activity {
 
 interface ProfileOverviewTabProps {
   activities: Activity[];
+  locale: string;
   t: TranslationFn;
 }
 
-export default function ProfileOverviewTab({ activities, t }: ProfileOverviewTabProps) {
+export default function ProfileOverviewTab({ activities, locale, t }: ProfileOverviewTabProps) {
+  const dateFormatter = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' });
+
   return (
     <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -21,9 +25,11 @@ export default function ProfileOverviewTab({ activities, t }: ProfileOverviewTab
           {t('profile.recentActivity')}
         </h2>
         {activities.length === 0 ? (
-          <div className="border border-dashed border-gray-200 rounded-lg p-6 text-center text-sm text-gray-500">
-            {t('profile.activityEmpty')}
-          </div>
+          <ProfileEmptyState
+            icon={Clock3}
+            title={t('profile.activityEmptyTitle')}
+            description={t('profile.activityEmptyDescription')}
+          />
         ) : (
           <div className="space-y-4">
             {activities.map((activity, index) => (
@@ -44,7 +50,7 @@ export default function ProfileOverviewTab({ activities, t }: ProfileOverviewTab
                   <p className="text-sm text-gray-900">{activity.title}</p>
                   <p className="text-xs text-gray-500">{activity.description}</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    {new Date(activity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {dateFormatter.format(new Date(activity.date))}
                   </p>
                 </div>
               </div>

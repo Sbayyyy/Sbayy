@@ -87,7 +87,7 @@ internal sealed class UserDocument
         {
             Id = FirestoreId.ParseRequired(Id),
             Email = Email,
-            ExternalId = ExternalId ?? string.Empty,
+            ExternalId = ExternalId,
             DisplayName = DisplayName,
             Phone = Phone,
             City = City,

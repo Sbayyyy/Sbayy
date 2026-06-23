@@ -1,17 +1,20 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import {
   createOptionalTextInputValidator,
   IValidator,
   isValidEmail,
   sanitizeInput
 } from '@sbay/shared';
-import { login } from '../../lib/api/auth';
+import { login, loginWithGoogle } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { config } from '@/lib/config';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
+import PasswordInput from '@/components/ui/password-input';
 
 export default function Login() {
     const { t, i18n } = useTranslation('common');
@@ -22,6 +25,7 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [apiError, setApiError] = useState('');
 
     const redirectParam = typeof router.query.redirect === 'string' ? router.query.redirect : '';
@@ -88,6 +92,10 @@ export default function Login() {
 
         document.documentElement.lang = locale;
         document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+
+        if (router.locales?.includes(locale)) {
+            void router.replace(router.asPath, undefined, { locale, scroll: false });
+        }
 
         if (!loaded) {
             window.location.reload();
@@ -172,7 +180,7 @@ export default function Login() {
         }));
     };
 
-    const normalizeRedirect = (value: string) => {
+    const normalizeRedirect = useCallback((value: string) => {
         if (!value || value.startsWith('http://') || value.startsWith('https://') || value.startsWith('//')) {
             return '/';
         }
@@ -189,7 +197,24 @@ export default function Login() {
         if (hasLocalePrefix || !router.locale) return value;
 
         return `/${router.locale}${value}`;
-    };
+    }, [router.locale, router.locales]);
+
+    const completeLogin = useCallback((data: Awaited<ReturnType<typeof login>>) => {
+        loginStore(data.user, data.token, data.refreshToken);
+
+        const queryRedirect = typeof router.query.redirect === 'string' ? router.query.redirect : '';
+        const storedRedirect = typeof window !== 'undefined'
+          ? window.sessionStorage.getItem('authRedirect') || ''
+          : '';
+        const rawRedirect = queryRedirect || storedRedirect || '/';
+        const redirect = normalizeRedirect(rawRedirect);
+
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem('authRedirect');
+        }
+
+        void router.push(redirect);
+    }, [loginStore, normalizeRedirect, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -205,26 +230,27 @@ export default function Login() {
                 password
             });
 
-            loginStore(data.user, data.token, data.refreshToken);
-
-            const queryRedirect = typeof router.query.redirect === 'string' ? router.query.redirect : '';
-            const storedRedirect = typeof window !== 'undefined'
-              ? window.sessionStorage.getItem('authRedirect') || ''
-              : '';
-            const rawRedirect = queryRedirect || storedRedirect || '/';
-            const redirect = normalizeRedirect(rawRedirect);
-
-            if (typeof window !== 'undefined') {
-              window.sessionStorage.removeItem('authRedirect');
-            }
-
-            router.push(redirect);
+            completeLogin(data);
         } catch (error: unknown) {
             setApiError(getErrorMessage(error));
         } finally {
             setIsLoading(false);
         }
     };
+
+    const handleGoogleToken = useCallback(async (idToken: string) => {
+        setIsGoogleLoading(true);
+        setApiError('');
+
+        try {
+            const data = await loginWithGoogle(idToken);
+            completeLogin(data);
+        } catch (error: unknown) {
+            setApiError(getErrorMessage(error));
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    }, [completeLogin]);
 
     return (
       <>
@@ -275,7 +301,20 @@ export default function Login() {
               </div>
               )}
 
-            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+            <div className="space-y-4">
+              <GoogleAuthButton
+                onToken={handleGoogleToken}
+                onError={setApiError}
+                disabled={isLoading || isGoogleLoading}
+              />
+              <div className="flex items-center gap-3 text-xs font-semibold uppercase text-slate-400">
+                <span className="h-px flex-1 bg-slate-200" />
+                <span>{t('auth.google.orEmail')}</span>
+                <span className="h-px flex-1 bg-slate-200" />
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-6" noValidate>
               <div>
                 <label htmlFor="email" className="auth-label">
                   {t('auth.login.emailLabel')}
@@ -287,7 +326,7 @@ export default function Login() {
                     type="email"
                     value={email}
                     onChange={(e) => handleFieldChange('email', e.target.value)}
-                    disabled={isLoading}
+                    disabled={isLoading || isGoogleLoading}
                     required
                     autoComplete="email"
                     className={`input ${
@@ -306,23 +345,22 @@ export default function Login() {
                     {t('auth.login.passwordLabel')}
                   </label>
                   <div className="text-sm">
-                    <a href="/auth/forgetPassword" className="auth-link">
+                    <Link href="/auth/forgetPassword" className="auth-link">
                       {t('auth.login.forgot')}
-                    </a>
+                    </Link>
                   </div>
                 </div>
 
                 <div className="mt-2">
-                  <input
+                  <PasswordInput
                     id="password"
                     name="password"
-                    type="password"
                     value={password}
                     onChange={(e) => handleFieldChange('password', e.target.value)}
-                    disabled={isLoading}
+                    disabled={isLoading || isGoogleLoading}
                     required
                     autoComplete="current-password"
-                    className={`input ${
+                    className={`${
                       errors.password ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                   }`}
                   />
@@ -335,9 +373,9 @@ export default function Login() {
               <div>
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className={`btn btn-primary w-full ${
-                      isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      (isLoading || isGoogleLoading) ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   {isLoading
@@ -348,9 +386,9 @@ export default function Login() {
             </form>
 
               <div className="mt-4 text-center text-sm">
-                  <a href={registerHref} className="auth-link">
+                  <Link href={registerHref} className="auth-link">
                       {t('auth.login.registerLink')}
-                    </a>
+                    </Link>
               </div>
           </div>
           </div>

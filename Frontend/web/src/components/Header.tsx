@@ -4,6 +4,7 @@ import { Heart, Menu, MessageCircle, Package, User, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { logout as revokeSession } from '@/lib/api/auth';
+import { getLocalizedLoginRedirect } from '@/lib/auth-redirect';
 import { useAuthStore } from '@/lib/store';
 import { config } from '@/lib/config';
 import LanguageToggle from './LanguageToggle';
@@ -21,7 +22,7 @@ export default function Header() {
   const scrolled = useDetachedHeader();
   const unreadTotal = useUnreadMessages({ isAuthenticated, userId: user?.id });
   const redirectParam = encodeURIComponent(router.asPath);
-  const loginHref = `/auth/login?redirect=${redirectParam}`;
+  const loginHref = getLocalizedLoginRedirect(router.asPath, '', router.locale);
   const registerHref = `/auth/register?redirect=${redirectParam}`;
   const isAdmin = user?.role === 'admin';
   const detached = scrolled || mobileMenuOpen;
@@ -90,7 +91,7 @@ export default function Header() {
             <Link href="/messages" className="icon-button relative" aria-label={t('nav.messages')}>
               <MessageCircle size={20} />
               {unreadTotal > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                <span className="absolute -top-1 -end-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
                   {unreadTotal > 99 ? '99+' : unreadTotal}
                 </span>
               )}

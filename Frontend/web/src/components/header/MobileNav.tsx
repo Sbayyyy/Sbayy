@@ -54,7 +54,7 @@ export default function MobileNav({
                 Manager dashboard
               </Link>
             )}
-            <button type="button" onClick={onLogout} className="block w-full rounded-xl px-3 py-2 text-right text-red-600 hover:bg-red-50">
+            <button type="button" onClick={onLogout} className="block w-full rounded-xl px-3 py-2 text-start text-red-600 hover:bg-red-50">
               {t('nav.logout')}
             </button>
           </>

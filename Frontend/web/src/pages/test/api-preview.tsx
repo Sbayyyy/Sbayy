@@ -3,6 +3,7 @@ import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { AlertCircle, Check, Copy, Play, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 type ApiTest = 
   // Orders & Shipping
@@ -311,9 +312,14 @@ const apiEndpoints: Record<ApiTest, ApiEndpoint> = {
   }
 };
 
+type Translate = (key: string) => string;
+
 // Mock Response Generator
-function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown>): Omit<ApiCallResponse, 'timestamp' | 'executionTime'> {
-  const { t } = useTranslation('common');
+function generateMockResponse(
+  endpoint: ApiTest,
+  request: Record<string, unknown>,
+  t: Translate
+): Omit<ApiCallResponse, 'timestamp' | 'executionTime'> {
   const responses: Record<ApiTest, Omit<ApiCallResponse, 'timestamp' | 'executionTime'>> = {
     // === ORDERS & SHIPPING ===
     shipping: {
@@ -613,6 +619,7 @@ function generateMockResponse(endpoint: ApiTest, request: Record<string, unknown
 }
 
 export default function ApiPreviewPage() {
+  const { t } = useTranslation('common');
   const [activeApi, setActiveApi] = useState<ApiTest>('shipping');
   const [loading, setLoading] = useState(false);
   const [apiResponse, setApiResponse] = useState<ApiCallResponse | null>(null);
@@ -642,7 +649,7 @@ export default function ApiPreviewPage() {
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 600));
     
-    const mockData = generateMockResponse(activeApi, parsedRequest);
+    const mockData = generateMockResponse(activeApi, parsedRequest, t);
     setApiResponse({
       ...mockData,
       timestamp: new Date().toISOString(),
@@ -859,4 +866,12 @@ export default function ApiPreviewPage() {
       </div>
     </Layout>
   );
+}
+
+export async function getStaticProps({ locale }: { locale?: string }) {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? 'ar', ['common']))
+    }
+  };
 }

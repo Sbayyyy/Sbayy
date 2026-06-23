@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router';
+import { getLocalizedLoginRedirect } from '@/lib/auth-redirect';
 import { useAuthStore } from '@/lib/store';
 
 /**
@@ -18,8 +19,7 @@ export function useRequireAuthAction() {
 
   return (): boolean => {
     if (isAuthenticated) return true;
-    const redirectTo = encodeURIComponent(router.asPath);
-    router.push(`/auth/login?redirect=${redirectTo}`);
+    router.push(getLocalizedLoginRedirect(router.asPath, '', router.locale));
     return false;
   };
 }

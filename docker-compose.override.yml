@@ -24,6 +24,8 @@ services:
       NEXT_PUBLIC_LOGO_URL: ${NEXT_PUBLIC_LOGO_URL:-/assets/sbaylogo2.png}
       NEXT_PUBLIC_OPTIMIZED_IMAGE_HOSTS: ${NEXT_PUBLIC_OPTIMIZED_IMAGE_HOSTS:-}
       RUNTIME_LOGO_URL: ${NEXT_PUBLIC_LOGO_URL:-/assets/sbaylogo2.png}
+      NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID:-${GOOGLE_WEB_CLIENT_ID:-}}
+      RUNTIME_GOOGLE_WEB_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID:-${GOOGLE_WEB_CLIENT_ID:-}}
     volumes:
       - ./Frontend:/app
       - frontend-node-modules:/app/node_modules

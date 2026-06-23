@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
 const { i18n } = require('./next-i18next.config');
 const { withSentryConfig } = require("@sentry/nextjs");
 
@@ -51,6 +52,7 @@ const imageRemotePatterns = [...new Set([...defaultImageHosts, ...configuredImag
 const nextConfig = {
   reactStrictMode: true,
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  outputFileTracingRoot: path.join(__dirname, '..'),
   i18n,
   images: {
     remotePatterns: imageRemotePatterns,

@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using SBay.Backend.Authentication;
 using SBay.Backend.Utils;
 using SBay.Backend.Services;
 using SBay.Domain.Authentication;
@@ -27,6 +28,8 @@ using LogoutRequest = SBay.Backend.APIs.Records.LogoutRequest;
 using VerifyEmailRequest = SBay.Backend.APIs.Records.Requests.VerifyEmailRequest;
 using ForgotPasswordRequest = SBay.Backend.APIs.Records.Requests.ForgotPasswordRequest;
 using ResetPasswordRequest = SBay.Backend.APIs.Records.Requests.ResetPasswordRequest;
+using GoogleAuthRequest = SBay.Backend.APIs.Records.Requests.GoogleAuthRequest;
+using GoogleMobileCallbackRequest = SBay.Backend.APIs.Records.Requests.GoogleMobileCallbackRequest;
 
 namespace SBay.Backend.Api.Controllers;
 [ApiController]
@@ -38,6 +41,8 @@ public class AuthController : ControllerBase
     private static readonly PasswordHasher<User> DummyHasher = new();
     private static readonly string DummyPasswordHash = DummyHasher.HashPassword(DummyUser, "DummyPassword1!");
     private static readonly TimeSpan LoginAttemptWindow = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan GoogleOAuthStateLifetime = TimeSpan.FromMinutes(10);
+    private const string GoogleOAuthAuthorizeEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
     private const int MaxLoginAttempts = 10;
     private readonly IUserRepository _users;
     private readonly IRefreshTokenRepository _refreshTokens;
@@ -47,9 +52,11 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _config;
     private readonly IEmailSender _emailSender;
     private readonly IPasswordResetEmailQueue _passwordResetEmailQueue;
+    private readonly IGoogleTokenVerifier _googleTokenVerifier;
+    private readonly IGoogleOAuthCodeExchanger _googleOAuthCodeExchanger;
     private readonly IStringLocalizer<BackendMessages> _l;
 
-    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender, IPasswordResetEmailQueue passwordResetEmailQueue, IStringLocalizer<BackendMessages> localizer)
+    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender, IPasswordResetEmailQueue passwordResetEmailQueue, IGoogleTokenVerifier googleTokenVerifier, IGoogleOAuthCodeExchanger googleOAuthCodeExchanger, IStringLocalizer<BackendMessages> localizer)
     {
         _users = users;
         _refreshTokens = refreshTokens;
@@ -59,6 +66,8 @@ public class AuthController : ControllerBase
         _config = config;
         _emailSender = emailSender;
         _passwordResetEmailQueue = passwordResetEmailQueue;
+        _googleTokenVerifier = googleTokenVerifier;
+        _googleOAuthCodeExchanger = googleOAuthCodeExchanger;
         _l = localizer;
     }
 
@@ -91,14 +100,7 @@ public class AuthController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        var defaultLimit = _config.GetValue<int?>("ListingLimits:DefaultLimit") ?? 50;
-        var periodHours = _config.GetValue<int?>("ListingLimits:PeriodHours") ?? 24;
-        if (defaultLimit >= 0)
-        {
-            user.ListingLimit = defaultLimit;
-            user.ListingLimitCount = 0;
-            user.ListingLimitResetAt = DateTimeOffset.UtcNow.AddHours(periodHours);
-        }
+        ApplyDefaultListingLimit(user);
         user.PasswordHash = _hasher.HashPassword(user, req.Password);
         var verificationToken = CreateVerificationToken(user);
 
@@ -163,55 +165,389 @@ public class AuthController : ControllerBase
             await _uow.SaveChangesAsync(ct);
         }
 
-        var dto = user.ToDto();
-        var token = GenerateJwt(user);
-        var refresh = await IssueRefreshTokenAsync(user.Id, ct);
         LoginAttempts.TryRemove(attemptKey, out _);
-        return Ok(new AuthResponse(dto, token)
+        return Ok(await CreateAuthResponseAsync(user, ct));
+    }
+
+    [HttpPost("google")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Google([FromBody] GoogleAuthRequest? req, CancellationToken ct)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.IdToken))
+            return BadRequest("Google identity token is required.");
+
+        VerifiedGoogleToken? googleToken;
+        try
         {
-            RefreshToken = refresh.Token,
-            RefreshTokenExpiresAt = refresh.ExpiresAt
+            googleToken = await _googleTokenVerifier.VerifyIdTokenAsync(req.IdToken, ct);
+        }
+        catch (InvalidOperationException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google sign-in is not configured.");
+        }
+
+        var signIn = await SignInWithGoogleTokenAsync(googleToken, ct);
+        return ToGoogleActionResult(signIn);
+    }
+
+    [HttpGet("google/mobile/start")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public IActionResult GoogleMobileStart([FromQuery] string? redirectUri)
+    {
+        if (!TryNormalizeGoogleMobileRedirectUri(redirectUri, out var mobileRedirectUri))
+            return BadRequest("Invalid Google redirect URI.");
+
+        var clientId = GoogleOAuthCodeExchanger.GetOAuthClientId(_config);
+        if (string.IsNullOrWhiteSpace(clientId))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google sign-in is not configured.");
+
+        var callbackUrl = GetGoogleMobileCallbackUrl();
+        if (string.IsNullOrWhiteSpace(callbackUrl))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google sign-in callback is not configured.");
+
+        var state = CreateGoogleMobileState(mobileRedirectUri);
+        var authorizationUrl = QueryHelpers.AddQueryString(
+            GoogleOAuthAuthorizeEndpoint,
+            new Dictionary<string, string?>
+            {
+                ["client_id"] = clientId,
+                ["redirect_uri"] = callbackUrl,
+                ["response_type"] = "code",
+                ["scope"] = "openid email profile",
+                ["access_type"] = "offline",
+                ["prompt"] = "select_account",
+                ["state"] = state
+            });
+
+        return Redirect(authorizationUrl);
+    }
+
+    [HttpGet("google/mobile/callback")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> GoogleMobileCallback(
+        [FromQuery] string? code,
+        [FromQuery] string? state,
+        [FromQuery] string? error,
+        CancellationToken ct)
+    {
+        if (!TryReadGoogleMobileState(state, out var mobileRedirectUri))
+            return BadRequest("Invalid Google sign-in state.");
+
+        if (!string.IsNullOrWhiteSpace(error))
+            return RedirectWithGoogleMobileError(mobileRedirectUri, error);
+        if (string.IsNullOrWhiteSpace(code))
+            return RedirectWithGoogleMobileError(mobileRedirectUri, "Google sign-in did not return an authorization code.");
+
+        VerifiedGoogleToken? googleToken;
+        try
+        {
+            googleToken = await ExchangeGoogleCodeAsync(code, GetGoogleMobileCallbackUrl(), ct);
+        }
+        catch (InvalidOperationException)
+        {
+            return RedirectWithGoogleMobileError(mobileRedirectUri, "Google sign-in is not configured.");
+        }
+        catch (HttpRequestException)
+        {
+            return RedirectWithGoogleMobileError(mobileRedirectUri, "Unable to reach Google sign-in.");
+        }
+
+        var signIn = await SignInWithGoogleTokenAsync(googleToken, ct);
+        return signIn.Succeeded
+            ? RedirectWithGoogleMobileAuth(mobileRedirectUri, signIn.Auth!)
+            : RedirectWithGoogleMobileError(mobileRedirectUri, signIn.Error ?? "Unable to continue with Google.");
+    }
+
+    [HttpPost("google/mobile/callback")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> GoogleMobileCallback([FromBody] GoogleMobileCallbackRequest? req, CancellationToken ct)
+    {
+        if (req is null)
+            return BadRequest("Google authorization code or identity token is required.");
+
+        VerifiedGoogleToken? googleToken = null;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(req.IdToken))
+            {
+                googleToken = await VerifyGoogleIdTokenAsync(req.IdToken, ct);
+            }
+            else if (!string.IsNullOrWhiteSpace(req.Code) && !string.IsNullOrWhiteSpace(req.RedirectUri))
+            {
+                if (!TryNormalizeGoogleMobileRedirectUri(req.RedirectUri, out var mobileRedirectUri))
+                    return BadRequest("Invalid Google redirect URI.");
+
+                googleToken = await ExchangeGoogleCodeAsync(req.Code, mobileRedirectUri, ct);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google sign-in is not configured.");
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Unable to reach Google sign-in.");
+        }
+
+        var signIn = await SignInWithGoogleTokenAsync(googleToken, ct);
+        return ToGoogleActionResult(signIn);
+    }
+
+    private async Task<GoogleSignInResult> SignInWithGoogleTokenAsync(VerifiedGoogleToken? googleToken, CancellationToken ct)
+    {
+        if (googleToken is null)
+            return GoogleSignInResult.Fail(StatusCodes.Status401Unauthorized, "Invalid Google token.");
+        if (!googleToken.EmailVerified || !EmailValidator.TryNormalize(googleToken.Email, out var email))
+            return GoogleSignInResult.Fail(StatusCodes.Status401Unauthorized, "Google account email could not be verified.");
+
+        var externalId = CreateProviderExternalId("google", googleToken.Subject);
+        var user = await _users.GetByExternalIdAsync(externalId, ct);
+        if (user is null)
+        {
+            user = await _users.GetByEmailAsync(email, ct);
+            if (user is null)
+            {
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = email,
+                    EmailVerified = true,
+                    EmailVerifiedAt = DateTimeOffset.UtcNow,
+                    DisplayName = NormalizeDisplayName(googleToken.Name) ?? email.Split('@')[0],
+                    AvatarUrl = NormalizeAvatarUrl(googleToken.Picture),
+                    ExternalId = externalId,
+                    Role = "user",
+                    IsSeller = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                ApplyDefaultListingLimit(user);
+                user.PasswordHash = CreateUnavailablePasswordHash(user);
+                await _users.AddAsync(user, ct);
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(user.ExternalId) &&
+                    !string.Equals(user.ExternalId, externalId, StringComparison.Ordinal))
+                {
+                    return GoogleSignInResult.Fail(
+                        StatusCodes.Status409Conflict,
+                        "This email is already linked to another sign-in provider.");
+                }
+
+                user.ExternalId = externalId;
+                user.EmailVerified = true;
+                user.EmailVerifiedAt ??= DateTimeOffset.UtcNow;
+                user.EmailVerificationTokenHash = null;
+                user.EmailVerificationExpiresAt = null;
+                user.DisplayName ??= NormalizeDisplayName(googleToken.Name);
+                user.AvatarUrl ??= NormalizeAvatarUrl(googleToken.Picture);
+                await _users.UpdateAsync(user, ct);
+            }
+        }
+
+        if (!user.IsActive)
+            return GoogleSignInResult.Fail(StatusCodes.Status403Forbidden, _l["Auth_AccountInactive"].Value);
+
+        return GoogleSignInResult.Success(await CreateAuthResponseAsync(user, ct));
+    }
+
+    private async Task<VerifiedGoogleToken?> VerifyGoogleIdTokenAsync(string idToken, CancellationToken ct)
+    {
+        return await _googleTokenVerifier.VerifyIdTokenAsync(idToken, ct);
+    }
+
+    private async Task<VerifiedGoogleToken?> ExchangeGoogleCodeAsync(string code, string redirectUri, CancellationToken ct)
+    {
+        return await _googleOAuthCodeExchanger.ExchangeCodeAsync(code, redirectUri, ct);
+    }
+
+    private IActionResult ToGoogleActionResult(GoogleSignInResult result)
+    {
+        return result.Succeeded
+            ? Ok(result.Auth)
+            : StatusCode(result.StatusCode, result.Error);
+    }
+
+    private IActionResult RedirectWithGoogleMobileAuth(string mobileRedirectUri, AuthResponse auth)
+    {
+        return Redirect(QueryHelpers.AddQueryString(
+            mobileRedirectUri,
+            new Dictionary<string, string?>
+            {
+                ["token"] = auth.Token,
+                ["refreshToken"] = auth.RefreshToken,
+                ["refreshTokenExpiresAt"] = auth.RefreshTokenExpiresAt?.ToString("O")
+            }));
+    }
+
+    private IActionResult RedirectWithGoogleMobileError(string mobileRedirectUri, string error)
+    {
+        return Redirect(QueryHelpers.AddQueryString(
+            mobileRedirectUri,
+            new Dictionary<string, string?>
+            {
+                ["error"] = error
+            }));
+    }
+
+    private string CreateGoogleMobileState(string mobileRedirectUri)
+    {
+        var expiresAt = DateTimeOffset.UtcNow.Add(GoogleOAuthStateLifetime).ToUnixTimeSeconds();
+        var nonce = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(16));
+        var encodedRedirectUri = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(mobileRedirectUri));
+        var payload = $"{expiresAt}.{nonce}.{encodedRedirectUri}";
+        return $"{payload}.{SignGoogleMobileState(payload)}";
+    }
+
+    private bool TryReadGoogleMobileState(string? state, out string mobileRedirectUri)
+    {
+        mobileRedirectUri = string.Empty;
+        if (string.IsNullOrWhiteSpace(state))
+            return false;
+
+        var parts = state.Split('.');
+        if (parts.Length != 4)
+            return false;
+
+        var payload = $"{parts[0]}.{parts[1]}.{parts[2]}";
+        try
+        {
+            var expected = WebEncoders.Base64UrlDecode(SignGoogleMobileState(payload));
+            var actual = WebEncoders.Base64UrlDecode(parts[3]);
+            if (actual.Length != expected.Length || !CryptographicOperations.FixedTimeEquals(actual, expected))
+                return false;
+
+            if (!long.TryParse(parts[0], out var expiresAt) ||
+                expiresAt < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+            {
+                return false;
+            }
+
+            var redirectUri = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(parts[2]));
+            return TryNormalizeGoogleMobileRedirectUri(redirectUri, out mobileRedirectUri);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private string SignGoogleMobileState(string payload)
+    {
+        var key = SHA256.HashData(Encoding.UTF8.GetBytes(_jwt.Secret));
+        using var hmac = new HMACSHA256(key);
+        return WebEncoders.Base64UrlEncode(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)));
+    }
+
+    private bool TryNormalizeGoogleMobileRedirectUri(string? value, out string mobileRedirectUri)
+    {
+        mobileRedirectUri = string.Empty;
+        var trimmed = value?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed) ||
+            !Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        var normalized = uri.ToString().TrimEnd('/');
+        var allowed = GetConfiguredGoogleMobileRedirectUris();
+        if (!allowed.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+            return false;
+
+        mobileRedirectUri = normalized;
+        return true;
+    }
+
+    private string[] GetConfiguredGoogleMobileRedirectUris()
+    {
+        var configured = _config
+            .GetSection("Authentication:Google:MobileRedirectUris")
+            .Get<string[]>() ?? Array.Empty<string>();
+
+        var fallbacks = new[]
+        {
+            _config["Authentication:Google:MobileRedirectUri"],
+            _config["Google:MobileRedirectUri"],
+            _config["GOOGLE_MOBILE_REDIRECT_URI"],
+            _config["GOOGLE_MOBILE_REDIRECT_URI_ALT"],
+            "sbay://auth/google",
+            "sbay:///auth/google"
+        };
+
+        return configured
+            .Concat(fallbacks)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim().TrimEnd('/'))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private string GetGoogleMobileCallbackUrl()
+    {
+        var configured = _config["Authentication:Google:MobileCallbackUrl"]
+            ?? _config["Google:MobileCallbackUrl"]
+            ?? _config["GOOGLE_MOBILE_CALLBACK_URL"];
+        if (Uri.TryCreate(configured, UriKind.Absolute, out var configuredUri))
+            return configuredUri.ToString().TrimEnd('/');
+
+        var publicBaseUrl = _config["Backend:PublicBaseUrl"]
+            ?? _config["Api:PublicBaseUrl"]
+            ?? _config["App:PublicBaseUrl"]
+            ?? _config["PUBLIC_API_URL"]
+            ?? _config["API_PUBLIC_BASE_URL"];
+        if (Uri.TryCreate(publicBaseUrl, UriKind.Absolute, out var publicBaseUri))
+            return $"{publicBaseUri.ToString().TrimEnd('/')}/api/auth/google/mobile/callback";
+
+        return $"{Request.Scheme}://{Request.Host.ToUriComponent()}/api/auth/google/mobile/callback";
+    }
+
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request, CancellationToken ct)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Token))
+            return BadRequest(_l["Auth_VerificationTokenRequired"].Value);
+
+        var tokenHash = HashToken(request.Token);
+        var user = await _users.GetByEmailVerificationTokenHashAsync(tokenHash, ct);
+
+        if (user is null ||
+            user.EmailVerificationExpiresAt is null ||
+            user.EmailVerificationExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            return BadRequest(_l["Auth_VerificationLinkExpired"].Value);
+        }
+
+        if (user.EmailVerified)
+        {
+            return Ok(new
+            {
+                Message = _l["Auth_EmailAlreadyVerified"].Value
+            });
+        }
+
+        user.EmailVerified = true;
+        user.EmailVerifiedAt ??= DateTimeOffset.UtcNow;
+        user.EmailVerificationTokenHash = null;
+        user.EmailVerificationExpiresAt = null;
+
+        await _users.UpdateAsync(user, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            Message = _l["Auth_EmailVerifiedSuccessfully"].Value
         });
     }
-
-[HttpPost("verify-email")]
-[AllowAnonymous]
-[EnableRateLimiting("auth")]
-public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request, CancellationToken ct)
-{
-    if (request is null ||string.IsNullOrWhiteSpace(request.Token))
-        return BadRequest(_l["Auth_VerificationTokenRequired"].Value);
-
-    var tokenHash = HashToken(request.Token);
-    var user = await _users.GetByEmailVerificationTokenHashAsync(tokenHash, ct);
-
-    if (user is null ||
-        user.EmailVerificationExpiresAt is null ||
-        user.EmailVerificationExpiresAt <= DateTimeOffset.UtcNow)
-    {
-        return BadRequest(_l["Auth_VerificationLinkExpired"].Value);
-    }
-    if (user.EmailVerified)
-{
-    return Ok(new
-    {
-        Message = _l["Auth_EmailAlreadyVerified"].Value
-    });
-}
-
-    user.EmailVerified = true;
-    user.EmailVerifiedAt ??= DateTimeOffset.UtcNow;
-    user.EmailVerificationTokenHash = null;
-    user.EmailVerificationExpiresAt = null;
-
-    await _users.UpdateAsync(user, ct);
-    await _uow.SaveChangesAsync(ct);
-
-    return Ok(new
-    {
-        Message = _l["Auth_EmailVerifiedSuccessfully"].Value
-    });
-}
 
     [HttpPost("request-email-verification")]
     [Authorize]
@@ -413,6 +749,52 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
 
         return Ok();
     }
+
+    private async Task<AuthResponse> CreateAuthResponseAsync(User user, CancellationToken ct)
+    {
+        var refresh = await IssueRefreshTokenAsync(user.Id, ct);
+        return new AuthResponse(user.ToDto(), GenerateJwt(user))
+        {
+            RefreshToken = refresh.Token,
+            RefreshTokenExpiresAt = refresh.ExpiresAt
+        };
+    }
+
+    private void ApplyDefaultListingLimit(User user)
+    {
+        var defaultLimit = _config.GetValue<int?>("ListingLimits:DefaultLimit") ?? 50;
+        var periodHours = _config.GetValue<int?>("ListingLimits:PeriodHours") ?? 24;
+        if (defaultLimit < 0) return;
+
+        user.ListingLimit = defaultLimit;
+        user.ListingLimitCount = 0;
+        user.ListingLimitResetAt = DateTimeOffset.UtcNow.AddHours(periodHours);
+    }
+
+    private string CreateUnavailablePasswordHash(User user)
+    {
+        var randomPassword = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+        return _hasher.HashPassword(user, randomPassword);
+    }
+
+    private static string CreateProviderExternalId(string provider, string subject)
+        => $"{provider.Trim().ToLowerInvariant()}:{subject.Trim()}";
+
+    private static string? NormalizeDisplayName(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private static string? NormalizeAvatarUrl(string? value)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed)) return null;
+        return Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+            ? trimmed
+            : null;
+    }
     
     private string GenerateJwt(User user)
     {
@@ -483,7 +865,7 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
             ?? _config["Cors:AllowedOrigins:0"]
             ?? _config["FRONTEND_URL"]
             ?? "http://localhost:3000").TrimEnd('/');
-        var verifyUrl = $"{baseUrl}/auth/verify-email#token={Uri.EscapeDataString(token)}";
+        var verifyUrl = $"{baseUrl}/auth/verify-email?token={Uri.EscapeDataString(token)}";
         var subject = "Verify your SBay email";
         var text = $"Welcome to SBay. Verify your email and sign in here: {verifyUrl}";
         var html = $"""
@@ -534,6 +916,17 @@ public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest reque
             (_, existing) => existing.ResetAt <= now
                 ? new LoginAttempt(1, now.Add(LoginAttemptWindow))
                 : existing with { Count = existing.Count + 1 });
+    }
+
+    private sealed record GoogleSignInResult(AuthResponse? Auth, int StatusCode, string? Error)
+    {
+        public bool Succeeded => Auth is not null;
+
+        public static GoogleSignInResult Success(AuthResponse auth)
+            => new(auth, StatusCodes.Status200OK, null);
+
+        public static GoogleSignInResult Fail(int statusCode, string error)
+            => new(null, statusCode, error);
     }
 
     private readonly record struct LoginAttempt(int Count, DateTimeOffset ResetAt);

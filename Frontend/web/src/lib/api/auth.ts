@@ -21,6 +21,17 @@ export const login = async (credentials: UserLogin) => {
   };
 };
 
+export const loginWithGoogle = async (idToken: string, accessToken?: string | null) => {
+  const response = await api.post<AuthResponse>('/auth/google', {
+    idToken,
+    accessToken
+  });
+  return {
+    ...response.data,
+    user: toUser(response.data.user)
+  };
+};
+
 /**
  * Register
  */

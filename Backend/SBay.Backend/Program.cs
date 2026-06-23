@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using SBay.Backend.DataBase.Ef;
 using SBay.Backend.DataBase.Firebase;
 using SBay.Backend.DataBase.Interfaces;
+using SBay.Backend.Authentication;
 using SBay.Backend.Messaging;
 using SBay.Backend.Services;
 using SBay.Backend.Services.Payments;
@@ -143,6 +144,8 @@ else
     builder.Services.AddScoped<IUserAnalyticsService, FirebaseUserAnalyticsService>();
 }
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddSingleton<IGoogleTokenVerifier, GoogleTokenVerifier>();
+builder.Services.AddSingleton<IGoogleOAuthCodeExchanger, GoogleOAuthCodeExchanger>();
 
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IUserOwnership, UserOwnership>();
