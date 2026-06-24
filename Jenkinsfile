@@ -162,7 +162,7 @@ pipeline {
                     echo "Health checks (6 attempts)..."
                     for i in $(seq 1 6); do
                         if $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T backend curl -fsS "http://localhost:8080/health/ready" >/dev/null 2>&1 && \
-                           $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T web wget -qO- "http://localhost:3000/" >/dev/null 2>&1; then
+                           $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T web wget -qO- "http://127.0.0.1:3000/api/health" >/dev/null 2>&1; then
                             echo "Deployment health checks passed."
                             exit 0
                         fi

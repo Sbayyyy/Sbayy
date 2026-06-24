@@ -59,7 +59,7 @@ services:
       Authentication__Google__ClientIds__0: ${GOOGLE_WEB_CLIENT_ID:-}
       Authentication__Google__ClientIds__1: ${GOOGLE_ANDROID_CLIENT_ID:-}
       Authentication__Google__OAuthClientId: ${GOOGLE_WEB_CLIENT_ID:-}
-      Authentication__Google__OAuthClientSecret: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      Authentication__Google__OAuthClientSecret: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
       Authentication__Google__MobileCallbackUrl: ${GOOGLE_MOBILE_CALLBACK_URL:-https://api.syrian-bay.com/api/auth/google/mobile/callback}
       Authentication__Google__MobileRedirectUris__0: ${GOOGLE_MOBILE_REDIRECT_URI:-sbay://auth/google}
       Authentication__Google__MobileRedirectUris__1: ${GOOGLE_MOBILE_REDIRECT_URI_ALT:-sbay:///auth/google}
@@ -131,7 +131,7 @@ services:
     ports:
       - "127.0.0.1:${WEB_HOST_PORT:-3000}:3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
