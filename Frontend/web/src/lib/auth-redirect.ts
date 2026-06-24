@@ -1,6 +1,6 @@
 const SUPPORTED_LOCALES = ['ar', 'en'] as const;
 const SUPPORTED_LOCALE_SET = new Set<string>(SUPPORTED_LOCALES);
-const DEFAULT_LOCALE = 'ar';
+const DEFAULT_LOCALE = process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'ar';
 const SUPPORTED_LOCALE_PATTERN = SUPPORTED_LOCALES
   .map(locale => locale.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   .join('|');
