@@ -6,7 +6,7 @@
 
 declare global {
   interface Window {
-    __RUNTIME_CONFIG__?: { apiUrl?: string; supportEmail?: string; logoUrl?: string };
+    __RUNTIME_CONFIG__?: { apiUrl?: string; supportEmail?: string; logoUrl?: string; googleWebClientId?: string };
   }
 }
 
@@ -14,6 +14,7 @@ interface Config {
   apiUrl: string;
   supportEmail: string;
   logoUrl: string;
+  googleWebClientId: string;
   apiTimeout: number;
   maxRetries: number;
   isDevelopment: boolean;
@@ -42,12 +43,17 @@ const getConfig = (): Config => {
     typeof window !== 'undefined'
       ? window.__RUNTIME_CONFIG__?.logoUrl
       : process.env.RUNTIME_LOGO_URL;
+  const runtimeGoogleWebClientId =
+    typeof window !== 'undefined'
+      ? window.__RUNTIME_CONFIG__?.googleWebClientId
+      : process.env.RUNTIME_GOOGLE_WEB_CLIENT_ID;
   
   return {
     // API Configuration
     apiUrl: normalizeApiUrl(rawApiUrl),
     supportEmail: runtimeSupportEmail || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@syrian-bay.com',
     logoUrl: runtimeLogoUrl || process.env.NEXT_PUBLIC_LOGO_URL || '/assets/sbaylogo2.png',
+    googleWebClientId: runtimeGoogleWebClientId || process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
     apiTimeout: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000', 10),
     maxRetries: parseInt(process.env.NEXT_PUBLIC_MAX_RETRIES || '3', 10),
     

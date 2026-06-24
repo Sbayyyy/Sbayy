@@ -59,6 +59,13 @@ services:
       App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-http://localhost:8080}
       Frontend__BaseUrl: ${WEB_PUBLIC_ORIGIN:-http://localhost:3000}
       EmailVerification__TokenHours: ${EMAIL_VERIFICATION_TOKEN_HOURS:-24}
+      Authentication__Google__ClientIds__0: ${GOOGLE_WEB_CLIENT_ID:-}
+      Authentication__Google__ClientIds__1: ${GOOGLE_ANDROID_CLIENT_ID:-}
+      Authentication__Google__OAuthClientId: ${GOOGLE_WEB_CLIENT_ID:-}
+      Authentication__Google__OAuthClientSecret: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      Authentication__Google__MobileCallbackUrl: ${GOOGLE_MOBILE_CALLBACK_URL:-}
+      Authentication__Google__MobileRedirectUris__0: ${GOOGLE_MOBILE_REDIRECT_URI:-sbay://auth/google}
+      Authentication__Google__MobileRedirectUris__1: ${GOOGLE_MOBILE_REDIRECT_URI_ALT:-sbay:///auth/google}
       Email__From: ${EMAIL_FROM:-support@syrian-bay.com}
       Email__FromName: ${EMAIL_FROM_NAME:-SBay}
       Support__Email: ${SUPPORT_EMAIL:-support@syrian-bay.com}
@@ -101,7 +108,9 @@ services:
         NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL:-/api}
         NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET:-http://backend:8080}
         NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-support@syrian-bay.com}
+        NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-ar}
         NEXT_PUBLIC_OPTIMIZED_IMAGE_HOSTS: ${NEXT_PUBLIC_OPTIMIZED_IMAGE_HOSTS:-}
+        NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID:-${GOOGLE_WEB_CLIENT_ID:-}}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
@@ -109,8 +118,11 @@ services:
       NEXT_PUBLIC_API_URL: ${WEB_PUBLIC_API_URL:-/api}
       NEXT_PUBLIC_API_PROXY_TARGET: ${WEB_PUBLIC_API_PROXY_TARGET:-http://backend:8080}
       NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-support@syrian-bay.com}
+      NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-ar}
       NEXT_PUBLIC_OPTIMIZED_IMAGE_HOSTS: ${NEXT_PUBLIC_OPTIMIZED_IMAGE_HOSTS:-}
+      NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID:-${GOOGLE_WEB_CLIENT_ID:-}}
       RUNTIME_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-support@syrian-bay.com}
+      RUNTIME_GOOGLE_WEB_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID:-${GOOGLE_WEB_CLIENT_ID:-}}
     ports:
       - "${WEB_HOST_PORT:-3000}:${WEB_PORT:-3000}"
     depends_on:

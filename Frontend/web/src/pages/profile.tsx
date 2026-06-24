@@ -25,9 +25,10 @@ import {
 import type { ProfileFormData, ProfileErrors } from '@/components/profile';
 
 export default function ProfilePage() {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const { user, isAuthenticated, setUser } = useAuthStore();
   const isAuthed = useRequireAuth();
+  const locale = i18n.language === 'ar' ? 'ar-SY' : 'en-US';
 
   const cityOptions = CITIES.map(c => ({
     value: c.value,
@@ -273,7 +274,7 @@ export default function ProfilePage() {
   const pendingOrders = user?.pendingOrders ?? 0;
   const reviewCount = user?.reviewCount ?? 0;
   const memberSince = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    ? new Date(user.createdAt).toLocaleDateString(locale, { year: 'numeric', month: 'long' })
     : t('profile.unknown');
   const recentListing = listings[0];
   const recentPurchase = purchases[0];
@@ -301,7 +302,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <Link href="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
             {t('profile.backToHome')}
           </Link>
 
@@ -344,7 +345,7 @@ export default function ProfilePage() {
           </div>
 
           {activeTab === 'overview' && (
-            <ProfileOverviewTab activities={activities} t={t} />
+            <ProfileOverviewTab activities={activities} locale={locale} t={t} />
           )}
 
           {activeTab === 'listings' && (
@@ -361,6 +362,7 @@ export default function ProfilePage() {
               purchases={purchases}
               purchasesLoading={purchasesLoading}
               purchasesError={purchasesError}
+              locale={locale}
               t={t}
             />
           )}

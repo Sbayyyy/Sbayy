@@ -7,7 +7,8 @@ import { Product } from '@sbay/shared';
 import { addFavorite, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store';
 import { CONDITION_I18N_MAP, getCityI18nKeyFromValue, getCityLabel } from '@/lib/constants';
-import { formatPrice } from '@/lib/formatters';
+import { getLocalizedLoginRedirect } from '@/lib/auth-redirect';
+import { formatPrice, formatRelativeTime } from '@/lib/formatters';
 import { normalizeImageUrl, shouldBypassNextImageOptimizer } from '@/lib/images';
 import { useTranslation } from 'next-i18next';
 
@@ -32,7 +33,7 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
     e.preventDefault();
 
     if (!isAuthenticated) {
-      router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
+      router.push(getLocalizedLoginRedirect(router.asPath, '', router.locale));
       return;
     }
 
@@ -70,15 +71,10 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
   const sellerReviewCount = product.seller?.reviewCount ?? 0;
   const sellerRating = product.seller?.rating ?? 0;
   const showSellerRating = sellerReviewCount >= 3 && sellerRating > 0;
-  const sellerMemberSince = product.seller?.createdAt
-    ? new Intl.DateTimeFormat(i18n.language === 'ar' ? 'ar' : 'en', {
-        month: 'short',
-        year: 'numeric',
-      }).format(new Date(product.seller.createdAt))
-    : null;
+  const listingTimeLabel = product.createdAt ? formatRelativeTime(product.createdAt, i18n.language) : '';
 
   return (
-    <article className="surface-card surface-card-hover group h-full overflow-hidden">
+    <article className="surface-card surface-card-hover group flex h-full flex-col overflow-hidden">
       <div className="relative">
         <Link href={`/listing/${product.id}`} className="block">
           <div className="relative aspect-square flex-shrink-0 overflow-hidden bg-slate-100">
@@ -136,13 +132,17 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
       </div>
 
       <div className="flex flex-1 flex-col p-4">
+        <div className="mb-2 text-xl font-bold tracking-tight text-primary-700 sm:text-[22px]">
+          {formatPrice(product.priceAmount, i18n.language, product.priceCurrency)}
+        </div>
+
         <Link href={`/listing/${product.id}`} className="group/title">
           <h3 className="mb-2 line-clamp-2 min-h-[3rem] text-[15px] font-semibold leading-6 text-slate-950 transition-colors group-hover/title:text-primary-700">
             {product.title}
           </h3>
         </Link>
 
-          <div className="mb-3 flex h-5 items-center gap-1 text-xs text-slate-500">
+          <div className="mb-2 flex h-5 items-center gap-1 text-xs font-medium text-slate-600">
             {locationLabel && (
               <>
                 <MapPin size={12} className="flex-shrink-0" />
@@ -151,30 +151,28 @@ export default function ProductCard({ product, onFavorite, isFavorite = false }:
             )}
           </div>
 
-          {(showSellerRating || sellerMemberSince) && (
+          <div className="mb-3 flex h-5 items-center gap-1 text-xs text-slate-500">
+            {listingTimeLabel && (
+              <>
+                <CalendarDays size={13} className="flex-shrink-0 text-slate-400" />
+                <span className="truncate">{listingTimeLabel}</span>
+              </>
+            )}
+          </div>
+
+          {showSellerRating && (
             <div className="mb-3 flex min-h-5 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-              {showSellerRating && (
-                <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
-                  <Star size={13} className="fill-amber-400 text-amber-400" />
-                  {t('productCard.sellerRating', {
-                    rating: sellerRating.toFixed(1),
-                    count: sellerReviewCount,
-                  })}
-                </span>
-              )}
-              {sellerMemberSince && (
-                <span className="inline-flex items-center gap-1">
-                  <CalendarDays size={13} className="text-slate-400" />
-                  {t('productCard.memberSince', { date: sellerMemberSince })}
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
+                <Star size={13} className="fill-amber-400 text-amber-400" />
+                {t('productCard.sellerRating', {
+                  rating: sellerRating.toFixed(1),
+                  count: sellerReviewCount,
+                })}
+              </span>
             </div>
           )}
 
-          <div className="mt-auto flex items-end justify-between gap-3">
-            <span className="text-xl font-bold tracking-tight text-slate-950 sm:text-[22px]">
-              {formatPrice(product.priceAmount, i18n.language, product.priceCurrency)}
-            </span>
+          <div className="mt-auto flex items-end justify-end gap-3">
             <Link
               href={`/listing/${product.id}`}
               className="product-view-link"

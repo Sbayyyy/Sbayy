@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { getLocalizedLoginRedirect } from '@/lib/auth-redirect';
 import { useAuthStore } from '@/lib/store';
 
 /**
@@ -19,9 +20,8 @@ export function useRequireAuth(): boolean | undefined {
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem('authRedirect', router.asPath);
     }
-    const redirectTo = encodeURIComponent(router.asPath);
-    router.replace(`/auth/login?redirect=${redirectTo}`);
-  }, [hasHydrated, isAuthenticated, router.asPath, router.isReady, router.replace]);
+    router.replace(getLocalizedLoginRedirect(router.asPath, '', router.locale));
+  }, [hasHydrated, isAuthenticated, router.asPath, router.isReady, router.locale, router.replace]);
 
   if (!router.isReady || !hasHydrated) {
     return undefined;

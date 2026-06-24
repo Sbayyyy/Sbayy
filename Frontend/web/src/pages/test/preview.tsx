@@ -12,6 +12,7 @@ import { Address, Product } from '@sbay/shared';
 import { useCartStore } from '@/lib/cartStore';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 type ComponentCategory = 'checkout' | 'products' | 'cart' | 'layout';
 type ComponentType = 
@@ -442,4 +443,19 @@ export default function ComponentPreviewPage() {
       </div>
     </Layout>
   );
+}
+
+/**
+ * Provides localized static props for the preview test page.
+ *
+ * @param context - Static generation context containing an optional locale.
+ * @returns Page props with common namespace translations.
+ */
+export async function getStaticProps(context: { locale?: string }) {
+  const { locale } = context;
+  return {
+    props: {
+      ...(await serverSideTranslations(locale ?? process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'ar', ['common']))
+    }
+  };
 }

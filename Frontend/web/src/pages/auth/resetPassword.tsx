@@ -7,6 +7,7 @@ import { getErrorMessage } from '@/lib/api/errors';
 import { config } from '@/lib/config';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import PasswordInput from '@/components/ui/password-input';
 
 export default function ResetPassword() {
   const { t } = useTranslation('common');
@@ -32,8 +33,9 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!router.isReady || typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    setToken(params.get('token') ?? '');
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const searchParams = new URLSearchParams(window.location.search.replace(/^\?/, ''));
+    setToken(hashParams.get('token') ?? searchParams.get('token') ?? '');
   }, [router.isReady]);
 
   const validatePasswordRules = (value: string): string | undefined => {
@@ -223,16 +225,15 @@ export default function ResetPassword() {
               {t('resetPassword.passwordLabel')}
             </label>
             <div className="mt-2">
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 value={password}
                 onChange={(e) => handlePasswordChange(e.target.value)}
                 disabled={isLoading}
                 required
                 autoComplete="new-password"
-                className={`input ${
+                className={`${
                   errors.password ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                 }`}
               />
@@ -247,16 +248,15 @@ export default function ResetPassword() {
               {t('resetPassword.confirmLabel')}
             </label>
             <div className="mt-2">
-              <input
+              <PasswordInput
                 id="confirmPassword"
                 name="confirmPassword"
-                type="password"
                 value={confirmPassword}
                 onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                 disabled={isLoading}
                 required
                 autoComplete="new-password"
-                className={`input ${
+                className={`${
                   errors.confirmPassword ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                 }`}
               />

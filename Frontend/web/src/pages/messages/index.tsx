@@ -380,13 +380,13 @@ export default function MessagesPage() {
           <div className="surface-card mb-6 p-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('messages.searchPlaceholder')}
-                  className="input w-full pr-10"
+                  className="input w-full ps-10"
                 />
               </div>
 
@@ -434,7 +434,7 @@ export default function MessagesPage() {
                 >
                   <Link
                     href={`/messages/${chat.id}`}
-                    className="block p-4 pr-14"
+                    className="block p-4 pe-14"
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex-shrink-0">
@@ -479,7 +479,7 @@ export default function MessagesPage() {
                                 : 'text-slate-600'
                             }`}>
                               {chat.lastMessage.senderId === user?.id && (
-                                <span className="text-slate-500 ml-1">{t('messages.you')}</span>
+                                <span className="me-1 text-slate-500">{t('messages.you')}</span>
                               )}
                               {truncateMessage(chat.lastMessage.content)}
                             </p>
@@ -496,7 +496,7 @@ export default function MessagesPage() {
                   <button
                     type="button"
                     onClick={() => void handleDeleteChat(chat.id)}
-                    className="absolute right-3 top-4 flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:bg-red-50 focus:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
+                    className="absolute end-3 top-4 flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:bg-red-50 focus:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
                     aria-label={t('messages.deleteChat', 'Delete chat')}
                     title={t('messages.deleteChat', 'Delete chat')}
                   >

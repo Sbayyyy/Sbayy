@@ -1,4 +1,5 @@
 export { default as ProfileHeader } from './ProfileHeader';
+export { default as ProfileEmptyState } from './ProfileEmptyState';
 export { default as ProfileOverviewTab } from './ProfileOverviewTab';
 export { default as ProfileListingsTab } from './ProfileListingsTab';
 export { default as ProfilePurchasesTab } from './ProfilePurchasesTab';

@@ -25,6 +25,18 @@
   <data name="Auth_PasswordChangeRequired" xml:space="preserve"><value>Current and new password are required.</value></data>
   <data name="Auth_NewPasswordWeak" xml:space="preserve"><value>New password must be at least 8 characters and include uppercase, lowercase, and a number.</value></data>
   <data name="Auth_InvalidCurrentPassword" xml:space="preserve"><value>Invalid current password.</value></data>
+  <data name="Auth_GoogleTokenRequired" xml:space="preserve"><value>Google identity token is required.</value></data>
+  <data name="Auth_GoogleSignInNotConfigured" xml:space="preserve"><value>Google sign-in is not configured.</value></data>
+  <data name="Auth_GoogleUnavailable" xml:space="preserve"><value>Unable to reach Google sign-in.</value></data>
+  <data name="Auth_GoogleRedirectInvalid" xml:space="preserve"><value>Invalid Google redirect URI.</value></data>
+  <data name="Auth_GoogleCallbackNotConfigured" xml:space="preserve"><value>Google sign-in callback is not configured.</value></data>
+  <data name="Auth_GoogleStateInvalid" xml:space="preserve"><value>Invalid Google sign-in state.</value></data>
+  <data name="Auth_GoogleAuthorizationCodeMissing" xml:space="preserve"><value>Google sign-in did not return an authorization code.</value></data>
+  <data name="Auth_GoogleContinueFailed" xml:space="preserve"><value>Unable to continue with Google.</value></data>
+  <data name="Auth_GoogleCredentialsRequired" xml:space="preserve"><value>Google authorization code or identity token is required.</value></data>
+  <data name="Auth_GoogleInvalidToken" xml:space="preserve"><value>Invalid Google token.</value></data>
+  <data name="Auth_GoogleEmailUnverified" xml:space="preserve"><value>Google account email could not be verified.</value></data>
+  <data name="Auth_GoogleProviderConflict" xml:space="preserve"><value>This email is already linked to another sign-in provider.</value></data>
 
   <!-- Chat / Offer notifications -->
   <data name="Chat_OfferReceivedTitle" xml:space="preserve"><value>New offer received</value></data>

@@ -1,8 +1,18 @@
-import NextDocument, { Html, Head, Main, NextScript, DocumentContext } from 'next/document';
+import type { PropsWithChildren, ReactElement } from 'react';
+import NextDocument, {
+  Html,
+  Head as NextDocumentHead,
+  Main,
+  NextScript as NextDocumentScript,
+  type DocumentContext,
+} from 'next/document';
 
 interface Props {
   locale: string;
 }
+
+const Head = NextDocumentHead as unknown as (props: PropsWithChildren) => ReactElement;
+const NextScript = NextDocumentScript as unknown as () => ReactElement;
 
 export default class Document extends NextDocument<Props> {
   static async getInitialProps(ctx: DocumentContext) {
@@ -14,12 +24,13 @@ export default class Document extends NextDocument<Props> {
   }
 
   render() {
-    const { locale = 'ar' } = this.props;
+    const { locale = 'ar' } = (this as unknown as { props: Readonly<Props> }).props;
     const isRtl = locale === 'ar';
     const runtimeConfig = {
       apiUrl: process.env.RUNTIME_API_URL || process.env.NEXT_PUBLIC_API_URL || '/api',
       supportEmail: process.env.RUNTIME_SUPPORT_EMAIL || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@syrian-bay.com',
-      logoUrl: process.env.RUNTIME_LOGO_URL || process.env.NEXT_PUBLIC_LOGO_URL || '/assets/sbaylogo2.png'
+      logoUrl: process.env.RUNTIME_LOGO_URL || process.env.NEXT_PUBLIC_LOGO_URL || '/assets/sbaylogo2.png',
+      googleWebClientId: process.env.RUNTIME_GOOGLE_WEB_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID || ''
     };
 
     return (

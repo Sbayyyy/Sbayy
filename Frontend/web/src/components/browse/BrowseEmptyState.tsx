@@ -10,6 +10,16 @@ interface BrowseEmptyStateProps {
 
 export default function BrowseEmptyState({ debouncedQuery, hasActiveFilters, onReset, onSell }: BrowseEmptyStateProps) {
   const { t } = useTranslation('common');
+  const title = debouncedQuery
+    ? t('search.noResultsFor', { query: debouncedQuery })
+    : hasActiveFilters
+      ? t('browse.noFilteredResultsTitle')
+      : t('browse.emptyTitle');
+  const description = debouncedQuery
+    ? t('search.noResultsSuggestion')
+    : hasActiveFilters
+      ? t('browse.noProductsMatch')
+      : t('browse.emptyDescription');
 
   return (
     <div className="surface-card flex items-center justify-center p-10 sm:p-14">
@@ -18,14 +28,10 @@ export default function BrowseEmptyState({ debouncedQuery, hasActiveFilters, onR
           <Search className="h-8 w-8 text-primary-600" />
         </div>
         <h2 className="mb-2 text-xl font-bold text-slate-950">
-          {debouncedQuery
-            ? t('search.noResultsFor', { query: debouncedQuery })
-            : t('common.noProducts')}
+          {title}
         </h2>
         <p className="mb-6 text-slate-600">
-          {debouncedQuery
-            ? t('search.noResultsSuggestion')
-            : t('browse.noProductsMatch')}
+          {description}
         </p>
         <div className="flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
           {(hasActiveFilters || debouncedQuery) && (

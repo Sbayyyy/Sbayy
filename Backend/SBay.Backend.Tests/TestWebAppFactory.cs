@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
+using SBay.Backend.Authentication;
 using SBay.Backend.Services;
 using SBay.Domain.Database;
 using SBay.Domain.Entities;
@@ -42,7 +43,11 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                    ["RateLimits:Reports:PermitLimit"] = "1000",
                    ["RateLimits:Chat:PermitLimit"] = "1000",
                    ["RateLimits:Shipping:PermitLimit"] = "1000",
-                   ["RateLimits:Write:PermitLimit"] = "1000"
+                   ["RateLimits:Write:PermitLimit"] = "1000",
+                   ["Authentication:Google:OAuthClientId"] = "test-web-client.apps.googleusercontent.com",
+                   ["Authentication:Google:OAuthClientSecret"] = "test-google-client-secret",
+                   ["Authentication:Google:MobileRedirectUris:0"] = "sbay://auth/google",
+                   ["Authentication:Google:MobileRedirectUris:1"] = "sbay:///auth/google"
                });
         });
 
@@ -96,6 +101,11 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<TestEmailSender>();
             services.AddSingleton<IEmailSender>(sp => sp.GetRequiredService<TestEmailSender>());
+
+            services.RemoveAll<IGoogleTokenVerifier>();
+            services.AddSingleton<IGoogleTokenVerifier, TestGoogleTokenVerifier>();
+            services.RemoveAll<IGoogleOAuthCodeExchanger>();
+            services.AddSingleton<IGoogleOAuthCodeExchanger, TestGoogleOAuthCodeExchanger>();
 
             services.AddAuthentication(o =>
             {

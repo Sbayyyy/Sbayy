@@ -12,8 +12,8 @@ namespace SBay.Domain.Entities
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        [Required, MaxLength(128)]
-        public string ExternalId { get; set; } = null!;
+        [MaxLength(128)]
+        public string? ExternalId { get; set; }
 
         [Required, MaxLength(320), EmailAddress]
         public string Email { get; set; } = null!;

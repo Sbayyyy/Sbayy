@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, PackagePlus } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
+import ProfileEmptyState from './ProfileEmptyState';
 import type { Product } from '@sbay/shared';
 import type { TranslationFn } from './types';
 
@@ -29,8 +30,8 @@ export default function ProfileListingsTab({
         </Link>
       </div>
       {listingsLoading ? (
-        <div className="flex items-center justify-center py-12 text-gray-500">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <div className="flex items-center justify-center py-12 text-slate-600">
+          <Loader2 className="me-2 h-5 w-5 animate-spin" />
           {t('profile.loadingListings')}
         </div>
       ) : listingsError ? (
@@ -39,9 +40,13 @@ export default function ProfileListingsTab({
           {listingsError}
         </div>
       ) : listings.length === 0 ? (
-        <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center text-sm text-gray-500">
-          {t('profile.listingsEmpty')}
-        </div>
+        <ProfileEmptyState
+          icon={PackagePlus}
+          title={t('profile.listingsEmptyTitle')}
+          description={t('profile.listingsEmptyDescription')}
+          actionHref="/listing/sell"
+          actionLabel={t('profile.createListing')}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {listings.map((product) => (

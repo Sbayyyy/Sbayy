@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import {
   createOptionalTextInputValidator,
@@ -8,17 +8,21 @@ import {
   passwordsMatch,
   sanitizeInput
 } from '@sbay/shared';
-import { register } from '../../lib/api/auth';
+import { loginWithGoogle, register } from '../../lib/api/auth';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { Select } from '@/components/ui/select';
 import { config } from '@/lib/config';
 import { CITIES, normalizeCityValue } from '@/lib/constants';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
+import PasswordInput from '@/components/ui/password-input';
+import { useAuthStore } from '@/lib/store';
 
 export default function Register() {
     const { t, i18n } = useTranslation('common');
     const router = useRouter();
+    const { login: loginStore } = useAuthStore();
     const redirectParam = typeof router.query.redirect === 'string' ? router.query.redirect : '';
     const loginHref = redirectParam
       ? `/auth/login?redirect=${encodeURIComponent(redirectParam)}`
@@ -42,6 +46,7 @@ export default function Register() {
         confirmPassword?: string
     }>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [apiError, setApiError] = useState('');
 
     const currentLocale = i18n?.language ?? 'ar';
@@ -91,6 +96,9 @@ export default function Register() {
         i18n?.changeLanguage?.(locale);
         document.documentElement.lang = locale;
         document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+        if (router.locales?.includes(locale)) {
+            void router.replace(router.asPath, undefined, { locale, scroll: false });
+        }
         if (!loaded) {
             window.location.reload();
         }
@@ -242,6 +250,49 @@ export default function Register() {
         }
     };
 
+    const normalizeRedirect = useCallback((value: string) => {
+        if (!value || value.startsWith('http://') || value.startsWith('https://') || value.startsWith('//')) {
+            return '/';
+        }
+
+        if (value.includes('[')) {
+            return '/';
+        }
+
+        if (!value.startsWith('/')) return `/${value}`;
+
+        const locales = router.locales || [];
+        const hasLocalePrefix = locales.some(locale => value === `/${locale}` || value.startsWith(`/${locale}/`));
+
+        if (hasLocalePrefix || !router.locale) return value;
+
+        return `/${router.locale}${value}`;
+    }, [router.locale, router.locales]);
+
+    const handleGoogleToken = useCallback(async (idToken: string) => {
+        setIsGoogleLoading(true);
+        setApiError('');
+
+        try {
+            const data = await loginWithGoogle(idToken);
+            loginStore(data.user, data.token, data.refreshToken);
+            const storedRedirect = typeof window !== 'undefined'
+              ? window.sessionStorage.getItem('authRedirect') || ''
+              : '';
+            const redirect = normalizeRedirect(redirectParam || storedRedirect || '/');
+
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.removeItem('authRedirect');
+            }
+
+            void router.push(redirect);
+        } catch (error: unknown) {
+            setApiError(getErrorMessage(error));
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    }, [loginStore, normalizeRedirect, redirectParam, router]);
+
     return (
       <div className="auth-page">
         <div className="auth-card max-w-lg">
@@ -280,6 +331,19 @@ export default function Register() {
             </div>
           )}
 
+          <div className="mb-6 space-y-4">
+            <GoogleAuthButton
+              onToken={handleGoogleToken}
+              onError={setApiError}
+              disabled={isLoading || isGoogleLoading}
+            />
+            <div className="flex items-center gap-3 text-xs font-semibold uppercase text-slate-400">
+              <span className="h-px flex-1 bg-slate-200" />
+              <span>{t('auth.google.orEmail')}</span>
+              <span className="h-px flex-1 bg-slate-200" />
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <div>
               <label htmlFor="username" className="auth-label">
@@ -292,7 +356,7 @@ export default function Register() {
                   type="text"
                   value={formData.username}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   required
                   autoComplete="username"
                   className={`input ${
@@ -316,7 +380,7 @@ export default function Register() {
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   required
                   autoComplete="email"
                   className={`input ${
@@ -340,7 +404,7 @@ export default function Register() {
                   type="tel"
                   value={formData.phone}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   autoComplete="tel"
                   placeholder={t('auth.register.phonePlaceholder')}
                   className={`input ${
@@ -363,7 +427,7 @@ export default function Register() {
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className={`text-base sm:text-sm/6 ${
                     errors.city ? '!border-red-500 focus:!border-red-500 focus:!ring-red-100' : ''
                   }`}
@@ -384,16 +448,15 @@ export default function Register() {
                 {t('auth.register.passwordLabel')}
               </label>
               <div className="mt-2">
-                <input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   value={formData.password}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   required
                   autoComplete="new-password"
-                  className={`input ${
+                  className={`${
                     errors.password ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                   }`}
                 />
@@ -408,16 +471,15 @@ export default function Register() {
                 {t('auth.register.confirmLabel')}
               </label>
               <div className="mt-2">
-                <input
+                <PasswordInput
                   id="confirmPassword"
                   name="confirmPassword"
-                  type="password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   required
                   autoComplete="new-password"
-                  className={`input ${
+                  className={`${
                     errors.confirmPassword ? '!border-red-400 focus:!border-red-400 focus:!ring-red-100' : ''
                   }`}
                 />
@@ -430,9 +492,9 @@ export default function Register() {
             <div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
                 className={`btn btn-primary w-full ${
-                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  (isLoading || isGoogleLoading) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 {isLoading

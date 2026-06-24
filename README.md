@@ -51,6 +51,30 @@ Refresh tokens are opaque random secrets, stored only as hashes in PostgreSQL. T
 
 Each refresh token records the request user agent and optional `X-Device-Id` metadata. Device binding and anomaly detection are not enforced yet; deployments that need stronger long-lived-session controls should add those checks or lower `JWT_REFRESH_TOKEN_DAYS`.
 
+### Google Sign-In Setup
+
+Google sign-in uses two backend flows:
+
+- Web sends a Google ID token to `POST /api/auth/google`.
+- Expo/mobile starts at `GET /api/auth/google/mobile/start?redirectUri=sbay://auth/google`, completes at `GET /api/auth/google/mobile/callback`, and receives the same SBay auth token/refresh-token shape. The backend also allows Expo's `sbay:///auth/google` deep-link form by default.
+
+Configure Google Cloud Console:
+
+- Create a Web OAuth client for the web app and backend code exchange.
+- Add `https://api.syrian-bay.com/api/auth/google/mobile/callback` as an authorized redirect URI on the Web OAuth client.
+- Create an Android OAuth client for package `com.syrianbay.app` with the release SHA fingerprints.
+- Configure the OAuth consent screen and production domains.
+
+Set these environment variables in production:
+
+- `GOOGLE_WEB_CLIENT_ID`: Web OAuth client ID.
+- `GOOGLE_ANDROID_CLIENT_ID`: Android OAuth client ID, included in backend token audience allow-list.
+- `GOOGLE_OAUTH_CLIENT_SECRET`: Web OAuth client secret for mobile authorization-code exchange.
+- `GOOGLE_MOBILE_CALLBACK_URL`: Public backend callback URL, usually `https://api.syrian-bay.com/api/auth/google/mobile/callback`.
+- `GOOGLE_MOBILE_REDIRECT_URI`: Expo app deep link, usually `sbay://auth/google`.
+- `GOOGLE_MOBILE_REDIRECT_URI_ALT`: Optional second Expo deep link, usually `sbay:///auth/google`.
+- `NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID`: Web client ID exposed to the Next.js app.
+
 ## Common Commands
 
 Frontend checks:

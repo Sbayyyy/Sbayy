@@ -41,6 +41,17 @@
       "submitting": "جاري تسجيل حساب جديد...",
       "loginLink": "هل لديك حساب؟ سجل دخول"
     },
+    "google": {
+      "orEmail": "أو استخدم البريد الإلكتروني",
+      "loading": "جاري تحميل تسجيل الدخول عبر Google...",
+      "loadError": "تعذر تحميل تسجيل الدخول عبر Google. حاول مرة أخرى.",
+      "missingToken": "لم يرجع Google رمز تسجيل الدخول. حاول مرة أخرى.",
+      "unavailable": "تسجيل الدخول عبر Google غير مهيأ"
+    },
+    "passwordToggle": {
+      "show": "إظهار كلمة المرور",
+      "hide": "إخفاء كلمة المرور"
+    },
     "errors": {
       "usernameRequired": "اسم المستخدم مطلوب",
       "usernameMin": "اسم المستخدم يجب أن يكون على الأقل 3 أحرف",
@@ -57,7 +68,8 @@
       "passwordNumber": "كلمة المرور يجب أن تحتوي على رقم",
       "confirmRequired": "تأكيد كلمة المرور مطلوب",
       "confirmMismatch": "تأكيد كلمة المرور غير مطابق",
-      "server": "حدث خطأ في الخادم"
+      "server": "حدث خطأ في الخادم",
+      "inputUnsafe": "يحتوي الإدخال على محتوى غير مسموح"
     }
   },
   "cities": {
@@ -120,27 +132,50 @@
     "recentActivity": "النشاط الأخير",
     "accountSettings": "إعدادات الحساب",
     "activityEmpty": "لا يوجد نشاط حديث لعرضه.",
+    "activityEmptyTitle": "سيظهر نشاطك هنا",
+    "activityEmptyDescription": "ستظهر الإعلانات والمشتريات وتحديثات الحساب أثناء استخدامك SBay.",
     "activity": {
       "listingTitle": "إعلان جديد تم إنشاؤه",
       "purchaseTitle": "شراء حديث",
       "purchaseBody": "طلب #{{id}}"
     },
     "settings": {
+      "passwordAuthentication": "كلمة المرور والمصادقة",
+      "currentPassword": "كلمة المرور الحالية",
+      "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
+      "newPassword": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة مرور جديدة",
+      "confirmPassword": "تأكيد كلمة المرور الجديدة",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
+      "passwordRule": "يجب أن تكون 8 أحرف على الأقل وتتضمن حرفا كبيرا وحرفا صغيرا ورقما",
+      "currentPasswordRequired": "كلمة المرور الحالية مطلوبة",
+      "newPasswordRequired": "كلمة المرور الجديدة مطلوبة",
+      "passwordUpdated": "تم تحديث كلمة المرور بنجاح",
+      "passwordUpdateError": "تعذر تحديث كلمة المرور",
+      "updatePassword": "تحديث كلمة المرور",
+      "updatingPassword": "جار التحديث...",
       "preferences": "التفضيلات",
       "privacy": "الخصوصية والأمان",
       "notifications": "الإشعارات"
     },
     "listingsTitle": "إعلاناتي النشطة",
     "createListing": "إنشاء إعلان جديد",
+    "browseListings": "تصفح الإعلانات",
     "listingsEmpty": "ليس لديك أي إعلانات نشطة بعد.",
+    "listingsEmptyTitle": "ابدأ بإعلانك الأول",
+    "listingsEmptyDescription": "أضف صورة واضحة وسعرا وموقعا حتى يتمكن المشترون القريبون منك من التواصل بسرعة.",
     "listingsError": "تعذر تحميل الإعلانات.",
     "loadingListings": "جار تحميل الإعلانات...",
     "purchasesTitle": "سجل المشتريات",
     "purchasesEmpty": "لا توجد مشتريات لعرضها بعد.",
+    "purchasesEmptyTitle": "لا توجد مشتريات بعد",
+    "purchasesEmptyDescription": "عند الشراء عبر SBay ستظهر طلباتك وتفاصيل البائع هنا.",
     "purchasesError": "تعذر تحميل المشتريات.",
     "loadingPurchases": "جار تحميل المشتريات...",
     "watchlistTitle": "عناصر المفضلة لدي",
     "watchlistEmpty": "قائمة المفضلة لديك فارغة.",
+    "watchlistEmptyTitle": "احفظ الإعلانات التي تعجبك",
+    "watchlistEmptyDescription": "اضغط على القلب في أي إعلان للاحتفاظ به هنا أثناء مقارنة الخيارات.",
     "watchlistError": "تعذر تحميل قائمة المفضلة.",
     "loadingWatchlist": "جار تحميل قائمة المفضلة...",
     "orderStatus": {
@@ -357,7 +392,10 @@
     "loadingProducts": "جار تحميل المنتجات...",
     "loadError": "فشل تحميل المنتجات. يرجى المحاولة مرة أخرى.",
     "productCount": "{{count}} منتج متوفر",
-    "noProductsMatch": "لا يوجد منتجات مطابقة للفلاتر. جرب تغيير الفلاتر أو إضافة منتجات جديدة!",
+    "emptyTitle": "إعلانات جديدة قادمة",
+    "emptyDescription": "كن أول من يضيف إعلاناً في هذه المنطقة، أو عد قريباً لاكتشاف عروض محلية جديدة.",
+    "noFilteredResultsTitle": "لا توجد إعلانات تطابق هذه الفلاتر",
+    "noProductsMatch": "جرّب توسيع الفلاتر أو مسحها لعرض المزيد من الإعلانات القريبة.",
     "addFirstProduct": "أضف منتجك الأول"
   },
   "search": {
@@ -760,6 +798,7 @@
     "replyingTo": "الرد على: {{text}}",
     "editingMessage": "تعديل الرسالة",
     "originalUnavailable": "الرسالة الأصلية غير متوفرة",
+    "messageActions": "إجراءات الرسالة",
     "copy": "نسخ",
     "edit": "تعديل",
     "delete": "حذف",

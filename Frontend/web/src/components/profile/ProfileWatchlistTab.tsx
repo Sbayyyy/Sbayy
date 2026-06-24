@@ -1,5 +1,6 @@
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Heart } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
+import ProfileEmptyState from './ProfileEmptyState';
 import type { Product } from '@sbay/shared';
 import type { TranslationFn } from './types';
 
@@ -22,8 +23,8 @@ export default function ProfileWatchlistTab({
     <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.watchlistTitle')}</h2>
       {watchlistLoading ? (
-        <div className="flex items-center justify-center py-12 text-gray-500">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <div className="flex items-center justify-center py-12 text-slate-600">
+          <Loader2 className="me-2 h-5 w-5 animate-spin" />
           {t('profile.loadingWatchlist')}
         </div>
       ) : watchlistError ? (
@@ -32,9 +33,13 @@ export default function ProfileWatchlistTab({
           {watchlistError}
         </div>
       ) : watchlist.length === 0 ? (
-        <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center text-sm text-gray-500">
-          {t('profile.watchlistEmpty')}
-        </div>
+        <ProfileEmptyState
+          icon={Heart}
+          title={t('profile.watchlistEmptyTitle')}
+          description={t('profile.watchlistEmptyDescription')}
+          actionHref="/browse"
+          actionLabel={t('profile.browseListings')}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {watchlist.map((product) => (

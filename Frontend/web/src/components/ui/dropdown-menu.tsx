@@ -43,7 +43,7 @@ export function DropdownMenu({
       {showArrow && (
         <span
           className={cn(
-            'absolute -top-2 right-7 h-4 w-4 rotate-45 border-l border-t border-slate-200/70 bg-white',
+            'absolute -top-2 end-7 h-4 w-4 rotate-45 border-l border-t border-slate-200/70 bg-white',
             arrowClassName
           )}
         />

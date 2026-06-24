@@ -696,17 +696,17 @@ export default function ChatPage() {
                     <div
                       className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div
-                        className={`max-w-[82%] rounded-3xl px-4 pb-2 pt-6 shadow-sm ${
-                          isOwn
-                            ? 'message-bubble-primary'
-                            : 'bg-white text-slate-900 ring-1 ring-slate-200'
-                        } relative ${isOwn ? 'pl-8' : 'pr-8'}`}
+                        <div
+                          className={`max-w-[82%] rounded-3xl px-4 pb-2 pt-6 shadow-sm ${
+                            isOwn
+                              ? 'message-bubble-primary'
+                              : 'bg-white text-slate-900 ring-1 ring-slate-200'
+                        } relative ${isOwn ? 'ps-8' : 'pe-8'}`}
                       >
                         <button
                           type="button"
                           className={`absolute top-2 ${
-                            isOwn ? 'left-2' : 'right-2'
+                            isOwn ? 'start-2' : 'end-2'
                           } rounded-full p-1 text-xs ${
                             isOwn ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-slate-700'
                           }`}
@@ -715,7 +715,7 @@ export default function ChatPage() {
                             const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
                             setMenu({ id: message.id, x: rect.left, y: rect.bottom + 6 });
                           }}
-                          aria-label="Message actions"
+                          aria-label={t('chat.messageActions', 'Message actions')}
                         >
                           <MoreVertical className="h-4 w-4" />
                         </button>

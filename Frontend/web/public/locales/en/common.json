@@ -41,6 +41,17 @@
       "submitting": "Creating account...",
       "loginLink": "Already have an account? Sign in"
     },
+    "google": {
+      "orEmail": "or use email",
+      "loading": "Loading Google sign-in...",
+      "loadError": "Unable to load Google sign-in. Please try again.",
+      "missingToken": "Google did not return a sign-in token. Please try again.",
+      "unavailable": "Google sign-in is not configured"
+    },
+    "passwordToggle": {
+      "show": "Show password",
+      "hide": "Hide password"
+    },
     "errors": {
       "usernameRequired": "Username is required",
       "usernameMin": "Username must be at least 3 characters",
@@ -57,7 +68,8 @@
       "passwordNumber": "Password must include a number",
       "confirmRequired": "Confirm password is required",
       "confirmMismatch": "Passwords do not match",
-      "server": "Server error"
+      "server": "Server error",
+      "inputUnsafe": "Input contains disallowed content"
     }
   },
   "cities": {
@@ -120,6 +132,8 @@
     "recentActivity": "Recent activity",
     "accountSettings": "Account settings",
     "activityEmpty": "No recent activity to show.",
+    "activityEmptyTitle": "Your activity will show here",
+    "activityEmptyDescription": "Listings, purchases, and account updates will appear as you use SBay.",
     "activity": {
       "listingTitle": "New listing created",
       "purchaseTitle": "Recent purchase",
@@ -128,19 +142,40 @@
     "settings": {
       "preferences": "Preferences",
       "privacy": "Privacy & security",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "passwordAuthentication": "Password & Authentication",
+      "currentPassword": "Current password",
+      "currentPasswordPlaceholder": "Enter current password",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPassword": "Confirm new password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "passwordRule": "Must be at least 8 characters with 1 uppercase, 1 lowercase, and 1 number",
+      "currentPasswordRequired": "Current password is required",
+      "newPasswordRequired": "New password is required",
+      "passwordUpdated": "Password updated successfully",
+      "passwordUpdateError": "Unable to update password",
+      "updatePassword": "Update password",
+      "updatingPassword": "Updating..."
     },
     "listingsTitle": "My active listings",
     "createListing": "Create new listing",
+    "browseListings": "Browse listings",
     "listingsEmpty": "You don't have any active listings yet.",
+    "listingsEmptyTitle": "Start with your first listing",
+    "listingsEmptyDescription": "Post a clear photo, price, and location so nearby buyers can contact you faster.",
     "listingsError": "Failed to load listings.",
     "loadingListings": "Loading listings...",
     "purchasesTitle": "Purchase history",
     "purchasesEmpty": "No purchases to show yet.",
+    "purchasesEmptyTitle": "No purchases yet",
+    "purchasesEmptyDescription": "When you buy through SBay, your orders and seller details will appear here.",
     "purchasesError": "Failed to load purchases.",
     "loadingPurchases": "Loading purchases...",
     "watchlistTitle": "Items I'm watching",
     "watchlistEmpty": "Your watchlist is empty.",
+    "watchlistEmptyTitle": "Save listings you like",
+    "watchlistEmptyDescription": "Tap the heart on any listing to keep it here while you compare options.",
     "watchlistError": "Failed to load watchlist.",
     "loadingWatchlist": "Loading watchlist...",
     "orderStatus": {
@@ -357,7 +392,10 @@
     "loadingProducts": "Loading products...",
     "loadError": "Failed to load products. Please try again.",
     "productCount": "{{count}} products available",
-    "noProductsMatch": "No products match your filters. Try changing filters or adding new products!",
+    "emptyTitle": "Fresh listings are coming",
+    "emptyDescription": "Be the first to post in this area, or check back soon for new local finds.",
+    "noFilteredResultsTitle": "No listings match these filters",
+    "noProductsMatch": "Try widening your filters or clearing them to see more nearby listings.",
     "addFirstProduct": "Add your first product"
   },
   "search": {
@@ -760,6 +798,7 @@
     "replyingTo": "Replying to: {{text}}",
     "editingMessage": "Editing message",
     "originalUnavailable": "Original message unavailable",
+    "messageActions": "Message actions",
     "copy": "Copy",
     "edit": "Edit",
     "delete": "Delete",

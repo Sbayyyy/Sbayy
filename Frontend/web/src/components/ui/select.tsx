@@ -14,7 +14,7 @@ const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HT
     <select
       ref={ref}
       className={cn(
-        'input appearance-none bg-white bg-[linear-gradient(45deg,transparent_50%,#64748b_50%),linear-gradient(135deg,#64748b_50%,transparent_50%)] bg-[length:5px_5px,5px_5px] bg-[position:calc(100%-18px)_50%,calc(100%-13px)_50%] bg-no-repeat pr-10 font-medium text-slate-800 shadow-sm transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100',
+        'input appearance-none bg-white bg-[linear-gradient(45deg,transparent_50%,#64748b_50%),linear-gradient(135deg,#64748b_50%,transparent_50%)] bg-[length:5px_5px,5px_5px] bg-[position:calc(100%-18px)_50%,calc(100%-13px)_50%] bg-no-repeat pe-10 font-medium text-slate-800 shadow-sm transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 rtl:bg-[position:18px_50%,13px_50%]',
         className
       )}
       {...props}

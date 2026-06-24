@@ -25,6 +25,18 @@
   <data name="Auth_PasswordChangeRequired" xml:space="preserve"><value>كلمة المرور الحالية والجديدة مطلوبتان.</value></data>
   <data name="Auth_NewPasswordWeak" xml:space="preserve"><value>يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل وتتضمن أحرفاً كبيرة وصغيرة ورقماً.</value></data>
   <data name="Auth_InvalidCurrentPassword" xml:space="preserve"><value>كلمة المرور الحالية غير صحيحة.</value></data>
+  <data name="Auth_GoogleTokenRequired" xml:space="preserve"><value>رمز هوية Google مطلوب.</value></data>
+  <data name="Auth_GoogleSignInNotConfigured" xml:space="preserve"><value>تسجيل الدخول عبر Google غير مهيأ.</value></data>
+  <data name="Auth_GoogleUnavailable" xml:space="preserve"><value>تعذر الوصول إلى تسجيل الدخول عبر Google.</value></data>
+  <data name="Auth_GoogleRedirectInvalid" xml:space="preserve"><value>رابط إعادة توجيه Google غير صالح.</value></data>
+  <data name="Auth_GoogleCallbackNotConfigured" xml:space="preserve"><value>رابط عودة تسجيل الدخول عبر Google غير مهيأ.</value></data>
+  <data name="Auth_GoogleStateInvalid" xml:space="preserve"><value>حالة تسجيل الدخول عبر Google غير صالحة.</value></data>
+  <data name="Auth_GoogleAuthorizationCodeMissing" xml:space="preserve"><value>لم يرجع تسجيل الدخول عبر Google رمز تفويض.</value></data>
+  <data name="Auth_GoogleContinueFailed" xml:space="preserve"><value>تعذر المتابعة عبر Google.</value></data>
+  <data name="Auth_GoogleCredentialsRequired" xml:space="preserve"><value>رمز تفويض Google أو رمز الهوية مطلوب.</value></data>
+  <data name="Auth_GoogleInvalidToken" xml:space="preserve"><value>رمز Google غير صالح.</value></data>
+  <data name="Auth_GoogleEmailUnverified" xml:space="preserve"><value>تعذر التحقق من بريد حساب Google.</value></data>
+  <data name="Auth_GoogleProviderConflict" xml:space="preserve"><value>هذا البريد الإلكتروني مرتبط بالفعل بمزود تسجيل دخول آخر.</value></data>
 
   <!-- Chat / Offer notifications -->
   <data name="Chat_OfferReceivedTitle" xml:space="preserve"><value>عرض جديد</value></data>

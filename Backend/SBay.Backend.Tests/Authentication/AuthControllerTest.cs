@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -95,6 +97,259 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
         auth!.User.Verified.Should().BeFalse();
         auth.Token.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GoogleLogin_CreatesUser_AndReturnsAuthResponse()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+
+        var response = await client.PostAsJsonAsync("/api/auth/google", new
+        {
+            idToken = $"google-sub-1|{email}|Google User"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        auth.Should().NotBeNull();
+        auth!.User.Email.Should().Be(email.ToLowerInvariant());
+        auth.User.DisplayName.Should().Be("Google User");
+        auth.User.Verified.Should().BeTrue();
+        auth.Token.Should().NotBeNullOrWhiteSpace();
+        auth.RefreshToken.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GoogleLogin_LinksExistingEmailUser()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+
+        var registration = await client.PostAsJsonAsync("/api/auth/register",
+            new RegisterRequest(email, "Password1!", "Existing User"));
+        registration.EnsureSuccessStatusCode();
+
+        var response = await client.PostAsJsonAsync("/api/auth/google", new
+        {
+            idToken = $"google-sub-2|{email}|Google Name"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        auth.Should().NotBeNull();
+        auth!.User.Email.Should().Be(email.ToLowerInvariant());
+        auth.User.DisplayName.Should().Be("Existing User");
+        auth.User.Verified.Should().BeTrue();
+        auth.RefreshToken.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GoogleLogin_ReturningGoogleUser_Succeeds()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+        var token = $"google-sub-3|{email}|Returning User";
+
+        var first = await client.PostAsJsonAsync("/api/auth/google", new { idToken = token });
+        first.EnsureSuccessStatusCode();
+        var firstAuth = await first.Content.ReadFromJsonAsync<AuthResponse>();
+
+        var second = await client.PostAsJsonAsync("/api/auth/google", new { idToken = token });
+
+        second.StatusCode.Should().Be(HttpStatusCode.OK);
+        var secondAuth = await second.Content.ReadFromJsonAsync<AuthResponse>();
+        secondAuth.Should().NotBeNull();
+        secondAuth!.User.Id.Should().Be(firstAuth!.User.Id);
+        secondAuth.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        secondAuth.RefreshToken.Should().NotBe(firstAuth.RefreshToken);
+    }
+
+    [Fact]
+    public async Task GoogleLogin_RejectsInvalidToken()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/auth/google", new
+        {
+            idToken = "invalid"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [InlineData("|user@example.com|Google User")]
+    [InlineData("google-sub| |Google User")]
+    public async Task GoogleLogin_RejectsMissingRequiredGoogleClaims(string idToken)
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/auth/google", new
+        {
+            idToken
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GoogleLogin_RejectsUnverifiedGoogleEmail()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+
+        var response = await client.PostAsJsonAsync("/api/auth/google", new
+        {
+            idToken = $"google-sub-4|{email}|Google User|unverified"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GoogleMobileStart_RedirectsToGoogleWithSignedState()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/api/auth/google/mobile/start?redirectUri=sbay%3A%2F%2Fauth%2Fgoogle");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var location = response.Headers.Location;
+        location.Should().NotBeNull();
+        location!.Host.Should().Be("accounts.google.com");
+        location.AbsolutePath.Should().Be("/o/oauth2/v2/auth");
+
+        var query = QueryHelpers.ParseQuery(location.Query);
+        query["client_id"].ToString().Should().Be("test-web-client.apps.googleusercontent.com");
+        query["response_type"].ToString().Should().Be("code");
+        query["scope"].ToString().Should().Contain("openid");
+        query["redirect_uri"].ToString().Should().EndWith("/api/auth/google/mobile/callback");
+        query["state"].ToString().Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GoogleMobileStart_AcceptsExpoThreeSlashRedirectUri()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/api/auth/google/mobile/start?redirectUri=sbay%3A%2F%2F%2Fauth%2Fgoogle");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var query = QueryHelpers.ParseQuery(response.Headers.Location!.Query);
+        query["state"].ToString().Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GoogleMobileStart_RejectsUnapprovedRedirectUri()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/api/auth/google/mobile/start?redirectUri=https%3A%2F%2Fevil.example%2Fcallback");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GoogleMobileCallback_RejectsInvalidState()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/api/auth/google/mobile/callback?code=any-code&state=tampered");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GoogleMobileCallback_ExchangesCode_AndRedirectsToAppWithTokens()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var email = $"{Guid.NewGuid():N}@example.com";
+        var start = await client.GetAsync("/api/auth/google/mobile/start?redirectUri=sbay%3A%2F%2Fauth%2Fgoogle");
+        var state = QueryHelpers.ParseQuery(start.Headers.Location!.Query)["state"].ToString();
+
+        var callback = await client.GetAsync(
+            $"/api/auth/google/mobile/callback?code={Uri.EscapeDataString($"mobile-sub-1|{email}|Mobile User")}&state={Uri.EscapeDataString(state)}");
+
+        callback.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var location = callback.Headers.Location;
+        location.Should().NotBeNull();
+        location!.Scheme.Should().Be("sbay");
+        location.Host.Should().Be("auth");
+        location.AbsolutePath.Should().Be("/google");
+
+        var query = QueryHelpers.ParseQuery(location.Query);
+        query["token"].ToString().Should().NotBeNullOrWhiteSpace();
+        query["refreshToken"].ToString().Should().NotBeNullOrWhiteSpace();
+        query["refreshTokenExpiresAt"].ToString().Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GoogleMobileCallback_PostWithIdToken_ReturnsAuthResponse()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+
+        var response = await client.PostAsJsonAsync("/api/auth/google/mobile/callback", new
+        {
+            idToken = $"mobile-post-sub|{email}|Mobile User"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        auth.Should().NotBeNull();
+        auth!.User.Email.Should().Be(email.ToLowerInvariant());
+        auth.User.DisplayName.Should().Be("Mobile User");
+        auth.RefreshToken.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GoogleMobileCallback_PostWithCode_ReturnsAuthResponse()
+    {
+        var client = _factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@example.com";
+
+        var response = await client.PostAsJsonAsync("/api/auth/google/mobile/callback", new
+        {
+            code = $"mobile-post-code-sub|{email}|Mobile User",
+            redirectUri = "sbay:///auth/google"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        auth.Should().NotBeNull();
+        auth!.User.Email.Should().Be(email.ToLowerInvariant());
+        auth.User.DisplayName.Should().Be("Mobile User");
+        auth.RefreshToken.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GoogleMobileCallback_PostWithCode_RejectsUnapprovedRedirectUri()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/auth/google/mobile/callback", new
+        {
+            code = "mobile-post-sub|user@example.com|Mobile User",
+            redirectUri = "https://evil.example/callback"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
