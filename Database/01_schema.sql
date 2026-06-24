@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone TEXT,
   city TEXT,
   avatar_url TEXT,
-  external_id TEXT UNIQUE,
+  external_id VARCHAR(128),
   role TEXT NOT NULL DEFAULT 'user',
   status VARCHAR(32) NOT NULL DEFAULT 'active',
   deactivated_at TIMESTAMPTZ,
@@ -70,7 +70,10 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_ban_until TIMESTAMP
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit INT;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_count INT NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS listing_limit_reset_at TIMESTAMPTZ;
-ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS external_id VARCHAR(128);
+ALTER TABLE IF EXISTS users ALTER COLUMN external_id DROP NOT NULL;
+ALTER TABLE IF EXISTS users ALTER COLUMN external_id TYPE VARCHAR(128);
+ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_external_id_key;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT 'active';
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS account_deletion_requested_at TIMESTAMPTZ;
@@ -93,7 +96,8 @@ UPDATE users SET role = lower(trim(role)) WHERE role IS NOT NULL AND lower(trim(
 UPDATE users SET role = 'user' WHERE role IS NULL OR role NOT IN ('user','seller','support','admin');
 UPDATE users SET status = lower(trim(status)) WHERE status IS NOT NULL AND lower(trim(status)) <> status;
 UPDATE users SET status = 'active' WHERE status IS NULL OR status NOT IN ('active','deactivated','blocked');
-CREATE UNIQUE INDEX IF NOT EXISTS ux_users_external_id ON users(external_id) WHERE external_id IS NOT NULL;
+DROP INDEX IF EXISTS ux_users_external_id;
+CREATE UNIQUE INDEX IF NOT EXISTS ix_users_external_id ON users(external_id) WHERE external_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_users_email_verification_token_hash ON users(email_verification_token_hash) WHERE email_verification_token_hash IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_password_reset_token_hash ON users(password_reset_token_hash) WHERE password_reset_token_hash IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_users_status_deactivated_at ON users(status, deactivated_at);
