@@ -6,6 +6,18 @@ import { verifyEmail } from '@/lib/api/auth';
 import { getCurrentUser } from '@/lib/api/users';
 import { useAuthStore } from '@/lib/store';
 
+const ANDROID_APP_VERIFY_URL = 'sbay:///auth/verify-email';
+
+function isAndroidDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+function buildAndroidAppVerifyUrl(token: string) {
+  const params = new URLSearchParams({ token });
+  return `${ANDROID_APP_VERIFY_URL}?${params.toString()}`;
+}
+
 export default function VerifyEmailPage() {
   const router = useRouter();
   const { isAuthenticated, setUser } = useAuthStore();
@@ -31,22 +43,73 @@ export default function VerifyEmailPage() {
       return;
     }
 
+    let cancelled = false;
+    let fallbackTimer: number | null = null;
+    let appOpened = false;
+
+    const cleanupAppOpenListeners = () => {
+      if (fallbackTimer) {
+        window.clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+
+    const handleAppOpened = () => {
+      appOpened = true;
+      cleanupAppOpenListeners();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleAppOpened();
+      }
+    };
+
+    const handlePageHide = () => {
+      handleAppOpened();
+    };
+
     const run = async () => {
       try {
         await verifyEmail(token);
+        if (cancelled) return;
         if (isAuthenticated) {
           const user = await getCurrentUser();
+          if (cancelled) return;
           setUser(user);
         }
         setStatus('success');
         setMessage(isAuthenticated ? 'Email verified successfully. You can continue using SBay.' : 'Email verified successfully. You can now sign in.');
       } catch {
+        if (cancelled) return;
         setStatus('error');
         setMessage('This verification link is invalid or expired.');
       }
     };
 
-    void run();
+    if (isAndroidDevice()) {
+      setMessage('Opening the SBay app to verify your email...');
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('pagehide', handlePageHide);
+      window.location.assign(buildAndroidAppVerifyUrl(token));
+
+      fallbackTimer = window.setTimeout(() => {
+        cleanupAppOpenListeners();
+        if (!appOpened && !cancelled && document.visibilityState !== 'hidden') {
+          setMessage('Verifying your email...');
+          void run();
+        }
+      }, 1200);
+    } else {
+      void run();
+    }
+
+    return () => {
+      cancelled = true;
+      cleanupAppOpenListeners();
+    };
   }, [isAuthenticated, router.isReady, setUser]);
 
   return (

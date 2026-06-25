@@ -17,38 +17,66 @@ using SBay.Domain.Entities;
 public class TestWebAppFactory : WebApplicationFactory<Program>
 {
     private readonly string _dbName = $"WebAppTests-{Guid.NewGuid()}";
+    private readonly string _environment;
+    private readonly IReadOnlyDictionary<string, string?> _configurationOverrides;
+
+    public TestWebAppFactory() : this("Testing", null)
+    {
+    }
+
+    internal TestWebAppFactory(IReadOnlyDictionary<string, string?> configurationOverrides)
+        : this("Testing", configurationOverrides)
+    {
+    }
+
+    internal TestWebAppFactory(string environment)
+        : this(environment, null)
+    {
+    }
+
+    private TestWebAppFactory(string environment, IReadOnlyDictionary<string, string?>? configurationOverrides)
+    {
+        _environment = environment;
+        _configurationOverrides = configurationOverrides ?? new Dictionary<string, string?>();
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Testing");
+        builder.UseEnvironment(_environment);
 
         builder.ConfigureAppConfiguration((ctx, cfg) =>
         {
+            var testConfiguration = new Dictionary<string, string?>
+            {
+                ["Database:Provider"] = "ef",
+                ["ConnectionStrings:Default"] = "Host=localhost;Port=5432;Database=sbay_tests;Username=sbay;Password=sbay_tests",
+                ["Storage:Provider"] = "local",
+                ["Jwt:Issuer"] = "SBay",
+                ["Jwt:Audience"] = "SBayClients",
+                ["Jwt:Secret"] = "test_jwt_secret_32_bytes_minimum_value",
+                ["Jwt:ExpMinutes"] = "60",
+                ["Jwt:RefreshTokenDays"] = "7",
+                ["RateLimits:Auth:PermitLimit"] = "1000",
+                ["RateLimits:Registration:PermitLimit"] = "1000",
+                ["RateLimits:Uploads:PermitLimit"] = "1000",
+                ["RateLimits:Reports:PermitLimit"] = "1000",
+                ["RateLimits:Chat:PermitLimit"] = "1000",
+                ["RateLimits:Shipping:PermitLimit"] = "1000",
+                ["RateLimits:Write:PermitLimit"] = "1000",
+                ["Authentication:Google:OAuthClientId"] = "test-web-client.apps.googleusercontent.com",
+                ["Authentication:Google:OAuthClientSecret"] = "test-google-client-secret",
+                ["Authentication:Google:MobileRedirectUris:0"] = "sbay://auth/google",
+                ["Authentication:Google:MobileRedirectUris:1"] = "sbay:///auth/google"
+            };
+            foreach (var pair in _configurationOverrides)
+            {
+                testConfiguration[pair.Key] = pair.Value;
+            }
+
             cfg.AddJsonFile("appsettings.json", optional: true)
                .AddJsonFile("appsettings.Testing.json", optional: true)
                .AddEnvironmentVariables()
-               .AddInMemoryCollection(new Dictionary<string, string?>
-               {
-                   ["Database:Provider"] = "ef",
-                   ["ConnectionStrings:Default"] = "Host=localhost;Port=5432;Database=sbay_tests;Username=sbay;Password=sbay_tests",
-                   ["Storage:Provider"] = "local",
-                   ["Jwt:Issuer"] = "SBay",
-                   ["Jwt:Audience"] = "SBayClients",
-                   ["Jwt:Secret"] = "test_jwt_secret_32_bytes_minimum_value",
-                   ["Jwt:ExpMinutes"] = "60",
-                   ["Jwt:RefreshTokenDays"] = "7",
-                   ["RateLimits:Auth:PermitLimit"] = "1000",
-                   ["RateLimits:Registration:PermitLimit"] = "1000",
-                   ["RateLimits:Uploads:PermitLimit"] = "1000",
-                   ["RateLimits:Reports:PermitLimit"] = "1000",
-                   ["RateLimits:Chat:PermitLimit"] = "1000",
-                   ["RateLimits:Shipping:PermitLimit"] = "1000",
-                   ["RateLimits:Write:PermitLimit"] = "1000",
-                   ["Authentication:Google:OAuthClientId"] = "test-web-client.apps.googleusercontent.com",
-                   ["Authentication:Google:OAuthClientSecret"] = "test-google-client-secret",
-                   ["Authentication:Google:MobileRedirectUris:0"] = "sbay://auth/google",
-                   ["Authentication:Google:MobileRedirectUris:1"] = "sbay:///auth/google"
-               });
+               .AddInMemoryCollection(testConfiguration);
         });
 
         builder.ConfigureServices(services =>

@@ -247,6 +247,60 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
+    public async Task GoogleMobileStart_AcceptsLocalExpoGoRedirectUriWhenEnabled()
+    {
+        using var factory = new TestWebAppFactory(new Dictionary<string, string?>
+        {
+            ["Authentication:Google:AllowLocalExpoGoRedirects"] = "true"
+        });
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var redirectUri = Uri.EscapeDataString("exp://192.168.1.10:8081/--/auth/google");
+        var response = await client.GetAsync($"/api/auth/google/mobile/start?redirectUri={redirectUri}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var query = QueryHelpers.ParseQuery(response.Headers.Location!.Query);
+        query["state"].ToString().Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Theory]
+    [InlineData("exp://example.com/--/auth/google")]
+    [InlineData("exp://192.168.1.10:8081/--/auth/other")]
+    [InlineData("exp://192.168.1.10:8081/--/auth/google?next=1")]
+    public async Task GoogleMobileStart_RejectsUnsafeExpoGoRedirectUriWhenEnabled(string redirectUri)
+    {
+        using var factory = new TestWebAppFactory(new Dictionary<string, string?>
+        {
+            ["Authentication:Google:AllowLocalExpoGoRedirects"] = "true"
+        });
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync($"/api/auth/google/mobile/start?redirectUri={Uri.EscapeDataString(redirectUri)}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GoogleMobileStart_RejectsExpoGoRedirectUriWhenNotEnabled()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var redirectUri = Uri.EscapeDataString("exp://192.168.1.10:8081/--/auth/google");
+        var response = await client.GetAsync($"/api/auth/google/mobile/start?redirectUri={redirectUri}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task GoogleMobileStart_RejectsUnapprovedRedirectUri()
     {
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
@@ -505,6 +559,33 @@ public class AuthControllerTests : IClassFixture<TestWebAppFactory>
         var client = _factory.CreateClient();
         var res = await client.GetAsync("/api/auth/me");
         res.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task UpdateMe_ClearsPhone_WhenPhoneIsProvidedAsNull()
+    {
+        var (client, _) = await AuthTestClient.CreateAuthedAsync(_factory, "clear-phone");
+
+        var response = await client.PutAsJsonAsync("/api/users/me", new { phone = (string?)null });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await response.Content.ReadFromJsonAsync<UserDto>();
+        updated.Should().NotBeNull();
+        updated!.Phone.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateMe_PreservesPhone_WhenPhoneIsOmitted()
+    {
+        var (client, _) = await AuthTestClient.CreateAuthedAsync(_factory, "preserve-phone");
+
+        var response = await client.PutAsJsonAsync("/api/users/me", new { displayName = "Updated User" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await response.Content.ReadFromJsonAsync<UserDto>();
+        updated.Should().NotBeNull();
+        updated!.DisplayName.Should().Be("Updated User");
+        updated.Phone.Should().Be("01231294890");
     }
 
     [Fact]

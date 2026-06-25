@@ -66,6 +66,7 @@ services:
       Authentication__Google__MobileCallbackUrl: ${GOOGLE_MOBILE_CALLBACK_URL:-}
       Authentication__Google__MobileRedirectUris__0: ${GOOGLE_MOBILE_REDIRECT_URI:-sbay://auth/google}
       Authentication__Google__MobileRedirectUris__1: ${GOOGLE_MOBILE_REDIRECT_URI_ALT:-sbay:///auth/google}
+      Authentication__Google__MobileRedirectUris__2: ${GOOGLE_MOBILE_REDIRECT_URI_EXPO_GO:-}
       Email__From: ${EMAIL_FROM:-support@syrian-bay.com}
       Email__FromName: ${EMAIL_FROM_NAME:-SBay}
       Support__Email: ${SUPPORT_EMAIL:-support@syrian-bay.com}
