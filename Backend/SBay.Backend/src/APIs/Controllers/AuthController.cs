@@ -1,15 +1,19 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SBay.Backend.Authentication;
@@ -50,13 +54,14 @@ public class AuthController : ControllerBase
     private readonly IPasswordHasher<User> _hasher;
     private readonly JwtOptions _jwt;
     private readonly IConfiguration _config;
+    private readonly IWebHostEnvironment _environment;
     private readonly IEmailSender _emailSender;
     private readonly IPasswordResetEmailQueue _passwordResetEmailQueue;
     private readonly IGoogleTokenVerifier _googleTokenVerifier;
     private readonly IGoogleOAuthCodeExchanger _googleOAuthCodeExchanger;
     private readonly IStringLocalizer<BackendMessages> _l;
 
-    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IEmailSender emailSender, IPasswordResetEmailQueue passwordResetEmailQueue, IGoogleTokenVerifier googleTokenVerifier, IGoogleOAuthCodeExchanger googleOAuthCodeExchanger, IStringLocalizer<BackendMessages> localizer)
+    public AuthController(IUserRepository users, IRefreshTokenRepository refreshTokens, IUnitOfWork uow, IPasswordHasher<User> hasher, IOptions<JwtOptions> jwt, IConfiguration config, IWebHostEnvironment environment, IEmailSender emailSender, IPasswordResetEmailQueue passwordResetEmailQueue, IGoogleTokenVerifier googleTokenVerifier, IGoogleOAuthCodeExchanger googleOAuthCodeExchanger, IStringLocalizer<BackendMessages> localizer)
     {
         _users = users;
         _refreshTokens = refreshTokens;
@@ -64,6 +69,7 @@ public class AuthController : ControllerBase
         _hasher = hasher;
         _jwt = jwt.Value;
         _config = config;
+        _environment = environment;
         _emailSender = emailSender;
         _passwordResetEmailQueue = passwordResetEmailQueue;
         _googleTokenVerifier = googleTokenVerifier;
@@ -465,11 +471,61 @@ public class AuthController : ControllerBase
 
         var normalized = uri.ToString().TrimEnd('/');
         var allowed = GetConfiguredGoogleMobileRedirectUris();
-        if (!allowed.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+        if (!allowed.Contains(normalized, StringComparer.OrdinalIgnoreCase) &&
+            !IsAllowedDevelopmentExpoGoRedirectUri(uri))
+        {
             return false;
+        }
 
         mobileRedirectUri = normalized;
         return true;
+    }
+
+    private bool IsAllowedDevelopmentExpoGoRedirectUri(Uri uri)
+    {
+        if (!AllowsLocalExpoGoRedirects())
+            return false;
+        if (!string.Equals(uri.Scheme, "exp", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(uri.Scheme, "exps", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+        if (!string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
+            return false;
+
+        var path = uri.AbsolutePath.TrimEnd('/');
+        return string.Equals(path, "/--/auth/google", StringComparison.OrdinalIgnoreCase) &&
+               IsLocalDevelopmentHost(uri.Host);
+    }
+
+    private bool AllowsLocalExpoGoRedirects()
+    {
+        return _environment.IsDevelopment() ||
+               _config.GetValue<bool>("Authentication:Google:AllowLocalExpoGoRedirects") ||
+               _config.GetValue<bool>("Google:AllowLocalExpoGoRedirects") ||
+               string.Equals(_config["GOOGLE_ALLOW_LOCAL_EXPO_GO_REDIRECTS"], "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsLocalDevelopmentHost(string host)
+    {
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (!IPAddress.TryParse(host, out var ip))
+            return false;
+        if (IPAddress.IsLoopback(ip))
+            return true;
+
+        var bytes = ip.GetAddressBytes();
+        if (ip.AddressFamily == AddressFamily.InterNetwork)
+        {
+            return bytes[0] == 10 ||
+                   (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) ||
+                   (bytes[0] == 192 && bytes[1] == 168) ||
+                   (bytes[0] == 169 && bytes[1] == 254);
+        }
+
+        return ip.AddressFamily == AddressFamily.InterNetworkV6 &&
+               (ip.IsIPv6LinkLocal || (bytes[0] & 0xfe) == 0xfc);
     }
 
     private string[] GetConfiguredGoogleMobileRedirectUris()
@@ -484,6 +540,7 @@ public class AuthController : ControllerBase
             _config["Google:MobileRedirectUri"],
             _config["GOOGLE_MOBILE_REDIRECT_URI"],
             _config["GOOGLE_MOBILE_REDIRECT_URI_ALT"],
+            _config["GOOGLE_MOBILE_REDIRECT_URI_EXPO_GO"],
             "sbay://auth/google",
             "sbay:///auth/google"
         };

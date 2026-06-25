@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Text.Json;
 using SBay.Backend.APIs.Records;
 using SBay.Backend.APIs.Records.Responses;
 using SBay.Backend.Utils;
@@ -101,7 +102,7 @@ public class UserController : ControllerBase
     [HttpPut("me")]
     [Authorize(Policy = ScopePolicies.UsersWrite)]
     [EnableRateLimiting("write")]
-    public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest req, CancellationToken ct)
+    public async Task<IActionResult> UpdateMe([FromBody] JsonElement req, CancellationToken ct)
     {
         var uid = await _userResolver.GetUserIdAsync(User, ct);
         if (!uid.HasValue || uid.Value == Guid.Empty) return Unauthorized();
@@ -111,9 +112,10 @@ public class UserController : ControllerBase
 
         var changed = false;
 
-        if (!string.IsNullOrWhiteSpace(req.DisplayName))
+        if (TryGetStringProperty(req, "displayName", out var displayName) &&
+            !string.IsNullOrWhiteSpace(displayName))
         {
-            var dn = req.DisplayName.Trim();
+            var dn = displayName.Trim();
             if (!string.Equals(user.DisplayName, dn, StringComparison.Ordinal))
             {
                 user.DisplayName = dn;
@@ -121,9 +123,9 @@ public class UserController : ControllerBase
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(req.Phone))
+        if (TryGetStringProperty(req, "phone", out var phone))
         {
-            var ph = req.Phone.Trim();
+            var ph = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
             if (!string.Equals(user.Phone, ph, StringComparison.Ordinal))
             {
                 user.Phone = ph;
@@ -131,9 +133,9 @@ public class UserController : ControllerBase
             }
         }
 
-        if (req.City != null)
+        if (TryGetStringProperty(req, "city", out var cityValue))
         {
-            var city = string.IsNullOrWhiteSpace(req.City) ? null : req.City.Trim();
+            var city = string.IsNullOrWhiteSpace(cityValue) ? null : cityValue.Trim();
             if (!string.Equals(user.City, city, StringComparison.Ordinal))
             {
                 user.City = city;
@@ -141,9 +143,9 @@ public class UserController : ControllerBase
             }
         }
 
-        if (req.Avatar != null)
+        if (TryGetStringProperty(req, "avatar", out var avatarValue))
         {
-            var avatar = string.IsNullOrWhiteSpace(req.Avatar) ? null : req.Avatar.Trim();
+            var avatar = string.IsNullOrWhiteSpace(avatarValue) ? null : avatarValue.Trim();
             if (avatar != null && !StoredImageUrlValidator.IsAllowed(avatar, _config))
                 return BadRequest("Avatar URL is invalid.");
             if (!string.Equals(user.AvatarUrl, avatar, StringComparison.Ordinal))
@@ -160,6 +162,28 @@ public class UserController : ControllerBase
         }
 
         return Ok(user.ToDto());
+    }
+
+    private static bool TryGetStringProperty(JsonElement source, string name, out string? value)
+    {
+        value = null;
+        if (source.ValueKind != JsonValueKind.Object) return false;
+
+        foreach (var property in source.EnumerateObject())
+        {
+            if (!string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            value = property.Value.ValueKind switch
+            {
+                JsonValueKind.Null or JsonValueKind.Undefined => null,
+                JsonValueKind.String => property.Value.GetString(),
+                _ => property.Value.ToString(),
+            };
+            return true;
+        }
+
+        return false;
     }
 
     [HttpPost("me/deactivate")]

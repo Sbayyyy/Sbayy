@@ -57,6 +57,7 @@ Google sign-in uses two backend flows:
 
 - Web sends a Google ID token to `POST /api/auth/google`.
 - Expo/mobile starts at `GET /api/auth/google/mobile/start?redirectUri=sbay://auth/google`, completes at `GET /api/auth/google/mobile/callback`, and receives the same SBay auth token/refresh-token shape. The backend also allows Expo's `sbay:///auth/google` deep-link form by default.
+- Expo Go uses an `exp://<local-host>:<port>/--/auth/google` callback instead of the `sbay` scheme. In `Development`, local Expo Go callbacks on localhost/private network hosts are accepted automatically. Outside `Development`, add the exact callback URL through `GOOGLE_MOBILE_REDIRECT_URI_EXPO_GO` or use a dev-client/production build.
 
 Configure Google Cloud Console:
 
@@ -73,6 +74,7 @@ Set these environment variables in production:
 - `GOOGLE_MOBILE_CALLBACK_URL`: Public backend callback URL, usually `https://api.syrian-bay.com/api/auth/google/mobile/callback`.
 - `GOOGLE_MOBILE_REDIRECT_URI`: Expo app deep link, usually `sbay://auth/google`.
 - `GOOGLE_MOBILE_REDIRECT_URI_ALT`: Optional second Expo deep link, usually `sbay:///auth/google`.
+- `GOOGLE_MOBILE_REDIRECT_URI_EXPO_GO`: Optional exact Expo Go callback, for example `exp://192.168.1.10:8081/--/auth/google`.
 - `NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID`: Web client ID exposed to the Next.js app.
 
 ## Common Commands
