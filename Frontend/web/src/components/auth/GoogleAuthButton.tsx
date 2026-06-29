@@ -42,6 +42,7 @@ interface GoogleAuthButtonProps {
   onError: (message: string) => void;
   disabled?: boolean;
   text?: GoogleButtonText;
+  comingSoon?: boolean;
 }
 
 const SCRIPT_ID = 'google-identity-services';
@@ -55,6 +56,7 @@ const SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
  * @param props.onError - Called with a localized error message when loading or token retrieval fails.
  * @param props.disabled - Prevents GIS button rendering and user interaction when true.
  * @param props.text - Google button text variant; defaults to continue_with.
+ * @param props.comingSoon - Renders a disabled "coming soon" button and skips loading Google sign-in when true.
  * @returns A Google sign-in button or an unavailable-state button when no client ID is configured.
  */
 export default function GoogleAuthButton(props: GoogleAuthButtonProps) {
@@ -63,6 +65,7 @@ export default function GoogleAuthButton(props: GoogleAuthButtonProps) {
     onError,
     disabled = false,
     text = 'continue_with',
+    comingSoon = false,
   } = props;
   const { t, i18n } = useTranslation('common');
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -70,7 +73,7 @@ export default function GoogleAuthButton(props: GoogleAuthButtonProps) {
   const clientId = config.googleWebClientId;
 
   useEffect(() => {
-    if (!clientId) return;
+    if (comingSoon || !clientId) return;
 
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
     if (window.google?.accounts?.id) {
@@ -97,12 +100,12 @@ export default function GoogleAuthButton(props: GoogleAuthButtonProps) {
       script.removeEventListener('load', handleLoad);
       script.removeEventListener('error', handleError);
     };
-  }, [clientId, onError, t]);
+  }, [clientId, comingSoon, onError, t]);
 
   useEffect(() => {
     const container = containerRef.current;
     const googleId = window.google?.accounts?.id;
-    if (!container || !ready || !clientId || !googleId) return;
+    if (comingSoon || !container || !ready || !clientId || !googleId) return;
     if (disabled) {
       container.innerHTML = '';
       return;
@@ -129,7 +132,23 @@ export default function GoogleAuthButton(props: GoogleAuthButtonProps) {
       width: Math.max(220, Math.min(360, container.parentElement?.clientWidth || container.clientWidth || 280)),
       locale: i18n.language?.startsWith('ar') ? 'ar' : 'en',
     });
-  }, [clientId, disabled, i18n.language, onError, onToken, ready, t, text]);
+  }, [clientId, comingSoon, disabled, i18n.language, onError, onToken, ready, t, text]);
+
+  if (comingSoon) {
+    return (
+      <button
+        type="button"
+        className="btn btn-outline relative w-full cursor-not-allowed opacity-60"
+        disabled
+        aria-disabled
+      >
+        <span>{t('auth.google.continue')}</span>
+        <span className="absolute end-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+          {t('auth.google.comingSoon')}
+        </span>
+      </button>
+    );
+  }
 
   if (!clientId) {
     return (

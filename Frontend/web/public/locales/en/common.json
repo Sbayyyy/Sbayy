@@ -46,7 +46,9 @@
       "loading": "Loading Google sign-in...",
       "loadError": "Unable to load Google sign-in. Please try again.",
       "missingToken": "Google did not return a sign-in token. Please try again.",
-      "unavailable": "Google sign-in is not configured"
+      "unavailable": "Google sign-in is not configured",
+      "continue": "Continue with Google",
+      "comingSoon": "Coming soon"
     },
     "passwordToggle": {
       "show": "Show password",
