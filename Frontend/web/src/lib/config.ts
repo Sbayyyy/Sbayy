@@ -71,6 +71,9 @@ export const features = {
   enableSignalR: process.env.NEXT_PUBLIC_ENABLE_SIGNALR === 'true',
   enablePWA: process.env.NEXT_PUBLIC_ENABLE_PWA === 'true',
   enableAnalytics: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
+  // Google sign-in exists but is not live yet; gate it behind a "coming soon" flag.
+  // Defaults to coming soon unless explicitly disabled.
+  googleAuthComingSoon: process.env.NEXT_PUBLIC_GOOGLE_AUTH_COMING_SOON !== 'false',
 };
 
 // Validation Rules

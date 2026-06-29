@@ -13,7 +13,7 @@ import { getErrorMessage } from '@/lib/api/errors';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { Select } from '@/components/ui/select';
-import { config } from '@/lib/config';
+import { config, features } from '@/lib/config';
 import { CITIES, normalizeCityValue } from '@/lib/constants';
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import PasswordInput from '@/components/ui/password-input';
@@ -336,6 +336,7 @@ export default function Register() {
               onToken={handleGoogleToken}
               onError={setApiError}
               disabled={isLoading || isGoogleLoading}
+              comingSoon={features.googleAuthComingSoon}
             />
             <div className="flex items-center gap-3 text-xs font-semibold uppercase text-slate-400">
               <span className="h-px flex-1 bg-slate-200" />

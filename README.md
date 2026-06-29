@@ -2,6 +2,11 @@
 
 SBay is a full-stack marketplace application with a Next.js web frontend, ASP.NET Core backend, PostgreSQL database, and Redis cache.
 
+> 📚 **New here? Read the engineering docs in [`docs/`](docs/README.md)** — a full
+> onboarding set covering architecture, backend, frontend, data model, auth,
+> deployment, local setup, and database operations. This README is the quick
+> start + deployment reference.
+
 ## Quick Start
 
 Prerequisites:

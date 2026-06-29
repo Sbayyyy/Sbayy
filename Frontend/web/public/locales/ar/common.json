@@ -46,7 +46,9 @@
       "loading": "جاري تحميل تسجيل الدخول عبر Google...",
       "loadError": "تعذر تحميل تسجيل الدخول عبر Google. حاول مرة أخرى.",
       "missingToken": "لم يرجع Google رمز تسجيل الدخول. حاول مرة أخرى.",
-      "unavailable": "تسجيل الدخول عبر Google غير مهيأ"
+      "unavailable": "تسجيل الدخول عبر Google غير مهيأ",
+      "continue": "المتابعة عبر Google",
+      "comingSoon": "قريباً"
     },
     "passwordToggle": {
       "show": "إظهار كلمة المرور",
